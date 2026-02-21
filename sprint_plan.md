@@ -180,10 +180,27 @@ Data providers (HealthKit, APIs, mocks) live in `DigitalTwin.MAUI/Integrations/`
 
 ---
 
-## Sprint 2: Data Ingestion & External Connectivity
+## Sprint 2: Authentication, Data Ingestion & External Connectivity
 
 **Duration:** 2 weeks  
-**Goal:** Replace mocks with real adapters. Integrate HealthKit, OpenWeatherMap, Google Air Quality, RxNav.
+**Goal:** OAuth authentication (Google), replace mocks with real adapters. Integrate HealthKit, sync health data to backend. OpenWeatherMap, Google Air Quality, RxNav.
+
+---
+
+### 2.0 Authentication (OAuth)
+
+*Note: There is no pre-built "NextAuth-like" plugin for MudBlazor. Use Blazor's built-in OIDC: `AddOidcAuthentication` (WASM) or `AddAuthentication` + `AddOpenIdConnect` (Server). Reference: [Blazor OIDC](https://learn.microsoft.com/en-us/aspnet/core/blazor/security/blazor-web-app-with-oidc), [BlazorOAuth](https://github.com/TDMR87/BlazorOAuth) for Google OAuth demo.*
+
+| Task ID | Task | Details | Files to Create/Modify |
+|---------|------|---------|------------------------|
+| 2.0.1 | Google OAuth Setup | Create Google Cloud OAuth 2.0 credentials. Configure redirect URIs for MAUI (custom scheme) and Doctor Portal (web). | Google Cloud Console |
+| 2.0.2 | Domain: User/UserOAuth | Ensure `User`, `UserOAuth` entities exist per `database.puml`. Add `IUserRepository`, `IUserOAuthRepository` in Domain. | `Infrastructure/Entities/`, `Domain/Interfaces/` |
+| 2.0.3 | Auth Service (Application) | Create `IAuthApplicationService`: `Task<AuthResult> SignInWithGoogleAsync()`, `SignOutAsync()`, `GetCurrentUserAsync()`. Maps OAuth claims → User/Patient. | `Application/Services/AuthApplicationService.cs` |
+| 2.0.4 | MAUI Auth Flow | Use `WebAuthenticator` (MAUI) for OAuth. On callback: exchange code for tokens, upsert User/UserOAuth via Application service. Store tokens securely (SecureStorage). | `Integrations/Auth/GoogleAuthProvider.cs`, `MauiProgram.cs` |
+| 2.0.5 | Doctor Portal OIDC | If Doctor Portal is Blazor Server/WASM: Add `AddOidcAuthentication` with Google provider. Configure `appsettings.json` with Authority, ClientId, RedirectUri. | `DoctorPortal/Program.cs`, `appsettings.json` |
+| 2.0.6 | Protected Routes | Add `[Authorize]` to pages requiring auth. Redirect unauthenticated users to login. | `Components/Pages/*.razor`, `MainLayout.razor` |
+
+**Acceptance Criteria:** User can sign in with Google. User/UserOAuth persisted. Doctor Portal (if separate) uses OIDC. Protected routes enforce auth.
 
 ---
 
@@ -234,9 +251,27 @@ Environment APIs live in `Integrations/` (Presentation). Domain service evaluate
 
 ---
 
+### 2.4 Health Data Sync to Backend
+
+HealthKit data (vitals, sleep) must be processed and persisted to the backend database so doctors can view patient history and AI/coaching can use aggregated data.
+
+| Task ID | Task | Details | Files to Create/Modify |
+|---------|------|---------|------------------------|
+| 2.4.1 | Domain: VitalSign PatientId | Extend `VitalSign` domain model with `PatientId`, `Source` (HealthKit, Mock, IoT). Update `IVitalSignRepository.AddAsync` to accept PatientId. | `Domain/Models/VitalSign.cs`, `Domain/Interfaces/IVitalSignRepository.cs` |
+| 2.4.2 | SleepSession Sync | Add `ISleepSessionRepository` in Domain. Create `SleepSessionEntity` if missing. HealthKit sleep data → Domain `SleepSession` → Infrastructure. | `Domain/Interfaces/`, `Infrastructure/Entities/SleepSessionEntity.cs`, `Infrastructure/Repositories/` |
+| 2.4.3 | Vitals Sync Pipeline | In `VitalsApplicationService` or new `HealthDataSyncService`: subscribe to `GetLiveVitals()`, batch every N seconds or on app foreground. Call `IVitalSignRepository.AddAsync` with current PatientId (from auth). Source = "HealthKit". | `Application/Services/HealthDataSyncService.cs`, `VitalsApplicationService.cs` |
+| 2.4.4 | Background Sync (iOS) | In `BackgroundFetchHandler`, after HealthKit fetch: call Application service to persist new samples to DB. Ensure PatientId available (from SecureStorage/cached auth). | `Platforms/iOS/BackgroundFetchHandler.cs`, `HealthDataSyncService.cs` |
+| 2.4.5 | API Endpoint (optional) | If backend is separate API: add `POST /api/vitals` to receive batched vitals from MAUI. Validate JWT, map to VitalSignEntity, persist. | `Backend/Controllers/VitalsController.cs` |
+
+**Acceptance Criteria:** HealthKit vitals and sleep data are persisted to backend (Infrastructure DB or API). Data associated with authenticated Patient. Background fetch syncs when app is closed.
+
+---
+
 ### Sprint 2 Definition of Done
 
+- [ ] OAuth (Google) authentication works for MAUI and Doctor Portal.
 - [ ] HealthKit provides real vitals on iOS.
+- [ ] Health data (vitals, sleep) is synced to backend/database.
 - [ ] Environment widget uses OpenWeatherMap + Google Air Quality APIs.
 - [ ] RxNav integration returns interaction data.
 - [ ] MedicationSafetyBadge displays correctly.
@@ -449,7 +484,7 @@ Triage rules are business logic → Domain.
 | Sprint | Domain | Application | Infrastructure | Presentation (DigitalTwin) |
 |--------|--------|-------------|----------------|-----------------------------|
 | 1 | Models, Services, Interfaces, Validators, Exceptions | DTOs, Mappers, Validators, Application Services | DbContext, EF Entities, Repositories | Integrations/Mocks, Theme, MetricCard, DigitalTwin, Home |
-| 2 | MedicationInteraction model, MedicationInteractionService | Medication DTOs, Mappers | — (DB only) | Integrations: HealthKit, HttpEnvironment, RxNav; Medications page |
+| 2 | MedicationInteraction model, MedicationInteractionService; VitalSign PatientId/Source | Auth, Medication DTOs, Mappers; HealthDataSyncService | User/UserOAuth repos; VitalSign, SleepSession sync | Integrations: Auth (Google OAuth), HealthKit, HttpEnvironment, RxNav; Medications page; Health data → backend |
 | 3 | EcgFrame model, Triage rules (EcgTriageEngine) | EcgFrameDto, Mappers | — | Integrations: SignalR; EcgCanvasView, EcgMonitor, CriticalAlertBanner |
 | 4 | AnomalyPrediction, IAnomalyDetectionProvider, IMedicalAssistantProvider, ICoachingProvider | DTOs, Application Services | — | Integrations: CNN API, RAG, Gemini; ChatBotWindow, MedicalAssistant |
 | 5 | OcrResult, DischargeLetterMappingService, HealthReport, IReportExporter | DocumentImport, ReportApplicationService | DoctorActionEntity, Repositories | Integrations: Azure OCR, QuestPDF, Push; Documents, DoctorMainLayout, Reports |

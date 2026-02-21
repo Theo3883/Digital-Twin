@@ -20,6 +20,15 @@ public class EnvironmentApplicationService : IEnvironmentApplicationService
         _assessmentService = assessmentService;
     }
 
+    public IObservable<RiskEventDto> RiskEvents =>
+        _assessmentService.RiskEvents
+            .Select(evt => new RiskEventDto
+            {
+                AirQualityLevel = EnumMapper.ToApp(evt.AirQualityLevel),
+                Message = evt.Message,
+                Timestamp = evt.Timestamp
+            });
+
     public async Task<EnvironmentReadingDto> GetCurrentEnvironmentAsync()
     {
         var reading = await _environmentDataProvider.GetCurrentAsync();

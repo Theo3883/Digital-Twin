@@ -9,7 +9,7 @@ public static class VitalSignMapper
     {
         return new VitalSignDto
         {
-            Type = model.Type,
+            Type = EnumMapper.ToApp(model.Type),
             Value = model.Value,
             Unit = model.Unit,
             Timestamp = model.Timestamp,
@@ -21,7 +21,7 @@ public static class VitalSignMapper
     {
         return new VitalSign
         {
-            Type = dto.Type,
+            Type = EnumMapper.ToDomain(dto.Type),
             Value = dto.Value,
             Unit = dto.Unit,
             Timestamp = dto.Timestamp

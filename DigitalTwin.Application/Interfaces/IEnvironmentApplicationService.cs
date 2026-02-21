@@ -7,4 +7,6 @@ public interface IEnvironmentApplicationService
     Task<EnvironmentReadingDto> GetCurrentEnvironmentAsync();
 
     IObservable<EnvironmentReadingDto> SubscribeToEnvironment();
+
+    IObservable<RiskEventDto> RiskEvents { get; }
 }

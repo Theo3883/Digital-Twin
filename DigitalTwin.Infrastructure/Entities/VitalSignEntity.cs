@@ -9,6 +9,8 @@ public class VitalSignEntity
     public string Unit { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
     public string? Source { get; set; }
+    public bool IsDirty { get; set; } = true;
+    public DateTime? SyncedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? DeletedAt { get; set; }
 

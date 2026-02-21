@@ -1,5 +1,5 @@
 using DigitalTwin.Application.DTOs;
-using DigitalTwin.Domain.Enums;
+using DigitalTwin.Application.Enums;
 
 namespace DigitalTwin.Application.Interfaces;
 

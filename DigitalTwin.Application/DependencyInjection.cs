@@ -12,9 +12,13 @@ public static class DependencyInjection
     {
         services.AddScoped<VitalSignService>();
         services.AddScoped<EnvironmentAssessmentService>();
+        services.AddScoped<MedicationInteractionService>();
 
         services.AddScoped<IVitalsApplicationService, VitalsApplicationService>();
         services.AddScoped<IEnvironmentApplicationService, EnvironmentApplicationService>();
+        services.AddScoped<IAuthApplicationService, AuthApplicationService>();
+        services.AddScoped<IHealthDataSyncService, HealthDataSyncService>();
+        services.AddScoped<IMedicationApplicationService, MedicationApplicationService>();
 
         services.AddValidatorsFromAssemblyContaining<Validators.VitalSignDtoValidator>();
 

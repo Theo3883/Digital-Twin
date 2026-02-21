@@ -1,0 +1,43 @@
+@inject IAuthApplicationService AuthService
+@inject NavigationManager Navigation
+
+@if (_isAuthenticated)
+{
+    @ChildContent
+}
+else if (_isLoading)
+{
+    <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+    </div>
+}
+else
+{
+    <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px;">
+        <MudStack AlignItems="AlignItems.Center" Spacing="4">
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                You need to sign in to access this page.
+            </MudAlert>
+            <MudLink Href="/login" Typo="Typo.body1" Color="Color.Primary">
+                Go to Sign In
+            </MudLink>
+        </MudStack>
+    </div>
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private bool _isLoading = true;
+    private bool _isAuthenticated;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await AuthService.GetCurrentUserAsync();
+        _isAuthenticated = user is not null;
+        _isLoading = false;
+
+        if (!_isAuthenticated)
+            Navigation.NavigateTo("/login");
+    }
+}

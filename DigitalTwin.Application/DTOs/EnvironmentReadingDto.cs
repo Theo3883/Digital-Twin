@@ -1,4 +1,4 @@
-using DigitalTwin.Domain.Enums;
+using DigitalTwin.Application.Enums;
 
 namespace DigitalTwin.Application.DTOs;
 

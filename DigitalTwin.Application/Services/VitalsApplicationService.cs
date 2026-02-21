@@ -1,8 +1,8 @@
 using System.Reactive.Linq;
 using DigitalTwin.Application.DTOs;
+using DigitalTwin.Application.Enums;
 using DigitalTwin.Application.Interfaces;
 using DigitalTwin.Application.Mappers;
-using DigitalTwin.Domain.Enums;
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Services;
 
@@ -12,7 +12,7 @@ public class VitalsApplicationService : IVitalsApplicationService
 {
     private readonly IHealthDataProvider _healthDataProvider;
     private readonly VitalSignService _vitalSignService;
-    private readonly Dictionary<VitalSignType, double> _lastValues = new();
+    private readonly Dictionary<Domain.Enums.VitalSignType, double> _lastValues = new();
 
     public VitalsApplicationService(
         IHealthDataProvider healthDataProvider,
@@ -40,7 +40,8 @@ public class VitalsApplicationService : IVitalsApplicationService
 
     public async Task<IEnumerable<VitalSignDto>> GetLatestSamplesAsync(VitalSignType type, int count = 20)
     {
-        var samples = await _healthDataProvider.GetLatestSamplesAsync(type, count);
+        var domainType = EnumMapper.ToDomain(type);
+        var samples = await _healthDataProvider.GetLatestSamplesAsync(domainType, count);
         return samples.Select(s => VitalSignMapper.ToDto(s));
     }
 }

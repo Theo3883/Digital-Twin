@@ -36,6 +36,7 @@ public class MockHealthProvider : IHealthDataProvider
             Type = VitalSignType.HeartRate,
             Value = Math.Round(80 + 20 * Math.Sin(elapsed / 30.0) + _random.Next(-3, 4), 1),
             Unit = "bpm",
+            Source = "Mock",
             Timestamp = now
         };
 
@@ -44,6 +45,7 @@ public class MockHealthProvider : IHealthDataProvider
             Type = VitalSignType.SpO2,
             Value = Math.Round(97 + 2 * Math.Sin(elapsed / 60.0) + _random.NextDouble() * 0.5, 1),
             Unit = "%",
+            Source = "Mock",
             Timestamp = now
         };
 
@@ -53,6 +55,7 @@ public class MockHealthProvider : IHealthDataProvider
             Type = VitalSignType.Steps,
             Value = Math.Round(hourOfDay * 450 + _random.Next(0, 100)),
             Unit = "steps",
+            Source = "Mock",
             Timestamp = now
         };
 
@@ -61,6 +64,7 @@ public class MockHealthProvider : IHealthDataProvider
             Type = VitalSignType.Calories,
             Value = Math.Round(steps.Value * 0.04 + 1200 + _random.Next(0, 50)),
             Unit = "kcal",
+            Source = "Mock",
             Timestamp = now
         };
 

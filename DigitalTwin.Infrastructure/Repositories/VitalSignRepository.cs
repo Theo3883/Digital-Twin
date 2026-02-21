@@ -39,19 +39,42 @@ public class VitalSignRepository : IVitalSignRepository
         await _db.SaveChangesAsync();
     }
 
+    public async Task<IEnumerable<VitalSign>> GetDirtyAsync()
+    {
+        var entities = await _db.VitalSigns
+            .Where(v => v.IsDirty)
+            .OrderBy(v => v.Timestamp)
+            .ToListAsync();
+        return entities.Select(ToDomain);
+    }
+
+    public async Task MarkSyncedAsync(long patientId, DateTime beforeTimestamp)
+    {
+        await _db.VitalSigns
+            .Where(v => v.PatientId == patientId && v.IsDirty && v.Timestamp <= beforeTimestamp)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(v => v.IsDirty, false)
+                .SetProperty(v => v.SyncedAt, DateTime.UtcNow));
+    }
+
     private static VitalSign ToDomain(VitalSignEntity entity) => new()
     {
+        PatientId = entity.PatientId,
         Type = (VitalSignType)entity.Type,
         Value = (double)entity.Value,
         Unit = entity.Unit,
+        Source = entity.Source ?? string.Empty,
         Timestamp = entity.Timestamp
     };
 
     private static VitalSignEntity ToEntity(VitalSign model) => new()
     {
+        PatientId = model.PatientId,
         Type = (int)model.Type,
         Value = (decimal)model.Value,
         Unit = model.Unit,
-        Timestamp = model.Timestamp
+        Source = model.Source,
+        Timestamp = model.Timestamp,
+        IsDirty = true
     };
 }

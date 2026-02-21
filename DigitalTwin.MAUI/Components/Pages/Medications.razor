@@ -1,0 +1,125 @@
+@page "/medications"
+@inject IMedicationApplicationService MedicationService
+@inject ISnackbar Snackbar
+
+<RequireAuth>
+    <div>
+        <MudText Typo="Typo.h5" Style="color: #e2e8f0; font-weight: 700; margin-bottom: 24px;">
+            Medication Interactions
+        </MudText>
+
+        <MudCard Style="background: linear-gradient(145deg, rgba(26, 31, 46, 0.9), rgba(15, 20, 35, 0.95)); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 16px; margin-bottom: 24px;" Elevation="0">
+            <MudCardContent>
+                <MudText Typo="Typo.subtitle1" Style="color: #e2e8f0; font-weight: 600; margin-bottom: 16px;">
+                    Check Drug Interactions
+                </MudText>
+                <MudStack Spacing="3">
+                    <MudTextField @bind-Value="_rxCuiInput"
+                                  Label="RxCUI codes (comma-separated)"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Medication"
+                                  Placeholder="e.g. 207106, 152923"
+                                  Style="color: #e2e8f0;" />
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               OnClick="CheckInteractionsAsync"
+                               Loading="_isLoading"
+                               StartIcon="@Icons.Material.Filled.Search"
+                               Style="text-transform: none; border-radius: 12px;">
+                        Check Interactions
+                    </MudButton>
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+
+        @if (_interactions.Any())
+        {
+            <MudTable Items="@_interactions"
+                      Hover="true"
+                      Breakpoint="Breakpoint.Sm"
+                      Style="background: linear-gradient(145deg, rgba(26, 31, 46, 0.9), rgba(15, 20, 35, 0.95)); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 16px;"
+                      Dense="true">
+                <HeaderContent>
+                    <MudTh Style="color: #94a3b8;">Drug A</MudTh>
+                    <MudTh Style="color: #94a3b8;">Drug B</MudTh>
+                    <MudTh Style="color: #94a3b8;">Severity</MudTh>
+                    <MudTh Style="color: #94a3b8;">Description</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Drug A" Style="color: #e2e8f0;">@context.DrugARxCui</MudTd>
+                    <MudTd DataLabel="Drug B" Style="color: #e2e8f0;">@context.DrugBRxCui</MudTd>
+                    <MudTd DataLabel="Severity">
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="@GetSeverityColor(context.Severity)">
+                            @context.Severity.ToString()
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Description" Style="color: #cbd5e1; max-width: 300px;">
+                        @context.Description
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+        else if (_hasSearched && !_isLoading)
+        {
+            <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Style="margin-top: 16px;">
+                No interactions found between the specified medications.
+            </MudAlert>
+        }
+    </div>
+</RequireAuth>
+
+@code {
+    private string _rxCuiInput = string.Empty;
+    private bool _isLoading;
+    private bool _hasSearched;
+    private List<MedicationInteractionDto> _interactions = [];
+
+    private async Task CheckInteractionsAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_rxCuiInput)) return;
+
+        _isLoading = true;
+        _hasSearched = true;
+
+        try
+        {
+            var rxCuis = _rxCuiInput
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .ToList();
+
+            if (rxCuis.Count < 2)
+            {
+                Snackbar.Add("Please enter at least two RxCUI codes.", Severity.Warning);
+                return;
+            }
+
+            var results = await MedicationService.CheckInteractionsAsync(rxCuis);
+            _interactions = results.ToList();
+
+            if (_interactions.Any(i => i.Severity == InteractionSeverity.High))
+                Snackbar.Add("High-risk interactions detected!", Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private static Color GetSeverityColor(InteractionSeverity severity)
+    {
+        return severity switch
+        {
+            InteractionSeverity.High => Color.Error,
+            InteractionSeverity.Medium => Color.Warning,
+            InteractionSeverity.Low => Color.Info,
+            _ => Color.Default
+        };
+    }
+}

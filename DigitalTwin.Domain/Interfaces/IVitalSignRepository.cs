@@ -12,4 +12,8 @@ public interface IVitalSignRepository
         DateTime? to = null);
 
     Task AddAsync(VitalSign vitalSign);
+
+    Task<IEnumerable<VitalSign>> GetDirtyAsync();
+
+    Task MarkSyncedAsync(long patientId, DateTime beforeTimestamp);
 }

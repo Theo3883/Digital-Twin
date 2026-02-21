@@ -1,15 +1,106 @@
 @inherits LayoutComponentBase
 @using DigitalTwin.Components.Theme
+@inject IAuthApplicationService AuthService
+@inject IEnvironmentApplicationService EnvironmentService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@implements IDisposable
 
 <MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="@MedicalTheme.Instance" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<div style="min-height: 100vh; background: linear-gradient(135deg, #0a0f1a 0%, #111827 50%, #0d1320 100%);">
-    @Body
-</div>
+<MudLayout Style="min-height: 100vh; background: linear-gradient(135deg, #0a0f1a 0%, #111827 50%, #0d1320 100%);">
+    <MudAppBar Elevation="0" Style="background: rgba(10, 15, 26, 0.85); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                       Color="Color.Inherit"
+                       Edge="Edge.Start"
+                       OnClick="ToggleDrawer" />
+        <MudText Typo="Typo.h6" Style="font-weight: 700; color: #e2e8f0;">Digital Twin</MudText>
+        <MudSpacer />
+        @if (_currentUser is not null)
+        {
+            <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                <ActivatorContent>
+                    <MudAvatar Style="cursor: pointer; border: 2px solid rgba(96, 165, 250, 0.3);">
+                        @if (!string.IsNullOrEmpty(_currentUser.PhotoUrl))
+                        {
+                            <MudImage Src="@_currentUser.PhotoUrl" Alt="@_currentUser.DisplayName" />
+                        }
+                        else
+                        {
+                            @_currentUser.DisplayName.FirstOrDefault()
+                        }
+                    </MudAvatar>
+                </ActivatorContent>
+                <ChildContent>
+                    <MudMenuItem Disabled="true">
+                        <MudText Typo="Typo.body2" Style="color: #e2e8f0;">@_currentUser.DisplayName</MudText>
+                        <MudText Typo="Typo.caption" Style="color: #94a3b8;">@_currentUser.Email</MudText>
+                    </MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem OnClick="SignOutAsync" Icon="@Icons.Material.Filled.Logout">
+                        Sign Out
+                    </MudMenuItem>
+                </ChildContent>
+            </MudMenu>
+        }
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen"
+               Elevation="0"
+               Variant="DrawerVariant.Mini"
+               Style="background: rgba(10, 15, 26, 0.95); border-right: 1px solid rgba(255, 255, 255, 0.06);">
+        <MudNavMenu>
+            <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard"
+                        Style="color: #e2e8f0;">
+                Dashboard
+            </MudNavLink>
+            <MudNavLink Href="/medications" Icon="@Icons.Material.Filled.Medication"
+                        Style="color: #e2e8f0;">
+                Medications
+            </MudNavLink>
+        </MudNavMenu>
+    </MudDrawer>
+
+    <MudMainContent>
+        <div class="page-content">
+            @Body
+        </div>
+    </MudMainContent>
+</MudLayout>
 
 @code {
     private bool _isDarkMode = true;
+    private bool _drawerOpen = true;
+    private AuthResultDto? _currentUser;
+    private IDisposable? _riskSubscription;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _currentUser = await AuthService.GetCurrentUserAsync();
+
+        _riskSubscription = EnvironmentService.RiskEvents
+            .Subscribe(evt =>
+            {
+                InvokeAsync(() =>
+                    Snackbar.Add(evt.Message, MudBlazor.Severity.Warning,
+                        config => config.VisibleStateDuration = 8000));
+            });
+    }
+
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    private async Task SignOutAsync()
+    {
+        await AuthService.SignOutAsync();
+        _currentUser = null;
+        Navigation.NavigateTo("/login");
+    }
+
+    public void Dispose()
+    {
+        _riskSubscription?.Dispose();
+    }
 }

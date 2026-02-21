@@ -1,13 +1,13 @@
 @page "/"
 @page "/home"
-@using DigitalTwin.Application.DTOs
-@using DigitalTwin.Application.Interfaces
-@using DigitalTwin.Domain.Enums
 @implements IDisposable
 @inject IVitalsApplicationService VitalsService
 @inject IEnvironmentApplicationService EnvironmentService
+@inject IHealthDataSyncService SyncService
+@inject IAuthApplicationService AuthService
 
-<div style="padding: 16px; max-width: 900px; margin: 0 auto;">
+<RequireAuth>
+<div>
     <MudText Typo="Typo.h5" Style="color: #e2e8f0; font-weight: 700; margin-bottom: 24px;">
         Digital Twin Dashboard
     </MudText>
@@ -114,6 +114,7 @@
         </MudItem>
     </MudGrid>
 </div>
+</RequireAuth>
 
 @code {
     private IDisposable? _vitalsSubscription;
@@ -147,6 +148,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await SyncService.StartSyncAsync();
+
         _vitalsSubscription = VitalsService.GetLiveVitals()
             .Subscribe(dto =>
             {

@@ -12,7 +12,7 @@ public static class EnvironmentReadingMapper
             PM25 = model.PM25,
             Temperature = model.Temperature,
             Humidity = model.Humidity,
-            AirQuality = model.AirQuality,
+            AirQuality = EnumMapper.ToApp(model.AirQuality),
             Timestamp = model.Timestamp
         };
     }

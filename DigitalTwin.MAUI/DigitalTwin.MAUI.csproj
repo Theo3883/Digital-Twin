@@ -23,6 +23,11 @@
         <EnableDefaultCssItems>false</EnableDefaultCssItems>
         <Nullable>enable</Nullable>
 
+        <!-- Read .env file to extract the OAuth scheme for Info.plist -->
+        <EnvFilePath>$([System.IO.Path]::Combine('$(MSBuildProjectDirectory)', '..', '.env'))</EnvFilePath>
+        <EnvFileContent Condition="Exists('$(EnvFilePath)')">$([System.IO.File]::ReadAllText('$(EnvFilePath)'))</EnvFileContent>
+        <GoogleOAuthRedirectUri>$([System.Text.RegularExpressions.Regex]::Match('$(EnvFileContent)', '(?&lt;=GOOGLE_OAUTH_REDIRECT_URI=).*').Value.Trim())</GoogleOAuthRedirectUri>
+
         <!-- Display name -->
         <ApplicationTitle>DigitalTwin</ApplicationTitle>
 
@@ -44,6 +49,15 @@
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
     </PropertyGroup>
 
+    <PropertyGroup>
+        <GoogleOAuthClientPlistPath>$([System.Text.RegularExpressions.Regex]::Match($([System.String]::Join(';', $([System.IO.Directory]::GetFiles($([System.IO.Path]::Combine('$(MSBuildProjectDirectory)', '..')), 'client_*.plist')))), '^[^;]+').Value)</GoogleOAuthClientPlistPath>
+        <GoogleOAuthClientPlistContent Condition="'$(GoogleOAuthClientPlistPath)' != '' and Exists('$(GoogleOAuthClientPlistPath)')">$([System.IO.File]::ReadAllText('$(GoogleOAuthClientPlistPath)'))</GoogleOAuthClientPlistContent>
+        <GoogleOAuthReversedClientIdFromPlist>$([System.Text.RegularExpressions.Regex]::Match('$(GoogleOAuthClientPlistContent)', '(?&lt;=\&lt;key\&gt;REVERSED_CLIENT_ID\&lt;/key\&gt;\s*\&lt;string\&gt;)[^\&lt;]+').Value.Trim())</GoogleOAuthReversedClientIdFromPlist>
+        <GoogleOAuthRedirectUri Condition="'$(GoogleOAuthRedirectUri)' == '' and '$(GoogleOAuthReversedClientIdFromPlist)' != ''">$(GoogleOAuthReversedClientIdFromPlist):/oauthredirect</GoogleOAuthRedirectUri>
+        <GoogleOAuthUrlScheme Condition="'$(GoogleOAuthRedirectUri)' != ''">$([System.Text.RegularExpressions.Regex]::Match('$(GoogleOAuthRedirectUri)', '^[a-zA-Z0-9.\-]+').Value)</GoogleOAuthUrlScheme>
+        <GoogleOAuthUrlScheme Condition="'$(GoogleOAuthUrlScheme)' == ''">com.googleusercontent.apps.default</GoogleOAuthUrlScheme>
+    </PropertyGroup>
+
     <ItemGroup>
         <!-- App Icon -->
         <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
@@ -55,6 +69,10 @@
         <MauiImage Include="Resources\Images\*" />
         <MauiImage Update="Resources\Images\dotnet_bot.svg" BaseSize="168,208" />
 
+        <!-- Bundle OAuth config files for runtime discovery on iOS/MacCatalyst -->
+        <BundleResource Include="..\.env" Link=".env" />
+        <BundleResource Include="..\client_*.plist" Link="%(Filename)%(Extension)" />
+
         <!-- Custom Fonts -->
         <MauiFont Include="Resources\Fonts\*" />
 
@@ -63,6 +81,8 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="DotNetEnv" Version="3.1.1" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.3" />
         <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.9" />
@@ -72,6 +92,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\DigitalTwin.Composition\DigitalTwin.Composition.csproj" />
+      <ProjectReference Include="..\DigitalTwin.Integrations\DigitalTwin.Integrations.csproj" />
     </ItemGroup>
 
 </Project>

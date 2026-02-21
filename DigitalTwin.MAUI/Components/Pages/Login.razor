@@ -1,0 +1,71 @@
+@page "/login"
+@inject IAuthApplicationService AuthService
+@inject NavigationManager Navigation
+
+<div class="login-root">
+
+    <MudCard Style="background: linear-gradient(145deg, rgba(26, 31, 46, 0.95), rgba(15, 20, 35, 0.98)); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; max-width: 420px; width: 100%;" Elevation="0">
+        <MudCardContent>
+            <MudStack Spacing="4" AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.h4" Style="color: #e2e8f0; font-weight: 700;">
+                    Digital Twin
+                </MudText>
+                <MudText Typo="Typo.body2" Style="color: #94a3b8; text-align: center;">
+                    Your personal health monitoring companion
+                </MudText>
+
+                @if (!string.IsNullOrEmpty(_errorMessage))
+                {
+                    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Dense="true" Style="width: 100%;">
+                        @_errorMessage
+                    </MudAlert>
+                }
+
+                <MudDivider Style="border-color: rgba(255, 255, 255, 0.06); width: 100%;" />
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           FullWidth="true"
+                           Size="Size.Large"
+                           StartIcon="@Icons.Custom.Brands.Google"
+                           OnClick="SignInWithGoogleAsync"
+                           Loading="_isLoading"
+                           Style="text-transform: none; font-weight: 600; border-radius: 12px; height: 48px;">
+                    Sign in with Google
+                </MudButton>
+            </MudStack>
+        </MudCardContent>
+    </MudCard>
+</div>
+
+@code {
+    private bool _isLoading;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = await AuthService.GetCurrentUserAsync();
+        if (user is not null)
+            Navigation.NavigateTo("/");
+    }
+
+    private async Task SignInWithGoogleAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            await AuthService.SignInWithGoogleAsync();
+            Navigation.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}
