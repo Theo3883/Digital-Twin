@@ -1,0 +1,75 @@
+using System.Reactive.Linq;
+using IOSHealthApp.Domain.Enums;
+using IOSHealthApp.Domain.Interfaces;
+using IOSHealthApp.Domain.Models;
+
+namespace IOSHealthApp.Integrations.Mocks;
+
+public class MockHealthProvider : IHealthDataProvider
+{
+    private readonly Random _random = new();
+    private readonly List<VitalSign> _buffer = [];
+
+    public IObservable<VitalSign> GetLiveVitals()
+    {
+        return Observable.Interval(TimeSpan.FromSeconds(2))
+            .SelectMany(_ => GenerateVitals());
+    }
+
+    public Task<IEnumerable<VitalSign>> GetLatestSamplesAsync(VitalSignType type, int count = 10)
+    {
+        var samples = _buffer
+            .Where(v => v.Type == type)
+            .OrderByDescending(v => v.Timestamp)
+            .Take(count);
+
+        return Task.FromResult(samples);
+    }
+
+    private IEnumerable<VitalSign> GenerateVitals()
+    {
+        var now = DateTime.UtcNow;
+        var elapsed = now.TimeOfDay.TotalSeconds;
+
+        var heartRate = new VitalSign
+        {
+            Type = VitalSignType.HeartRate,
+            Value = Math.Round(80 + 20 * Math.Sin(elapsed / 30.0) + _random.Next(-3, 4), 1),
+            Unit = "bpm",
+            Timestamp = now
+        };
+
+        var spo2 = new VitalSign
+        {
+            Type = VitalSignType.SpO2,
+            Value = Math.Round(97 + 2 * Math.Sin(elapsed / 60.0) + _random.NextDouble() * 0.5, 1),
+            Unit = "%",
+            Timestamp = now
+        };
+
+        var hourOfDay = now.Hour + now.Minute / 60.0;
+        var steps = new VitalSign
+        {
+            Type = VitalSignType.Steps,
+            Value = Math.Round(hourOfDay * 450 + _random.Next(0, 100)),
+            Unit = "steps",
+            Timestamp = now
+        };
+
+        var calories = new VitalSign
+        {
+            Type = VitalSignType.Calories,
+            Value = Math.Round(steps.Value * 0.04 + 1200 + _random.Next(0, 50)),
+            Unit = "kcal",
+            Timestamp = now
+        };
+
+        var vitals = new List<VitalSign> { heartRate, spo2, steps, calories };
+
+        _buffer.AddRange(vitals);
+        if (_buffer.Count > 400)
+            _buffer.RemoveRange(0, _buffer.Count - 400);
+
+        return vitals;
+    }
+}

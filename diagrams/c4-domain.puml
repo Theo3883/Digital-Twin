@@ -1,0 +1,26 @@
+@startuml IOS Health App - C4 Domain Layer
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title C4 Component Diagram - Domain Layer
+
+Container_Boundary(domain, "Domain Layer") {
+    Component(models, "Models", "C#", "VitalSign, PatientProfile, Medication, EnvironmentReading, EcgFrame, MedicationInteraction, HealthReport, OcrResult")
+    
+    Component(services, "Services", "C#", "VitalSignService, EnvironmentAssessmentService, MedicationInteractionService, EcgTriageEngine, DischargeLetterMappingService, ReportAggregationService, PatientRiskService")
+    
+    Component(validators, "Validators", "FluentValidation", "VitalSignValidator, PatientProfileValidator, MedicationValidator, EnvironmentReadingValidator")
+    
+    Component(interfaces, "Interfaces", "C#", "IVitalSignRepository, IHealthDataProvider, IEnvironmentDataProvider, ICoachingProvider, IMedicationInteractionProvider, IEcgStreamProvider, IAnomalyDetectionProvider, IMedicalAssistantProvider, IOcrProvider, IReportExporter")
+    
+    Component(exceptions, "Exceptions", "C#", "DomainException, InvalidVitalSignException, HealthDataUnavailableException")
+}
+
+Rel(services, models, "uses")
+Rel(services, interfaces, "depends on")
+Rel(validators, models, "validates")
+Rel(services, validators, "validates via")
+
+Rel(interfaces, models, "returns")
+
+SHOW_LEGEND()
+@enduml

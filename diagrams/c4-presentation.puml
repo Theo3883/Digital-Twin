@@ -1,0 +1,44 @@
+@startuml IOS Health App - C4 Presentation Layer
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title C4 Component Diagram - Presentation Layer (IOSHealthApp)
+
+Container_Boundary(presentation, "Presentation Layer - IOSHealthApp") {
+    Container_Boundary(ui, "MAUI Blazor UI") {
+        Component(pages, "Pages", "Razor", "Home, Medications, EcgMonitor, MedicalAssistant, Documents, Environment, Reports")
+        Component(components, "Components", "Razor", "MetricCard, DigitalTwinMannequin, EnvironmentBadge, MedicationSafetyBadge, ChatBotWindow, CriticalAlertBanner")
+        Component(layout, "Layout", "Razor", "MainLayout, NavMenu, DoctorMainLayout")
+        Component(theme, "Theme", "MudBlazor", "MedicalTheme")
+    }
+    
+    Container_Boundary(integrations, "Integrations") {
+        Component(mocks, "Mocks", "C#", "MockHealthProvider, MockEnvironmentProvider, MockCoachingProvider")
+        Component(healthkit, "HealthKit", "C#", "HealthKitProvider")
+        Component(environment, "Environment", "C#", "HttpEnvironmentProvider, OpenWeatherMapProvider, GoogleAirQualityProvider")
+        Component(medication, "Medication", "C#", "RxNavProvider")
+        Component(signalr, "SignalR", "C#", "EcgStreamClient")
+        Component(ai, "AI", "C#", "HttpAnomalyDetectionProvider, RagMedicalAssistantProvider, GeminiCoachingProvider")
+        Component(ocr, "OCR", "C#", "AzureFormRecognizerProvider")
+        Component(reporting, "Reporting", "C#", "QuestPdfReportExporter")
+        Component(notifications, "Notifications", "C#", "FCM, APNs")
+    }
+}
+
+Container_Boundary(application, "Application Layer") {
+    Component(app_services, "Application Services", "C#", "VitalsApplicationService, EnvironmentApplicationService, etc.")
+}
+
+Rel(pages, components, "uses")
+Rel(pages, layout, "uses")
+Rel(pages, theme, "styled by")
+Rel(pages, app_services, "calls")
+
+Rel(integrations, app_services, "injected into")
+
+note right of integrations
+  Providers implement Domain interfaces.
+  Injected into Application Services.
+end note
+
+SHOW_LEGEND()
+@enduml

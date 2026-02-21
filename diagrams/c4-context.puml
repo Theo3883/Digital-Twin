@@ -1,0 +1,36 @@
+@startuml IOS Health App - C4 Context Diagram
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title System Context Diagram - IOS Health App (Digital Twin Ecosystem)
+
+Person(patient, "Patient", "User monitoring their health via wearable and IoT devices")
+Person(doctor, "Doctor", "Healthcare provider viewing patient data and creating actions")
+
+System(ios_health_app, "IOS Health App", "Digital Twin health monitoring application. Displays vitals, environment, ECG, AI coaching, and medical assistant.")
+
+System_Ext(healthkit, "Apple HealthKit", "iOS health data source")
+
+System_Ext(openweather, "OpenWeatherMap", "Weather and temperature API")
+System_Ext(google_air, "Google Air Quality", "Air quality index API")
+System_Ext(rxnav, "RxNav", "Medication interaction API")
+
+System_Ext(esp32, "ESP32 IoT Device", "AD8232 ECG + MAX30102 SpO2 sensor")
+
+System_Ext(backend, "Backend Hub", "SignalR for ECG streaming, Python CNN API")
+
+System_Ext(gemini, "Gemini Pro", "AI coaching and recommendations")
+
+Rel(patient, ios_health_app, "Uses", "MAUI")
+Rel(doctor, ios_health_app, "Uses", "Doctor Portal")
+
+Rel(ios_health_app, healthkit, "Reads vitals", "HealthKit API")
+Rel(ios_health_app, openweather, "Fetches weather", "HTTPS")
+Rel(ios_health_app, google_air, "Fetches air quality", "HTTPS")
+Rel(ios_health_app, rxnav, "Checks interactions", "HTTPS")
+Rel(ios_health_app, backend, "ECG stream, AI", "SignalR, HTTP")
+Rel(ios_health_app, gemini, "Coaching advice", "HTTPS")
+
+Rel(esp32, backend, "Sends ECG/SpO2", "MQTT/WebSocket")
+
+SHOW_LEGEND()
+@enduml

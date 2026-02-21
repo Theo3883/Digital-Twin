@@ -1,0 +1,14 @@
+{
+  "name": "ios-health-app",
+  "version": "1.0.0",
+  "description": ".NET MAUI Blazor app with Tailwind CSS",
+  "scripts": {
+    "css:build": "tailwindcss -i ./Styles/input.css -o ./wwwroot/app.css",
+    "css:watch": "tailwindcss -i ./Styles/input.css -o ./wwwroot/app.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.1",
+    "postcss": "^8.4.35",
+    "autoprefixer": "^10.4.17"
+  }
+}

@@ -1,0 +1,33 @@
+@startuml IOS Health App - C4 Application Layer
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title C4 Component Diagram - Application Layer
+
+Container_Boundary(application, "Application Layer") {
+    Component(dtos, "DTOs", "C#", "VitalSignDto, EnvironmentReadingDto, CoachingAdviceDto, EcgFrameDto, MedicationInteractionDto, AnomalyPredictionDto")
+    
+    Component(mappers, "Mappers", "C#", "VitalSignMapper, EnvironmentReadingMapper, EcgFrameMapper, MedicationInteractionMapper")
+    
+    Component(validators, "Validators", "FluentValidation", "VitalSignDtoValidator, EnvironmentReadingDtoValidator, CoachingAdviceDtoValidator")
+    
+    Component(app_services, "Application Services", "C#", "VitalsApplicationService, EnvironmentApplicationService, DocumentImportApplicationService, ReportApplicationService")
+    
+    Component(interfaces, "Interfaces", "C#", "IVitalsApplicationService, IEnvironmentApplicationService, IMedicalAssistantApplicationService")
+}
+
+Rel(app_services, dtos, "returns")
+Rel(app_services, mappers, "uses")
+Rel(app_services, validators, "validates via")
+Rel(mappers, dtos, "Domain ↔ DTO")
+Rel(validators, dtos, "validates")
+
+Rel(app_services, interfaces, "implements")
+
+note right of app_services
+  Application Services orchestrate
+  Domain services and call
+  providers (from Integrations)
+end note
+
+SHOW_LEGEND()
+@enduml

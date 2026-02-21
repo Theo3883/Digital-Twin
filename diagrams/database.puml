@@ -1,0 +1,336 @@
+@startuml IOS Health App - Database Schema (4NF)
+!theme plain
+skinparam linetype ortho
+skinparam backgroundColor #FEFEFE
+
+title IOS Health App - Database Schema (4NF, Scalable)\nDigital Twin - Digitalizare dosar medical, IoT, AI, Alerte automate
+
+' =============================================================================
+' ENUMS (stored as INT, EF maps enum to int)
+' =============================================================================
+' UserRole: 0=Patient, 1=Doctor, 2=Admin
+' AirQualityLevel: 0=Good, 1=Moderate, 2=Unhealthy
+' InteractionSeverity: 0=N/A, 1=Low, 2=Medium, 3=High
+' VitalSignType: 0=HeartRate, 1=SpO2, 2=Steps, 3=Calories
+' MedicationStatus: 0=Active, 1=Discontinued, 2=Scheduled, 3=Completed
+' MedicationRoute: 0=Oral, 1=IV, 2=Topical, 3=Subcutaneous, 4=Other
+' DoctorActionStatus: 0=Pending, 1=Completed, 2=Cancelled
+' AlertSeverity: 0=Low, 1=Medium, 2=High, 3=Critical
+' OAuthProvider: 0=Google
+' =============================================================================
+
+entity "User" as user {
+  * Id : BIGINT <<PK>>
+  --
+  Email : VARCHAR(255) <<UQ>>
+  Role : INT
+  FirstName : VARCHAR(100)
+  LastName : VARCHAR(100)
+  PhotoUrl : VARCHAR(500)
+  Phone : VARCHAR(50)
+  Address : VARCHAR(500)
+  City : VARCHAR(100)
+  Country : VARCHAR(100)
+  DateOfBirth : DATE
+  CreatedAt : DATETIME
+  UpdatedAt : DATETIME
+  DeletedAt : DATETIME
+}
+
+entity "UserOAuth" as user_oauth {
+  * Id : BIGINT <<PK>>
+  --
+  UserId : BIGINT <<FK>>
+  Provider : INT
+  ProviderUserId : VARCHAR(255)
+  Email : VARCHAR(255)
+  AccessToken : VARCHAR(1000)
+  RefreshToken : VARCHAR(1000)
+  ExpiresAt : DATETIME
+  CreatedAt : DATETIME
+  UpdatedAt : DATETIME
+  DeletedAt : DATETIME
+}
+
+entity "Patient" as patient {
+  * Id : BIGINT <<PK>>
+  --
+  UserId : BIGINT <<FK, UQ>>
+  BloodType : VARCHAR(10)
+  Allergies : TEXT
+  MedicalHistoryNotes : TEXT
+  CreatedAt : DATETIME
+  UpdatedAt : DATETIME
+  DeletedAt : DATETIME
+}
+
+entity "DoctorPatientAssignment" as doctor_patient {
+  * Id : BIGINT <<PK>>
+  --
+  DoctorId : BIGINT <<FK>>
+  PatientId : BIGINT <<FK>>
+  PatientEmail : VARCHAR(255)
+  AssignedAt : DATETIME
+  AssignedByDoctorId : BIGINT <<FK>>
+  Notes : TEXT
+  CreatedAt : DATETIME
+  DeletedAt : DATETIME
+}
+
+entity "VitalSign" as vitalsign {
+  * Id : BIGINT <<PK>>
+  --
+  PatientId : BIGINT <<FK>>
+  Type : INT
+  Value : DECIMAL(18,4)
+  Unit : VARCHAR(20)
+  Timestamp : DATETIME
+  Source : VARCHAR(50)
+  CreatedAt : DATETIME
+  DeletedAt : DATETIME
+}
+
+entity "Medication" as medication {
+  * Id : BIGINT <<PK>>
+  --
+  PatientId : BIGINT <<FK>>
+  Name : VARCHAR(255)
+  Dosage : VARCHAR(100)
+  Frequency : VARCHAR(100)
+  Route : INT
+  RxCui : VARCHAR(20)
+  Instructions : TEXT
+  Reason : VARCHAR(255)
+  PrescribedByUserId : BIGINT <<FK>>
+  StartDate : DATE
+  EndDate : DATE
+  Status : INT
+  DiscontinuedReason : TEXT
+  CreatedAt : DATETIME
+  UpdatedAt : DATETIME
+  DeletedAt : DATETIME
+}
+
+entity "EnvironmentReading" as env_reading {
+  * Id : BIGINT <<PK>>
+  --
+  Latitude : DECIMAL(10,7)
+  Longitude : DECIMAL(10,7)
+  PM25 : DECIMAL(10,2)
+  Temperature : DECIMAL(5,2)
+  Humidity : DECIMAL(5,2)
+  AirQualityLevel : INT
+  Timestamp : DATETIME
+  CreatedAt : DATETIME
+  DeletedAt : DATETIME
+}
+
+entity "SleepSession" as sleep {
+  * Id : BIGINT <<PK>>
+  --
+  PatientId : BIGINT <<FK>>
+  StartTime : DATETIME
+  EndTime : DATETIME
+  DurationMinutes : INT
+  QualityScore : DECIMAL(5,2)
+  CreatedAt : DATETIME
+  DeletedAt : DATETIME
+}
+
+entity "MedicationInteraction" as med_interaction {
+  * Id : BIGINT <<PK>>
+  --
+  DrugARxCui : VARCHAR(20)
+  DrugBRxCui : VARCHAR(20)
+  Severity : INT
+  Description : TEXT
+  CreatedAt : DATETIME
+  DeletedAt : DATETIME
+}
+
+entity "DoctorAction" as doctor_action {
+  * Id : BIGINT <<PK>>
+  --
+  PatientId : BIGINT <<FK>>
+  DoctorId : BIGINT <<FK>>
+  ActionType : VARCHAR(50)
+  Description : TEXT
+  Status : INT
+  CreatedAt : DATETIME
+  UpdatedAt : DATETIME
+  DeletedAt : DATETIME
+}
+
+entity "EcgFrame" as ecg_frame {
+  * Id : BIGINT <<PK>>
+  --
+  PatientId : BIGINT <<FK>>
+  Samples : BLOB
+  SpO2 : DECIMAL(5,2)
+  HeartRate : INT
+  Timestamp : DATETIME
+  CreatedAt : DATETIME
+  DeletedAt : DATETIME
+}
+
+entity "CriticalAlert" as critical_alert {
+  * Id : BIGINT <<PK>>
+  --
+  PatientId : BIGINT <<FK>>
+  DoctorId : BIGINT <<FK>>
+  Type : VARCHAR(50)
+  Message : TEXT
+  Severity : INT
+  Timestamp : DATETIME
+  Acknowledged : BOOLEAN
+  AcknowledgedAt : DATETIME
+  CreatedAt : DATETIME
+  DeletedAt : DATETIME
+}
+
+entity "MedicalDocument" as medical_document {
+  * Id : BIGINT <<PK>>
+  --
+  PatientId : BIGINT <<FK>>
+  FilePath : VARCHAR(500)
+  FileType : VARCHAR(50)
+  DocumentType : VARCHAR(50)
+  OcrExtractedJson : TEXT
+  UploadedAt : DATETIME
+  CreatedAt : DATETIME
+  DeletedAt : DATETIME
+}
+
+entity "Appointment" as appointment {
+  * Id : BIGINT <<PK>>
+  --
+  PatientId : BIGINT <<FK>>
+  DoctorId : BIGINT <<FK>>
+  ScheduledAt : DATETIME
+  Status : INT
+  Notes : TEXT
+  CreatedAt : DATETIME
+  UpdatedAt : DATETIME
+  DeletedAt : DATETIME
+}
+
+' =============================================================================
+' RELATIONSHIPS
+' =============================================================================
+user ||--o| patient : "is"
+user ||--o{ user_oauth : "has"
+user ||--o{ doctor_patient : "assigns"
+user ||--o{ doctor_action : "creates"
+user ||--o{ medication : "prescribes"
+user ||--o{ appointment : "schedules"
+user ||--o{ critical_alert : "receives"
+patient ||--o{ doctor_patient : "assigned to"
+patient ||--o{ vitalsign : "has"
+patient ||--o{ medication : "takes"
+patient ||--o{ sleep : "has"
+patient ||--o{ doctor_action : "receives"
+patient ||--o{ ecg_frame : "has"
+patient ||--o{ critical_alert : "has"
+patient ||--o{ medical_document : "has"
+patient ||--o{ appointment : "has"
+
+' =============================================================================
+' COMMENTS / NOTES
+' =============================================================================
+note top of user
+  **User** - Base identity for all actors.
+  Role (int): 0=Patient, 1=Doctor, 2=Admin.
+  Email unique - used for doctor-patient assignment.
+  Complete profile: FirstName, LastName, PhotoUrl, Phone, Address, etc.
+  Soft delete: DeletedAt.
+end note
+
+note top of user_oauth
+  **UserOAuth** - Google OAuth only (Provider=0).
+  ProviderUserId = Google "sub" claim.
+  AccessToken, RefreshToken for API calls.
+  Email from Google (can differ from User.Email).
+end note
+
+note top of patient
+  **Patient** - Patient-specific medical data.
+  1:1 with User when Role=Patient.
+  BloodType, Allergies, MedicalHistoryNotes.
+  UserId unique (one patient per user).
+end note
+
+note top of doctor_patient
+  **DoctorPatientAssignment** - Doctor sees only assigned patients.
+  Doctor enters patient Email (unique) → links to User/Patient.
+  PatientEmail: email used when doctor assigned (audit).
+  AssignedByDoctorId: who created the assignment.
+  UNIQUE(DoctorId, PatientId) - no duplicate assignments.
+  Query doctors' patients: WHERE DoctorId = @currentDoctorId
+end note
+
+note top of vitalsign
+  **VitalSign** - Health metrics from wearables/IoT.
+  Type (int): 0=HR, 1=SpO2, 2=Steps, 3=Calories.
+  Source: HealthKit, Mock, IoT, etc.
+  Timestamp = when measured (past data by date range).
+end note
+
+note top of medication
+  **Medication** - Past, current, future medications.
+  Status (int): 0=Active, 1=Discontinued, 2=Scheduled, 3=Completed.
+  StartDate/EndDate: timeline for past/future.
+  Route (int): 0=Oral, 1=IV, 2=Topical, etc.
+  PrescribedByUserId → User (Doctor).
+  DiscontinuedReason when Status=Discontinued.
+end note
+
+note bottom of env_reading
+  **EnvironmentReading** - Location-based, no user dependency.
+  Fetched in-app for current location (Lat/Lon).
+  Not tied to Patient; shared/cached by location.
+  AirQualityLevel (int): 0=Good, 1=Moderate, 2=Unhealthy.
+end note
+
+note top of sleep
+  **SleepSession** - Sleep analysis from HealthKit.
+  DurationMinutes, QualityScore.
+end note
+
+note top of med_interaction
+  **MedicationInteraction** - RxNav lookup cache.
+  Severity (int): 0=N/A, 1=Low, 2=Medium, 3=High.
+  No PatientId; keyed by DrugARxCui + DrugBRxCui.
+end note
+
+note top of doctor_action
+  **DoctorAction** - Actions created by doctor for patient.
+  DoctorId FK → User (Role=Doctor).
+  PatientId FK → Patient.
+  Status (int): 0=Pending, 1=Completed, 2=Cancelled.
+end note
+
+note top of ecg_frame
+  **EcgFrame** - ECG + SpO2 from IoT device.
+  Samples: compressed BLOB (500 Hz).
+end note
+
+note top of critical_alert
+  **CriticalAlert** - Triage rule alerts → auto-notify doctor.
+  DoctorId: doctor to notify (from DoctorPatientAssignment).
+  Severity (int): 0=Low, 1=Medium, 2=High, 3=Critical.
+  AcknowledgedAt when doctor responds.
+end note
+
+note top of medical_document
+  **MedicalDocument** - Scanned docs at registration (OCR).
+  FilePath, DocumentType (discharge, lab, prescription).
+  OcrExtractedJson: structured data from OCR+NLP.
+end note
+
+note top of appointment
+  **Appointment** - Past and future appointments.
+  ScheduledAt, Status (scheduled/completed/cancelled).
+  Links Patient to Doctor.
+end note
+
+@enduml

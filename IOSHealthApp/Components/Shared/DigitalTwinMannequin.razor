@@ -1,0 +1,41 @@
+@* DigitalTwinMannequin.razor — Visual SVG body with animated organ zones *@
+
+<div style="@ContainerStyle">
+    <svg viewBox="0 0 200 400" style="width: 100%; max-width: 180px; height: auto; filter: drop-shadow(0 0 20px rgba(38, 166, 154, 0.15));">
+        <circle cx="100" cy="45" r="28" fill="none" stroke="@BodyColor" stroke-width="2" opacity="0.7" />
+        <line x1="100" y1="73" x2="100" y2="90" stroke="@BodyColor" stroke-width="2" opacity="0.5" />
+        <path d="M 65 90 Q 60 90 58 100 L 55 200 Q 55 210 65 210 L 135 210 Q 145 210 145 200 L 142 100 Q 140 90 135 90 Z"
+              fill="rgba(26, 31, 46, 0.6)" stroke="@BodyColor" stroke-width="2" opacity="0.7" />
+        <path d="M 58 100 Q 40 105 30 150 Q 25 170 30 180" fill="none" stroke="@BodyColor" stroke-width="2" opacity="0.5" />
+        <path d="M 142 100 Q 160 105 170 150 Q 175 170 170 180" fill="none" stroke="@BodyColor" stroke-width="2" opacity="0.5" />
+        <line x1="80" y1="210" x2="75" y2="330" stroke="@BodyColor" stroke-width="2" opacity="0.5" />
+        <line x1="120" y1="210" x2="125" y2="330" stroke="@BodyColor" stroke-width="2" opacity="0.5" />
+        <path d="M 75 330 Q 70 340 65 342 L 80 342 Q 78 335 75 330" fill="none" stroke="@BodyColor" stroke-width="2" opacity="0.4" />
+        <path d="M 125 330 Q 130 340 135 342 L 120 342 Q 122 335 125 330" fill="none" stroke="@BodyColor" stroke-width="2" opacity="0.4" />
+
+        <circle cx="108" cy="135" r="20" fill="@HeartColor" opacity="0.12" class="dtm-pulse-glow" style="animation-duration: @PulseDuration;" />
+        <circle cx="108" cy="135" r="8" fill="@HeartColor" opacity="0.8" class="dtm-pulse-core" style="animation-duration: @PulseDuration;" />
+        <text x="108" y="139" text-anchor="middle" font-size="10" fill="white" font-weight="bold">&#9829;</text>
+
+        <ellipse cx="85" cy="145" rx="15" ry="22" fill="@LungColor" opacity="0.12" stroke="@LungColor" stroke-width="1" stroke-opacity="0.3" class="dtm-breathe" />
+        <ellipse cx="120" cy="145" rx="12" ry="20" fill="@LungColor" opacity="0.12" stroke="@LungColor" stroke-width="1" stroke-opacity="0.3" class="dtm-breathe" />
+
+        <circle cx="80" cy="270" r="12" fill="@ActivityColor" opacity="@ActivityOpacity" />
+        <circle cx="120" cy="270" r="12" fill="@ActivityColor" opacity="@ActivityOpacity" />
+    </svg>
+
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 12px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 10px; height: 10px; border-radius: 50%; background: @HeartColor;"></div>
+            <MudText Typo="Typo.caption" Style="color: #94a3b8;">Heart: @HeartRateValue bpm</MudText>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 10px; height: 10px; border-radius: 50%; background: @LungColor;"></div>
+            <MudText Typo="Typo.caption" Style="color: #94a3b8;">SpO2: @(OxygenValue)%</MudText>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="width: 10px; height: 10px; border-radius: 50%; background: @ActivityColor;"></div>
+            <MudText Typo="Typo.caption" Style="color: #94a3b8;">Activity: @ActivityLevel</MudText>
+        </div>
+    </div>
+</div>

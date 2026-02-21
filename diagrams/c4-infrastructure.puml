@@ -1,0 +1,30 @@
+@startuml IOS Health App - C4 Infrastructure Layer
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title C4 Component Diagram - Infrastructure Layer (Database Only)
+
+Container_Boundary(infrastructure, "Infrastructure Layer") {
+    Component(dbcontext, "HealthAppDbContext", "EF Core", "DbContext with DbSets for all entities")
+    
+    Component(entities, "EF Entities", "C#", "VitalSignEntity, PatientProfileEntity, MedicationEntity, EnvironmentReadingEntity, SleepSessionEntity, DoctorActionEntity, EcgFrameEntity")
+    
+    Component(repositories, "Repositories", "C#", "VitalSignRepository, PatientProfileRepository, MedicationRepository, DoctorActionRepository")
+    
+    Component(migrations, "Migrations", "EF Core", "Schema versioning and updates")
+}
+
+ContainerDb_Ext(database, "Database", "SQLite", "Local persistence for health data")
+
+Rel(repositories, dbcontext, "uses")
+Rel(repositories, entities, "maps EF ↔ Domain")
+Rel(dbcontext, entities, "DbSet")
+Rel(dbcontext, database, "Reads/Writes")
+Rel(migrations, database, "applies")
+
+note right of repositories
+  Repositories implement
+  Domain IRepository interfaces
+end note
+
+SHOW_LEGEND()
+@enduml
