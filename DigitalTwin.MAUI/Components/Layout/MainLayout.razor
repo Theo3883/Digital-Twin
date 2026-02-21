@@ -1,0 +1,15 @@
+@inherits LayoutComponentBase
+@using DigitalTwin.Components.Theme
+
+<MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="@MedicalTheme.Instance" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<div style="min-height: 100vh; background: linear-gradient(135deg, #0a0f1a 0%, #111827 50%, #0d1320 100%);">
+    @Body
+</div>
+
+@code {
+    private bool _isDarkMode = true;
+}

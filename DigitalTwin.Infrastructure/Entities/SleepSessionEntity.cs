@@ -1,0 +1,15 @@
+namespace DigitalTwin.Infrastructure.Entities;
+
+public class SleepSessionEntity
+{
+    public long Id { get; set; }
+    public long PatientId { get; set; }
+    public DateTime StartTime { get; set; }
+    public DateTime EndTime { get; set; }
+    public int DurationMinutes { get; set; }
+    public decimal QualityScore { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? DeletedAt { get; set; }
+
+    public PatientEntity Patient { get; set; } = null!;
+}
