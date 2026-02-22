@@ -1,5 +1,6 @@
 @page "/login"
 @inject IAuthApplicationService AuthService
+@inject IHealthDataSyncService SyncService
 @inject NavigationManager Navigation
 
 <div class="login-root">
@@ -46,7 +47,11 @@
     {
         var user = await AuthService.GetCurrentUserAsync();
         if (user is not null)
+        {
+            await SyncService.StartSyncAsync();
+            await SyncService.PushToCloudAsync();
             Navigation.NavigateTo("/");
+        }
     }
 
     private async Task SignInWithGoogleAsync()
@@ -57,6 +62,8 @@
         try
         {
             await AuthService.SignInWithGoogleAsync();
+            await SyncService.StartSyncAsync();
+            await SyncService.PushToCloudAsync();
             Navigation.NavigateTo("/");
         }
         catch (Exception ex)

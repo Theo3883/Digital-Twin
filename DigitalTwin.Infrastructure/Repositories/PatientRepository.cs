@@ -35,7 +35,36 @@ public class PatientRepository : IPatientRepository
         entity.Allergies = patient.Allergies;
         entity.MedicalHistoryNotes = patient.MedicalHistoryNotes;
         entity.UpdatedAt = DateTime.UtcNow;
+        entity.IsDirty = true;
         await _db.SaveChangesAsync();
+    }
+
+    public async Task<IEnumerable<Patient>> GetDirtyAsync()
+    {
+        var entities = await _db.Patients.Where(p => p.IsDirty).ToListAsync();
+        return entities.Select(ToDomain);
+    }
+
+    public async Task MarkSyncedAsync(IEnumerable<Patient> items)
+    {
+        var ids = items.Select(p => p.Id).ToHashSet();
+        await _db.Patients
+            .Where(p => ids.Contains(p.Id))
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(p => p.IsDirty, false)
+                .SetProperty(p => p.SyncedAt, DateTime.UtcNow));
+    }
+
+    public async Task PurgeSyncedOlderThanAsync(DateTime cutoffUtc)
+    {
+        await _db.Patients
+            .Where(p => !p.IsDirty && p.SyncedAt.HasValue && p.SyncedAt.Value < cutoffUtc)
+            .ExecuteDeleteAsync();
+    }
+
+    public async Task<bool> ExistsAsync(Patient patient)
+    {
+        return await _db.Patients.AnyAsync(p => p.UserId == patient.UserId);
     }
 
     private static Patient ToDomain(PatientEntity entity) => new()
@@ -51,7 +80,9 @@ public class PatientRepository : IPatientRepository
 
     private static PatientEntity ToEntity(Patient model) => new()
     {
+        Id = model.Id,
         UserId = model.UserId,
+        IsDirty = true,
         BloodType = model.BloodType,
         Allergies = model.Allergies,
         MedicalHistoryNotes = model.MedicalHistoryNotes,

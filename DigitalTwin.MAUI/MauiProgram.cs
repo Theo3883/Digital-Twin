@@ -3,6 +3,7 @@ using MudBlazor.Services;
 using DigitalTwin.Application.Configuration;
 using DigitalTwin.Composition;
 using DigitalTwin.Integrations;
+using DigitalTwin.Integrations.Sync;
 using DigitalTwin.Infrastructure.Data;
 using DigitalTwin.Platform;
 using Microsoft.EntityFrameworkCore;
@@ -46,6 +47,7 @@ public static class MauiProgram
 
         var app = builder.Build();
         ApplyDatabaseMigrations(app);
+        _ = app.Services.GetRequiredService<ConnectivityMonitor>();
         return app;
     }
 
@@ -54,6 +56,15 @@ public static class MauiProgram
         using var scope = app.Services.CreateScope();
         var services = scope.ServiceProvider;
         var logger = services.GetService<ILoggerFactory>()?.CreateLogger("DatabaseMigrations");
+
+        var localDbPath = Path.Combine(FileSystem.AppDataDirectory, "healthapp.db");
+#if DEBUG
+        if (File.Exists(localDbPath))
+        {
+            File.Delete(localDbPath);
+            logger?.LogInformation("Deleted existing local database for fresh migration.");
+        }
+#endif
 
         var localDb = services.GetRequiredService<LocalDbContext>();
         localDb.Database.Migrate();

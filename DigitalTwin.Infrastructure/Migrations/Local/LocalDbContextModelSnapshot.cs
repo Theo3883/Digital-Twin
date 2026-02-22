@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace DigitalTwin.Infrastructure.Migrations.Sqlite
+namespace DigitalTwin.Infrastructure.Data.Migrations.Local
 {
     [DbContext(typeof(LocalDbContext))]
     partial class LocalDbContextModelSnapshot : ModelSnapshot
@@ -180,7 +180,13 @@ namespace DigitalTwin.Infrastructure.Migrations.Sqlite
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsDirty")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("MedicalHistoryNotes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("SyncedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -264,6 +270,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Sqlite
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsDirty")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("LastName")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -276,6 +285,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Sqlite
 
                     b.Property<int>("Role")
                         .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("SyncedAt")
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("TEXT");
@@ -309,6 +321,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Sqlite
                     b.Property<DateTime?>("ExpiresAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsDirty")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("Provider")
                         .HasColumnType("INTEGER");
 
@@ -317,6 +332,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Sqlite
                         .HasColumnType("TEXT");
 
                     b.Property<string>("RefreshToken")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("SyncedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("UpdatedAt")

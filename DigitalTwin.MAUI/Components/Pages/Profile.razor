@@ -1,0 +1,41 @@
+@page "/profile"
+@inject IAuthApplicationService AuthService
+
+<RequireAuth>
+    <div style="padding: 16px; max-width: 600px; margin: 0 auto;">
+        <MudText Typo="Typo.h5" Style="color: #e2e8f0; font-weight: 700; margin-bottom: 24px;">
+            Profile
+        </MudText>
+
+        @if (_currentUser is not null)
+        {
+            <MudCard Style="background: linear-gradient(145deg, rgba(26, 31, 46, 0.9), rgba(15, 20, 35, 0.95)); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 16px;" Elevation="0">
+                <MudCardContent>
+                    <MudStack Spacing="4" AlignItems="AlignItems.Center">
+                        <MudAvatar Size="Size.Large" Style="border: 3px solid rgba(96, 165, 250, 0.4);">
+                            @if (!string.IsNullOrEmpty(_currentUser.PhotoUrl))
+                            {
+                                <MudImage Src="@_currentUser.PhotoUrl" Alt="@_currentUser.DisplayName" />
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.h3">@_currentUser.DisplayName.FirstOrDefault()</MudText>
+                            }
+                        </MudAvatar>
+                        <MudText Typo="Typo.h6" Style="color: #e2e8f0;">@_currentUser.DisplayName</MudText>
+                        <MudText Typo="Typo.body2" Style="color: #94a3b8;">@_currentUser.Email</MudText>
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
+        }
+    </div>
+</RequireAuth>
+
+@code {
+    private AuthResultDto? _currentUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _currentUser = await AuthService.GetCurrentUserAsync();
+    }
+}

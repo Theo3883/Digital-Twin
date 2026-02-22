@@ -9,11 +9,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace DigitalTwin.Infrastructure.Migrations.Postgres
+namespace DigitalTwin.Infrastructure.Data.Migrations.Cloud
 {
     [DbContext(typeof(CloudDbContext))]
-    [Migration("20260221113827_InitialPostgres")]
-    partial class InitialPostgres
+    [Migration("20260221130948_InitialCloud")]
+    partial class InitialCloud
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -196,8 +196,14 @@ namespace DigitalTwin.Infrastructure.Migrations.Postgres
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("IsDirty")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("MedicalHistoryNotes")
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("SyncedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -284,6 +290,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Postgres
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("IsDirty")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("LastName")
                         .IsRequired()
                         .HasColumnType("text");
@@ -296,6 +305,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Postgres
 
                     b.Property<int>("Role")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SyncedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -331,6 +343,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Postgres
                     b.Property<DateTime?>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("IsDirty")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("Provider")
                         .HasColumnType("integer");
 
@@ -340,6 +355,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Postgres
 
                     b.Property<string>("RefreshToken")
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("SyncedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");

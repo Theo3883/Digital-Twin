@@ -3,10 +3,10 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace DigitalTwin.Infrastructure.Migrations.Sqlite
+namespace DigitalTwin.Infrastructure.Data.Migrations.Local
 {
     /// <inheritdoc />
-    public partial class InitialSqlite : Migration
+    public partial class InitialLocal : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -70,6 +70,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Sqlite
                     DateOfBirth = table.Column<DateTime>(type: "TEXT", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    IsDirty = table.Column<bool>(type: "INTEGER", nullable: false),
+                    SyncedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
                     DeletedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
@@ -89,6 +91,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Sqlite
                     MedicalHistoryNotes = table.Column<string>(type: "TEXT", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    IsDirty = table.Column<bool>(type: "INTEGER", nullable: false),
+                    SyncedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
                     DeletedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
@@ -117,6 +121,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Sqlite
                     ExpiresAt = table.Column<DateTime>(type: "TEXT", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    IsDirty = table.Column<bool>(type: "INTEGER", nullable: false),
+                    SyncedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
                     DeletedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>

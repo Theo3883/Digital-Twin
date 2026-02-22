@@ -9,24 +9,28 @@ public class MockHealthProvider : IHealthDataProvider
 {
     private readonly Random _random = new();
     private readonly List<VitalSign> _buffer = [];
+    private readonly object _sync = new();
 
     public IObservable<VitalSign> GetLiveVitals()
     {
         return Observable.Interval(TimeSpan.FromSeconds(2))
-            .SelectMany(_ => GenerateVitals());
+            .SelectMany(_ => GenerateVitals().ToList());
     }
 
     public Task<IEnumerable<VitalSign>> GetLatestSamplesAsync(VitalSignType type, int count = 10)
     {
-        var samples = _buffer
-            .Where(v => v.Type == type)
-            .OrderByDescending(v => v.Timestamp)
-            .Take(count);
-
-        return Task.FromResult(samples);
+        lock (_sync)
+        {
+            var samples = _buffer
+                .Where(v => v.Type == type)
+                .OrderByDescending(v => v.Timestamp)
+                .Take(count)
+                .ToList();
+            return Task.FromResult<IEnumerable<VitalSign>>(samples);
+        }
     }
 
-    private IEnumerable<VitalSign> GenerateVitals()
+    private List<VitalSign> GenerateVitals()
     {
         var now = DateTime.UtcNow;
         var elapsed = now.TimeOfDay.TotalSeconds;
@@ -70,9 +74,12 @@ public class MockHealthProvider : IHealthDataProvider
 
         var vitals = new List<VitalSign> { heartRate, spo2, steps, calories };
 
-        _buffer.AddRange(vitals);
-        if (_buffer.Count > 400)
-            _buffer.RemoveRange(0, _buffer.Count - 400);
+        lock (_sync)
+        {
+            _buffer.AddRange(vitals);
+            if (_buffer.Count > 400)
+                _buffer.RemoveRange(0, _buffer.Count - 400);
+        }
 
         return vitals;
     }

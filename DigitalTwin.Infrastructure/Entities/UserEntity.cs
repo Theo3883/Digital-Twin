@@ -15,6 +15,8 @@ public class UserEntity
     public DateTime? DateOfBirth { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public bool IsDirty { get; set; } = true;
+    public DateTime? SyncedAt { get; set; }
     public DateTime? DeletedAt { get; set; }
 
     public PatientEntity? Patient { get; set; }

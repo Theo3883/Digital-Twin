@@ -1,9 +1,9 @@
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using DigitalTwin.Application.Interfaces;
+using DigitalTwin.Application.Sync;
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Models;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace DigitalTwin.Application.Services;
 
@@ -12,7 +12,7 @@ public class HealthDataSyncService : IHealthDataSyncService
     private readonly IHealthDataProvider _healthProvider;
     private readonly IVitalSignRepository _localRepo;
     private readonly IAuthApplicationService _authService;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly ISyncFacade<VitalSign> _syncFacade;
 
     private readonly List<VitalSign> _buffer = [];
     private readonly object _bufferLock = new();
@@ -20,17 +20,18 @@ public class HealthDataSyncService : IHealthDataSyncService
     private Timer? _flushTimer;
 
     private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan PurgeOlderThan = TimeSpan.FromDays(7);
 
     public HealthDataSyncService(
         IHealthDataProvider healthProvider,
         IVitalSignRepository localRepo,
         IAuthApplicationService authService,
-        IServiceProvider serviceProvider)
+        ISyncFacade<VitalSign> syncFacade)
     {
         _healthProvider = healthProvider;
         _localRepo = localRepo;
         _authService = authService;
-        _serviceProvider = serviceProvider;
+        _syncFacade = syncFacade;
     }
 
     public async Task StartSyncAsync()
@@ -73,23 +74,9 @@ public class HealthDataSyncService : IHealthDataSyncService
 
     public async Task PushToCloudAsync()
     {
-        var dirtyRecords = (await _localRepo.GetDirtyAsync()).ToList();
-        if (dirtyRecords.Count == 0) return;
-
         try
         {
-            var cloudRepo = _serviceProvider.GetKeyedService<IVitalSignRepository>("Cloud");
-            if (cloudRepo is null) return;
-
-            foreach (var record in dirtyRecords)
-                await cloudRepo.AddAsync(record);
-
-            var grouped = dirtyRecords.GroupBy(r => r.PatientId);
-            foreach (var group in grouped)
-            {
-                var maxTimestamp = group.Max(r => r.Timestamp);
-                await _localRepo.MarkSyncedAsync(group.Key, maxTimestamp);
-            }
+            await _syncFacade.SyncAsync(PurgeOlderThan);
         }
         catch
         {

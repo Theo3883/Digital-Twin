@@ -4,10 +4,10 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace DigitalTwin.Infrastructure.Migrations.Postgres
+namespace DigitalTwin.Infrastructure.Data.Migrations.Cloud
 {
     /// <inheritdoc />
-    public partial class InitialPostgres : Migration
+    public partial class InitialCloud : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -71,6 +71,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Postgres
                     DateOfBirth = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    IsDirty = table.Column<bool>(type: "boolean", nullable: false),
+                    SyncedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
@@ -90,6 +92,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Postgres
                     MedicalHistoryNotes = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    IsDirty = table.Column<bool>(type: "boolean", nullable: false),
+                    SyncedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
@@ -118,6 +122,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Postgres
                     ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    IsDirty = table.Column<bool>(type: "boolean", nullable: false),
+                    SyncedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>

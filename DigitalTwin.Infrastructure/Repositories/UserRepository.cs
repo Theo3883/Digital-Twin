@@ -49,7 +49,36 @@ public class UserRepository : IUserRepository
         entity.Country = user.Country;
         entity.DateOfBirth = user.DateOfBirth;
         entity.UpdatedAt = DateTime.UtcNow;
+        entity.IsDirty = true;
         await _db.SaveChangesAsync();
+    }
+
+    public async Task<IEnumerable<User>> GetDirtyAsync()
+    {
+        var entities = await _db.Users.Where(u => u.IsDirty).ToListAsync();
+        return entities.Select(ToDomain);
+    }
+
+    public async Task MarkSyncedAsync(IEnumerable<User> items)
+    {
+        var ids = items.Select(u => u.Id).ToHashSet();
+        await _db.Users
+            .Where(u => ids.Contains(u.Id))
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(u => u.IsDirty, false)
+                .SetProperty(u => u.SyncedAt, DateTime.UtcNow));
+    }
+
+    public async Task PurgeSyncedOlderThanAsync(DateTime cutoffUtc)
+    {
+        await _db.Users
+            .Where(u => !u.IsDirty && u.SyncedAt.HasValue && u.SyncedAt.Value < cutoffUtc)
+            .ExecuteDeleteAsync();
+    }
+
+    public async Task<bool> ExistsAsync(User user)
+    {
+        return await _db.Users.AnyAsync(u => u.Email == user.Email);
     }
 
     private static User ToDomain(UserEntity entity) => new()
@@ -71,7 +100,9 @@ public class UserRepository : IUserRepository
 
     private static UserEntity ToEntity(User model) => new()
     {
+        Id = model.Id,
         Email = model.Email,
+        IsDirty = true,
         Role = (int)model.Role,
         FirstName = model.FirstName,
         LastName = model.LastName,

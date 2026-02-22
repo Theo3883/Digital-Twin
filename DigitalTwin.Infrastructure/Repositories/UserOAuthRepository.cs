@@ -38,7 +38,37 @@ public class UserOAuthRepository : IUserOAuthRepository
         entity.ExpiresAt = userOAuth.ExpiresAt;
         entity.Email = userOAuth.Email;
         entity.UpdatedAt = DateTime.UtcNow;
+        entity.IsDirty = true;
         await _db.SaveChangesAsync();
+    }
+
+    public async Task<IEnumerable<UserOAuth>> GetDirtyAsync()
+    {
+        var entities = await _db.UserOAuths.Where(o => o.IsDirty).ToListAsync();
+        return entities.Select(ToDomain);
+    }
+
+    public async Task MarkSyncedAsync(IEnumerable<UserOAuth> items)
+    {
+        var ids = items.Select(o => o.Id).ToHashSet();
+        await _db.UserOAuths
+            .Where(o => ids.Contains(o.Id))
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(o => o.IsDirty, false)
+                .SetProperty(o => o.SyncedAt, DateTime.UtcNow));
+    }
+
+    public async Task PurgeSyncedOlderThanAsync(DateTime cutoffUtc)
+    {
+        await _db.UserOAuths
+            .Where(o => !o.IsDirty && o.SyncedAt.HasValue && o.SyncedAt.Value < cutoffUtc)
+            .ExecuteDeleteAsync();
+    }
+
+    public async Task<bool> ExistsAsync(UserOAuth userOAuth)
+    {
+        return await _db.UserOAuths.AnyAsync(o =>
+            o.Provider == (int)userOAuth.Provider && o.ProviderUserId == userOAuth.ProviderUserId);
     }
 
     private static UserOAuth ToDomain(UserOAuthEntity entity) => new()
@@ -57,7 +87,9 @@ public class UserOAuthRepository : IUserOAuthRepository
 
     private static UserOAuthEntity ToEntity(UserOAuth model) => new()
     {
+        Id = model.Id,
         UserId = model.UserId,
+        IsDirty = true,
         Provider = (int)model.Provider,
         ProviderUserId = model.ProviderUserId,
         Email = model.Email,

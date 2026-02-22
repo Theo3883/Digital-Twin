@@ -1,6 +1,8 @@
 using FluentValidation;
 using DigitalTwin.Application.Interfaces;
 using DigitalTwin.Application.Services;
+using DigitalTwin.Application.Sync;
+using DigitalTwin.Domain.Models;
 using DigitalTwin.Domain.Services;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -13,6 +15,22 @@ public static class DependencyInjection
         services.AddScoped<VitalSignService>();
         services.AddScoped<EnvironmentAssessmentService>();
         services.AddScoped<MedicationInteractionService>();
+
+        services.AddScoped<ILocalSyncStore<VitalSign>, VitalSignLocalSyncStore>();
+        services.AddScoped<ICloudSyncStore<VitalSign>, VitalSignCloudSyncStore>();
+        services.AddScoped<ISyncFacade<VitalSign>, SyncFacade<VitalSign>>();
+
+        services.AddScoped<ILocalSyncStore<User>, UserLocalSyncStore>();
+        services.AddScoped<ICloudSyncStore<User>, UserCloudSyncStore>();
+        services.AddScoped<ISyncFacade<User>, SyncFacade<User>>();
+
+        services.AddScoped<ILocalSyncStore<Patient>, PatientLocalSyncStore>();
+        services.AddScoped<ICloudSyncStore<Patient>, PatientCloudSyncStore>();
+        services.AddScoped<ISyncFacade<Patient>, SyncFacade<Patient>>();
+
+        services.AddScoped<ILocalSyncStore<UserOAuth>, UserOAuthLocalSyncStore>();
+        services.AddScoped<ICloudSyncStore<UserOAuth>, UserOAuthCloudSyncStore>();
+        services.AddScoped<ISyncFacade<UserOAuth>, SyncFacade<UserOAuth>>();
 
         services.AddScoped<IVitalsApplicationService, VitalsApplicationService>();
         services.AddScoped<IEnvironmentApplicationService, EnvironmentApplicationService>();

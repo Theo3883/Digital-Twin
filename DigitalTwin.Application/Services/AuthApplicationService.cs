@@ -1,5 +1,6 @@
 using DigitalTwin.Application.DTOs;
 using DigitalTwin.Application.Interfaces;
+using DigitalTwin.Application.Sync;
 using DigitalTwin.Domain.Enums;
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Models;
@@ -13,6 +14,9 @@ public class AuthApplicationService : IAuthApplicationService
     private readonly IUserRepository _userRepo;
     private readonly IUserOAuthRepository _oauthRepo;
     private readonly IPatientRepository _patientRepo;
+    private readonly ISyncFacade<User> _userSync;
+    private readonly ISyncFacade<Patient> _patientSync;
+    private readonly ISyncFacade<UserOAuth> _oauthSync;
 
     private AuthResultDto? _cachedUser;
 
@@ -24,13 +28,19 @@ public class AuthApplicationService : IAuthApplicationService
         ISecureTokenStorage tokenStorage,
         IUserRepository userRepo,
         IUserOAuthRepository oauthRepo,
-        IPatientRepository patientRepo)
+        IPatientRepository patientRepo,
+        ISyncFacade<User> userSync,
+        ISyncFacade<Patient> patientSync,
+        ISyncFacade<UserOAuth> oauthSync)
     {
         _tokenProvider = tokenProvider;
         _tokenStorage = tokenStorage;
         _userRepo = userRepo;
         _oauthRepo = oauthRepo;
         _patientRepo = patientRepo;
+        _userSync = userSync;
+        _patientSync = patientSync;
+        _oauthSync = oauthSync;
     }
 
     public async Task<AuthResultDto> SignInWithGoogleAsync()
@@ -53,6 +63,8 @@ public class AuthApplicationService : IAuthApplicationService
             existingOAuth.ExpiresAt = tokens.ExpiresAt;
             existingOAuth.Email = tokens.Email;
             await _oauthRepo.UpdateAsync(existingOAuth);
+
+            await SyncAuthToCloudAsync(user, patient, existingOAuth);
         }
         else
         {
@@ -80,6 +92,8 @@ public class AuthApplicationService : IAuthApplicationService
                 ExpiresAt = tokens.ExpiresAt
             };
             await _oauthRepo.AddAsync(oauth);
+
+            await SyncAuthToCloudAsync(user, patient, oauth);
         }
 
         await _tokenStorage.StoreAsync(UserIdKey, user.Id.ToString());
@@ -133,5 +147,20 @@ public class AuthApplicationService : IAuthApplicationService
     {
         var current = await GetCurrentUserAsync();
         return current?.PatientId;
+    }
+
+    private async Task SyncAuthToCloudAsync(User user, Patient patient, UserOAuth oauth)
+    {
+        try
+        {
+            var purgeOlderThan = TimeSpan.FromDays(7);
+            await _userSync.SyncAsync(purgeOlderThan);
+            await _patientSync.SyncAsync(purgeOlderThan);
+            await _oauthSync.SyncAsync(purgeOlderThan);
+        }
+        catch
+        {
+            // Cloud is optional/offline; local auth flow remains available.
+        }
     }
 }

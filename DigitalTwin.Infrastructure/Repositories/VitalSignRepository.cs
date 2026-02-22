@@ -39,6 +39,12 @@ public class VitalSignRepository : IVitalSignRepository
         await _db.SaveChangesAsync();
     }
 
+    public async Task<bool> ExistsAsync(long patientId, VitalSignType type, DateTime timestamp)
+    {
+        return await _db.VitalSigns
+            .AnyAsync(v => v.PatientId == patientId && v.Type == (int)type && v.Timestamp == timestamp);
+    }
+
     public async Task<IEnumerable<VitalSign>> GetDirtyAsync()
     {
         var entities = await _db.VitalSigns
@@ -55,6 +61,13 @@ public class VitalSignRepository : IVitalSignRepository
             .ExecuteUpdateAsync(s => s
                 .SetProperty(v => v.IsDirty, false)
                 .SetProperty(v => v.SyncedAt, DateTime.UtcNow));
+    }
+
+    public async Task PurgeSyncedOlderThanAsync(DateTime cutoffUtc)
+    {
+        await _db.VitalSigns
+            .Where(v => !v.IsDirty && v.SyncedAt.HasValue && v.SyncedAt.Value < cutoffUtc)
+            .ExecuteDeleteAsync();
     }
 
     private static VitalSign ToDomain(VitalSignEntity entity) => new()
