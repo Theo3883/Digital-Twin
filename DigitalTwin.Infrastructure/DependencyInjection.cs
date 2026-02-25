@@ -14,16 +14,33 @@ public static class DependencyInjection
     {
         var cs = connectionString ?? "Data Source=healthapp.db";
 
-        services.AddDbContext<LocalDbContext>(options => options.UseSqlite(cs));
+        // AddDbContextFactory registers IDbContextFactory<T> as a singleton.
+        // Every call to factory.CreateDbContext() returns a BRAND NEW DbContext instance
+        // that the caller owns and must dispose — eliminating all concurrent-context crashes.
+        services.AddDbContextFactory<LocalDbContext>(options => options.UseSqlite(cs));
 
+        // Each repo receives a Func<HealthAppDbContext> that creates a fresh context per call.
+        // This means the repos themselves are stateless and safe to inject into any lifetime.
         services.AddScoped<IVitalSignRepository>(sp =>
-            new VitalSignRepository(sp.GetRequiredService<LocalDbContext>()));
+        {
+            var f = sp.GetRequiredService<IDbContextFactory<LocalDbContext>>();
+            return new VitalSignRepository(() => f.CreateDbContext());
+        });
         services.AddScoped<IUserRepository>(sp =>
-            new UserRepository(sp.GetRequiredService<LocalDbContext>()));
+        {
+            var f = sp.GetRequiredService<IDbContextFactory<LocalDbContext>>();
+            return new UserRepository(() => f.CreateDbContext());
+        });
         services.AddScoped<IUserOAuthRepository>(sp =>
-            new UserOAuthRepository(sp.GetRequiredService<LocalDbContext>()));
+        {
+            var f = sp.GetRequiredService<IDbContextFactory<LocalDbContext>>();
+            return new UserOAuthRepository(() => f.CreateDbContext());
+        });
         services.AddScoped<IPatientRepository>(sp =>
-            new PatientRepository(sp.GetRequiredService<LocalDbContext>()));
+        {
+            var f = sp.GetRequiredService<IDbContextFactory<LocalDbContext>>();
+            return new PatientRepository(() => f.CreateDbContext());
+        });
 
         return services;
     }
@@ -32,16 +49,28 @@ public static class DependencyInjection
         this IServiceCollection services,
         string connectionString)
     {
-        services.AddDbContext<CloudDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddDbContextFactory<CloudDbContext>(options => options.UseNpgsql(connectionString));
 
         services.AddKeyedScoped<IVitalSignRepository>("Cloud", (sp, _) =>
-            new VitalSignRepository(sp.GetRequiredService<CloudDbContext>()));
+        {
+            var f = sp.GetRequiredService<IDbContextFactory<CloudDbContext>>();
+            return new VitalSignRepository(() => f.CreateDbContext());
+        });
         services.AddKeyedScoped<IUserRepository>("Cloud", (sp, _) =>
-            new UserRepository(sp.GetRequiredService<CloudDbContext>()));
+        {
+            var f = sp.GetRequiredService<IDbContextFactory<CloudDbContext>>();
+            return new UserRepository(() => f.CreateDbContext());
+        });
         services.AddKeyedScoped<IUserOAuthRepository>("Cloud", (sp, _) =>
-            new UserOAuthRepository(sp.GetRequiredService<CloudDbContext>()));
+        {
+            var f = sp.GetRequiredService<IDbContextFactory<CloudDbContext>>();
+            return new UserOAuthRepository(() => f.CreateDbContext());
+        });
         services.AddKeyedScoped<IPatientRepository>("Cloud", (sp, _) =>
-            new PatientRepository(sp.GetRequiredService<CloudDbContext>()));
+        {
+            var f = sp.GetRequiredService<IDbContextFactory<CloudDbContext>>();
+            return new PatientRepository(() => f.CreateDbContext());
+        });
 
         return services;
     }

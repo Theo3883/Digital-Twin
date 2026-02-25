@@ -3,34 +3,31 @@ using DigitalTwin.Application.Interfaces;
 namespace DigitalTwin.Integrations.Auth;
 
 /// <summary>
-/// In-memory fallback for non-MAUI environments.
-/// The MAUI project registers a platform-specific SecureStorage wrapper.
+/// MAUI platform implementation that delegates to iOS/Android <c>SecureStorage</c>
+/// (Keychain on iOS, EncryptedSharedPreferences on Android).
+/// Compiled only for mobile platform targets; <see cref="InMemoryTokenStorage"/>
+/// is used on non-platform builds.
 /// </summary>
-public class InMemoryTokenStorage : ISecureTokenStorage
+#if IOS || MACCATALYST
+public class SecureTokenStorage : ISecureTokenStorage
 {
-    private readonly Dictionary<string, string> _store = new();
-
-    public Task StoreAsync(string key, string value)
-    {
-        _store[key] = value;
-        return Task.CompletedTask;
-    }
+    public async Task StoreAsync(string key, string value)
+        => await SecureStorage.Default.SetAsync(key, value);
 
     public Task<string?> GetAsync(string key)
-    {
-        _store.TryGetValue(key, out var value);
-        return Task.FromResult(value);
-    }
+        => SecureStorage.Default.GetAsync(key);
 
     public Task RemoveAsync(string key)
     {
-        _store.Remove(key);
+        SecureStorage.Default.Remove(key);
         return Task.CompletedTask;
     }
 
     public Task ClearAllAsync()
     {
-        _store.Clear();
+        SecureStorage.Default.RemoveAll();
         return Task.CompletedTask;
     }
 }
+#endif
+

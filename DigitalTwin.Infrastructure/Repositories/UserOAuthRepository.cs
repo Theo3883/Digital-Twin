@@ -9,28 +9,31 @@ namespace DigitalTwin.Infrastructure.Repositories;
 
 public class UserOAuthRepository : IUserOAuthRepository
 {
-    private readonly HealthAppDbContext _db;
+    private readonly Func<HealthAppDbContext> _factory;
 
-    public UserOAuthRepository(HealthAppDbContext db) => _db = db;
+    public UserOAuthRepository(Func<HealthAppDbContext> factory) => _factory = factory;
 
     public async Task<UserOAuth?> FindByProviderAndUserIdAsync(OAuthProvider provider, string providerUserId)
     {
-        var entity = await _db.UserOAuths
+        await using var db = _factory();
+        var entity = await db.UserOAuths
             .FirstOrDefaultAsync(o => o.Provider == (int)provider && o.ProviderUserId == providerUserId);
         return entity is null ? null : ToDomain(entity);
     }
 
     public async Task AddAsync(UserOAuth userOAuth)
     {
+        await using var db = _factory();
         var entity = ToEntity(userOAuth);
-        _db.UserOAuths.Add(entity);
-        await _db.SaveChangesAsync();
+        db.UserOAuths.Add(entity);
+        await db.SaveChangesAsync();
         userOAuth.Id = entity.Id;
     }
 
     public async Task UpdateAsync(UserOAuth userOAuth)
     {
-        var entity = await _db.UserOAuths.FindAsync(userOAuth.Id);
+        await using var db = _factory();
+        var entity = await db.UserOAuths.FindAsync(userOAuth.Id);
         if (entity is null) return;
 
         entity.AccessToken = userOAuth.AccessToken;
@@ -39,19 +42,21 @@ public class UserOAuthRepository : IUserOAuthRepository
         entity.Email = userOAuth.Email;
         entity.UpdatedAt = DateTime.UtcNow;
         entity.IsDirty = true;
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
     }
 
     public async Task<IEnumerable<UserOAuth>> GetDirtyAsync()
     {
-        var entities = await _db.UserOAuths.Where(o => o.IsDirty).ToListAsync();
+        await using var db = _factory();
+        var entities = await db.UserOAuths.Where(o => o.IsDirty).ToListAsync();
         return entities.Select(ToDomain);
     }
 
     public async Task MarkSyncedAsync(IEnumerable<UserOAuth> items)
     {
+        await using var db = _factory();
         var ids = items.Select(o => o.Id).ToHashSet();
-        await _db.UserOAuths
+        await db.UserOAuths
             .Where(o => ids.Contains(o.Id))
             .ExecuteUpdateAsync(s => s
                 .SetProperty(o => o.IsDirty, false)
@@ -60,14 +65,16 @@ public class UserOAuthRepository : IUserOAuthRepository
 
     public async Task PurgeSyncedOlderThanAsync(DateTime cutoffUtc)
     {
-        await _db.UserOAuths
+        await using var db = _factory();
+        await db.UserOAuths
             .Where(o => !o.IsDirty && o.SyncedAt.HasValue && o.SyncedAt.Value < cutoffUtc)
             .ExecuteDeleteAsync();
     }
 
     public async Task<bool> ExistsAsync(UserOAuth userOAuth)
     {
-        return await _db.UserOAuths.AnyAsync(o =>
+        await using var db = _factory();
+        return await db.UserOAuths.AnyAsync(o =>
             o.Provider == (int)userOAuth.Provider && o.ProviderUserId == userOAuth.ProviderUserId);
     }
 

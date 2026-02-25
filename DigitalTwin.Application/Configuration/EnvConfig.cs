@@ -13,7 +13,7 @@ public class EnvConfig
             PostgresHost = Get("POSTGRES_HOST") ?? "localhost",
             PostgresPort = int.TryParse(Get("POSTGRES_PORT"), out var port) ? port : 5432,
             PostgresUser = Get("POSTGRES_USER") ?? "healthapp",
-            PostgresPassword = Get("POSTGRES_PASSWORD") ?? "healthapp_dev",
+            PostgresPassword = Get("POSTGRES_PASSWORD"),   // null if not set — no insecure default
             PostgresDb = Get("POSTGRES_DB") ?? "healthapp",
             GoogleOAuthClientId = Get("GOOGLE_OAUTH_CLIENT_ID"),
             GoogleOAuthRedirectUri = Get("GOOGLE_OAUTH_REDIRECT_URI"),
@@ -29,7 +29,13 @@ public class EnvConfig
     public string PostgresHost { get; set; } = "localhost";
     public int PostgresPort { get; set; } = 5432;
     public string PostgresUser { get; set; } = "healthapp";
-    public string PostgresPassword { get; set; } = "healthapp_dev";
+
+    /// <summary>
+    /// No default — must be set via POSTGRES_PASSWORD environment variable.
+    /// If null, <see cref="PostgresConnectionString"/> returns null and cloud DB is skipped.
+    /// </summary>
+    public string? PostgresPassword { get; set; }
+
     public string PostgresDb { get; set; } = "healthapp";
 
     public string? GoogleOAuthClientId { get; set; }
@@ -41,8 +47,15 @@ public class EnvConfig
     public double Latitude { get; set; } = 48.8566;
     public double Longitude { get; set; } = 2.3522;
 
-    public string PostgresConnectionString =>
-        $"Host={PostgresHost};Port={PostgresPort};Database={PostgresDb};Username={PostgresUser};Password={PostgresPassword}";
+    /// <summary>
+    /// Returns a PostgreSQL connection string, or <see langword="null"/> if
+    /// <see cref="PostgresPassword"/> has not been configured.
+    /// A null value causes <c>AddDigitalTwin</c> to skip cloud DB registration entirely.
+    /// </summary>
+    public string? PostgresConnectionString =>
+        PostgresPassword is null
+            ? null
+            : $"Host={PostgresHost};Port={PostgresPort};Database={PostgresDb};Username={PostgresUser};Password={PostgresPassword}";
 
     public bool UseRealEnvironment => !string.IsNullOrWhiteSpace(OpenWeatherMapApiKey);
     public bool UseRealAirQuality => !string.IsNullOrWhiteSpace(GoogleAirQualityApiKey);

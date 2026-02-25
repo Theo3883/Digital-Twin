@@ -14,9 +14,15 @@
 
 <MudLayout Style="min-height: 100vh; background: linear-gradient(135deg, #0a0f1a 0%, #111827 50%, #0d1320 100%);">
     <MudAppBar Elevation="0" Style="background: rgba(10, 15, 26, 0.85); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                       Color="Color.Inherit"
+                       Edge="Edge.Start"
+                       OnClick="ToggleDrawer" />
+        <MudText Typo="Typo.h6" Style="font-weight: 700; color: #e2e8f0;">Digital Twin</MudText>
+        <MudSpacer />
         @if (_currentUser is not null)
         {
-            <MudMenu AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft" Style="margin-right: 8px;">
+            <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Style="margin-left: 8px;">
                 <ActivatorContent>
                     <MudAvatar Size="Size.Small" Style="cursor: pointer; border: 2px solid rgba(96, 165, 250, 0.3);">
                         @if (!string.IsNullOrEmpty(_currentUser.PhotoUrl))
@@ -39,12 +45,6 @@
                 </ChildContent>
             </MudMenu>
         }
-        <MudIconButton Icon="@Icons.Material.Filled.Menu"
-                       Color="Color.Inherit"
-                       Edge="Edge.Start"
-                       OnClick="ToggleDrawer" />
-        <MudText Typo="Typo.h6" Style="font-weight: 700; color: #e2e8f0;">Digital Twin</MudText>
-        <MudSpacer />
     </MudAppBar>
 
     <MudDrawer @bind-Open="_drawerOpen"

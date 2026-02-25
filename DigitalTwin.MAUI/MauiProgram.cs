@@ -5,7 +5,6 @@ using DigitalTwin.Composition;
 using DigitalTwin.Integrations;
 using DigitalTwin.Integrations.Sync;
 using DigitalTwin.Infrastructure.Data;
-using DigitalTwin.Platform;
 using Microsoft.EntityFrameworkCore;
 using System.Xml.Linq;
 
@@ -38,7 +37,6 @@ public static class MauiProgram
             cloudConnectionString: config.PostgresConnectionString);
 
         builder.Services.AddIntegrations(config);
-        builder.Services.AddMauiPlatformIntegrations(config);
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();
@@ -57,26 +55,18 @@ public static class MauiProgram
         var services = scope.ServiceProvider;
         var logger = services.GetService<ILoggerFactory>()?.CreateLogger("DatabaseMigrations");
 
-        var localDbPath = Path.Combine(FileSystem.AppDataDirectory, "healthapp.db");
-#if DEBUG
-        if (File.Exists(localDbPath))
-        {
-            File.Delete(localDbPath);
-            logger?.LogInformation("Deleted existing local database for fresh migration.");
-        }
-#endif
-
-        var localDb = services.GetRequiredService<LocalDbContext>();
+        // With AddDbContextFactory, DbContext is no longer in DI as a service —
+        // use the factory to create a short-lived instance just for migrations.
+        var localFactory = services.GetRequiredService<IDbContextFactory<LocalDbContext>>();
+        using var localDb = localFactory.CreateDbContext();
         localDb.Database.Migrate();
 
-        var cloudDb = services.GetService<CloudDbContext>();
-        if (cloudDb is null)
-        {
-            return;
-        }
+        var cloudFactory = services.GetService<IDbContextFactory<CloudDbContext>>();
+        if (cloudFactory is null) return;
 
         try
         {
+            using var cloudDb = cloudFactory.CreateDbContext();
             cloudDb.Database.Migrate();
         }
         catch (Exception ex)

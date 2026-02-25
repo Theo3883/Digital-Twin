@@ -1,11 +1,28 @@
 using DigitalTwin.Infrastructure.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace DigitalTwin.Infrastructure.Data;
 
 public class HealthAppDbContext : DbContext
 {
     public HealthAppDbContext(DbContextOptions<HealthAppDbContext> options) : base(options) { }
+
+    /// <summary>
+    /// Converts typed <see cref="DbContextOptions{TContext}"/> for a subclass into the base
+    /// <see cref="DbContextOptions{HealthAppDbContext}"/> required by this constructor.
+    /// Both <see cref="LocalDbContext"/> and <see cref="CloudDbContext"/> call this helper
+    /// instead of duplicating the extension-copying logic.
+    /// </summary>
+    internal static DbContextOptions<HealthAppDbContext> ConvertOptions<TContext>(
+        DbContextOptions<TContext> options) where TContext : DbContext
+    {
+        var builder = new DbContextOptionsBuilder<HealthAppDbContext>();
+        foreach (var extension in options.Extensions)
+            ((IDbContextOptionsBuilderInfrastructure)builder).AddOrUpdateExtension(extension);
+        return builder.Options;
+    }
 
     public DbSet<UserEntity> Users => Set<UserEntity>();
     public DbSet<UserOAuthEntity> UserOAuths => Set<UserOAuthEntity>();
@@ -19,6 +36,32 @@ public class HealthAppDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Configure all DateTime properties to use UTC
+        var dateTimeConverter = new ValueConverter<DateTime, DateTime>(
+            v => v.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(v, DateTimeKind.Utc) : v.ToUniversalTime(),
+            v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
+        var nullableDateTimeConverter = new ValueConverter<DateTime?, DateTime?>(
+            v => v.HasValue
+                ? (v.Value.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v.Value.ToUniversalTime())
+                : v,
+            v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);
+
+        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+        {
+            foreach (var property in entityType.GetProperties())
+            {
+                if (property.ClrType == typeof(DateTime))
+                {
+                    property.SetValueConverter(dateTimeConverter);
+                }
+                else if (property.ClrType == typeof(DateTime?))
+                {
+                    property.SetValueConverter(nullableDateTimeConverter);
+                }
+            }
+        }
 
         modelBuilder.Entity<UserEntity>(e =>
         {

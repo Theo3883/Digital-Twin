@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace DigitalTwin.Infrastructure.Data;
 
@@ -11,13 +10,4 @@ public class LocalDbContext : HealthAppDbContext
 {
     public LocalDbContext(DbContextOptions<LocalDbContext> options)
         : base(ConvertOptions(options)) { }
-
-    private static DbContextOptions<HealthAppDbContext> ConvertOptions(
-        DbContextOptions<LocalDbContext> options)
-    {
-        var builder = new DbContextOptionsBuilder<HealthAppDbContext>();
-        foreach (var extension in options.Extensions)
-            ((IDbContextOptionsBuilderInfrastructure)builder).AddOrUpdateExtension(extension);
-        return builder.Options;
-    }
 }

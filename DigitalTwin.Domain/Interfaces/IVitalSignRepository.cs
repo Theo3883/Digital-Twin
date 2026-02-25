@@ -13,6 +13,8 @@ public interface IVitalSignRepository
 
     Task AddAsync(VitalSign vitalSign);
 
+    Task AddRangeAsync(IEnumerable<VitalSign> vitalSigns);
+
     Task<bool> ExistsAsync(long patientId, VitalSignType type, DateTime timestamp);
 
     Task<IEnumerable<VitalSign>> GetDirtyAsync();

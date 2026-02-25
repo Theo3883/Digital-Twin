@@ -5,52 +5,195 @@
 
 <div class="login-root">
 
-    <MudCard Style="background: linear-gradient(145deg, rgba(26, 31, 46, 0.95), rgba(15, 20, 35, 0.98)); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; max-width: 420px; width: 100%;" Elevation="0">
-        <MudCardContent>
-            <MudStack Spacing="4" AlignItems="AlignItems.Center">
-                <MudText Typo="Typo.h4" Style="color: #e2e8f0; font-weight: 700;">
-                    Digital Twin
-                </MudText>
-                <MudText Typo="Typo.body2" Style="color: #94a3b8; text-align: center;">
-                    Your personal health monitoring companion
-                </MudText>
+    @if (!_showRegistrationForm)
+    {
+        @* ── Step 1: Google sign-in button ── *@
+        <MudCard Style="background: linear-gradient(145deg, rgba(26, 31, 46, 0.95), rgba(15, 20, 35, 0.98)); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; max-width: 420px; width: 100%;" Elevation="0">
+            <MudCardContent>
+                <MudStack Spacing="4" AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.h4" Style="color: #e2e8f0; font-weight: 700;">
+                        Digital Twin
+                    </MudText>
+                    <MudText Typo="Typo.body2" Style="color: #94a3b8; text-align: center;">
+                        Your personal health monitoring companion
+                    </MudText>
 
-                @if (!string.IsNullOrEmpty(_errorMessage))
-                {
-                    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Dense="true" Style="width: 100%;">
-                        @_errorMessage
-                    </MudAlert>
-                }
+                    @if (!string.IsNullOrEmpty(_errorMessage))
+                    {
+                        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Dense="true" Style="width: 100%;">
+                            @_errorMessage
+                        </MudAlert>
+                    }
 
-                <MudDivider Style="border-color: rgba(255, 255, 255, 0.06); width: 100%;" />
+                    <MudDivider Style="border-color: rgba(255, 255, 255, 0.06); width: 100%;" />
 
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           FullWidth="true"
-                           Size="Size.Large"
-                           StartIcon="@Icons.Custom.Brands.Google"
-                           OnClick="SignInWithGoogleAsync"
-                           Loading="_isLoading"
-                           Style="text-transform: none; font-weight: 600; border-radius: 12px; height: 48px;">
-                    Sign in with Google
-                </MudButton>
-            </MudStack>
-        </MudCardContent>
-    </MudCard>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               FullWidth="true"
+                               Size="Size.Large"
+                               StartIcon="@Icons.Custom.Brands.Google"
+                               OnClick="SignInWithGoogleAsync"
+                               Disabled="_isLoading"
+                               Style="text-transform: none; font-weight: 600; border-radius: 12px; height: 48px;">
+                        @if (_isLoading)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Inherit" Class="mr-2" />
+                            <span>Signing in...</span>
+                        }
+                        else
+                        {
+                            <span>Sign in with Google</span>
+                        }
+                    </MudButton>
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+    }
+    else
+    {
+        @* ── Step 2: Profile completion form (new users only) ── *@
+        <MudCard Style="background: linear-gradient(145deg, rgba(26, 31, 46, 0.95), rgba(15, 20, 35, 0.98)); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; max-width: 480px; width: 100%;" Elevation="0">
+            <MudCardContent>
+                <MudStack Spacing="3">
+                    <MudText Typo="Typo.h5" Style="color: #e2e8f0; font-weight: 700; text-align: center;">
+                        Complete Your Profile
+                    </MudText>
+                    <MudText Typo="Typo.body2" Style="color: #94a3b8; text-align: center;">
+                        Fill in a few details to finish creating your account.
+                    </MudText>
+
+                    @if (!string.IsNullOrEmpty(_errorMessage))
+                    {
+                        <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Dense="true" Style="width: 100%;">
+                            @_errorMessage
+                        </MudAlert>
+                    }
+
+                    <MudDivider Style="border-color: rgba(255, 255, 255, 0.06);" />
+
+                    @* Email (read-only from Google) *@
+                    <MudTextField @bind-Value="_googleEmail"
+                                  Label="Email"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Email"
+                                  Style="color: #94a3b8;" />
+
+                    @* Name fields — always editable so user can fix/add missing names *@
+                    <MudStack Row="true" Spacing="2">
+                        <MudTextField @bind-Value="_firstName"
+                                      Label="First Name"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="First name is required"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Person"
+                                      Placeholder="John" />
+                        <MudTextField @bind-Value="_lastName"
+                                      Label="Last Name"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      RequiredError="Last name is required"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Person"
+                                      Placeholder="Doe" />
+                    </MudStack>
+
+                    <MudDivider Style="border-color: rgba(255, 255, 255, 0.06);" />
+
+                    @* Editable fields not from Google *@
+                    <MudTextField @bind-Value="_phone"
+                                  Label="Phone Number"
+                                  Variant="Variant.Outlined"
+                                  InputType="InputType.Telephone"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Phone"
+                                  Placeholder="+33 6 12 34 56 78" />
+
+                    <MudTextField @bind-Value="_dateOfBirthText"
+                                  Label="Date of Birth"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.CalendarMonth"
+                                  Placeholder="DD/MM/YYYY"
+                                  HelperText="Format: DD/MM/YYYY" />
+
+                    <MudTextField @bind-Value="_address"
+                                  Label="Address"
+                                  Variant="Variant.Outlined"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Home"
+                                  Placeholder="123 Main Street" />
+
+                    <MudStack Row="true" Spacing="2">
+                        <MudTextField @bind-Value="_city"
+                                      Label="City"
+                                      Variant="Variant.Outlined"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.LocationCity"
+                                      Placeholder="Paris" />
+                        <MudTextField @bind-Value="_country"
+                                      Label="Country"
+                                      Variant="Variant.Outlined"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Public"
+                                      Placeholder="France" />
+                    </MudStack>
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               FullWidth="true"
+                               Size="Size.Large"
+                               OnClick="CompleteRegistrationAsync"
+                               Disabled="_isLoading"
+                               Style="text-transform: none; font-weight: 600; border-radius: 12px; height: 48px; margin-top: 8px;">
+                        @if (_isLoading)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Inherit" Class="mr-2" />
+                            <span>Creating account...</span>
+                        }
+                        else
+                        {
+                            <span>Create Account</span>
+                        }
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Text"
+                               Color="Color.Default"
+                               FullWidth="true"
+                               Size="Size.Small"
+                               OnClick="CancelRegistration"
+                               Style="text-transform: none; color: #94a3b8;">
+                        Cancel
+                    </MudButton>
+                </MudStack>
+            </MudCardContent>
+        </MudCard>
+    }
 </div>
 
 @code {
     private bool _isLoading;
     private string? _errorMessage;
 
+    // Registration form state
+    private bool _showRegistrationForm;
+    private string _googleEmail = string.Empty;
+    private string _firstName = string.Empty;
+    private string _lastName = string.Empty;
+    private string? _phone;
+    private string? _address;
+    private string? _city;
+    private string? _country;
+    private string? _dateOfBirthText;
+
     protected override async Task OnInitializedAsync()
     {
         var user = await AuthService.GetCurrentUserAsync();
         if (user is not null)
         {
-            await SyncService.StartSyncAsync();
-            await SyncService.PushToCloudAsync();
-            Navigation.NavigateTo("/");
+            await SyncAndNavigateHome();
         }
     }
 
@@ -61,10 +204,21 @@
 
         try
         {
-            await AuthService.SignInWithGoogleAsync();
-            await SyncService.StartSyncAsync();
-            await SyncService.PushToCloudAsync();
-            Navigation.NavigateTo("/");
+            var result = await AuthService.AuthenticateWithGoogleAsync();
+
+            if (result.IsExistingUser)
+            {
+                // Returning user → go straight to home
+                await SyncAndNavigateHome();
+            }
+            else
+            {
+                // New user → pre-fill what Google gave us, let user edit everything
+                _googleEmail = result.Email;
+                _firstName = result.FirstName;
+                _lastName = result.LastName;
+                _showRegistrationForm = true;
+            }
         }
         catch (Exception ex)
         {
@@ -74,5 +228,78 @@
         {
             _isLoading = false;
         }
+    }
+
+    private async Task CompleteRegistrationAsync()
+    {
+        _errorMessage = null;
+
+        // Validate required fields
+        if (string.IsNullOrWhiteSpace(_firstName))
+        {
+            _errorMessage = "First name is required.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_lastName))
+        {
+            _errorMessage = "Last name is required.";
+            return;
+        }
+
+        // Parse date of birth
+        DateTime? dateOfBirth = null;
+        if (!string.IsNullOrWhiteSpace(_dateOfBirthText))
+        {
+            if (DateTime.TryParseExact(_dateOfBirthText.Trim(), new[] { "dd/MM/yyyy", "d/M/yyyy", "dd-MM-yyyy", "yyyy-MM-dd" },
+                System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsed))
+            {
+                dateOfBirth = parsed;
+            }
+            else
+            {
+                _errorMessage = "Invalid date format. Please use DD/MM/YYYY.";
+                return;
+            }
+        }
+
+        _isLoading = true;
+
+        try
+        {
+            var profile = new ProfileCompletionDto
+            {
+                FirstName = _firstName.Trim(),
+                LastName = _lastName.Trim(),
+                Phone = _phone,
+                Address = _address,
+                City = _city,
+                Country = _country,
+                DateOfBirth = dateOfBirth
+            };
+
+            await AuthService.CompleteRegistrationAsync(profile);
+            await SyncAndNavigateHome();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void CancelRegistration()
+    {
+        _showRegistrationForm = false;
+        _errorMessage = null;
+    }
+
+    private async Task SyncAndNavigateHome()
+    {
+        await SyncService.StartSyncAsync();
+        await SyncService.PushToCloudAsync();
+        Navigation.NavigateTo("/");
     }
 }

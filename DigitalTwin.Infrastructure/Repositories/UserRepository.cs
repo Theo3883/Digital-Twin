@@ -9,33 +9,37 @@ namespace DigitalTwin.Infrastructure.Repositories;
 
 public class UserRepository : IUserRepository
 {
-    private readonly HealthAppDbContext _db;
+    private readonly Func<HealthAppDbContext> _factory;
 
-    public UserRepository(HealthAppDbContext db) => _db = db;
+    public UserRepository(Func<HealthAppDbContext> factory) => _factory = factory;
 
     public async Task<User?> GetByIdAsync(long id)
     {
-        var entity = await _db.Users.FindAsync(id);
+        await using var db = _factory();
+        var entity = await db.Users.FindAsync(id);
         return entity is null ? null : ToDomain(entity);
     }
 
     public async Task<User?> GetByEmailAsync(string email)
     {
-        var entity = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+        await using var db = _factory();
+        var entity = await db.Users.FirstOrDefaultAsync(u => u.Email == email);
         return entity is null ? null : ToDomain(entity);
     }
 
     public async Task AddAsync(User user)
     {
+        await using var db = _factory();
         var entity = ToEntity(user);
-        _db.Users.Add(entity);
-        await _db.SaveChangesAsync();
+        db.Users.Add(entity);
+        await db.SaveChangesAsync();
         user.Id = entity.Id;
     }
 
     public async Task UpdateAsync(User user)
     {
-        var entity = await _db.Users.FindAsync(user.Id);
+        await using var db = _factory();
+        var entity = await db.Users.FindAsync(user.Id);
         if (entity is null) return;
 
         entity.Email = user.Email;
@@ -50,19 +54,21 @@ public class UserRepository : IUserRepository
         entity.DateOfBirth = user.DateOfBirth;
         entity.UpdatedAt = DateTime.UtcNow;
         entity.IsDirty = true;
-        await _db.SaveChangesAsync();
+        await db.SaveChangesAsync();
     }
 
     public async Task<IEnumerable<User>> GetDirtyAsync()
     {
-        var entities = await _db.Users.Where(u => u.IsDirty).ToListAsync();
+        await using var db = _factory();
+        var entities = await db.Users.Where(u => u.IsDirty).ToListAsync();
         return entities.Select(ToDomain);
     }
 
     public async Task MarkSyncedAsync(IEnumerable<User> items)
     {
+        await using var db = _factory();
         var ids = items.Select(u => u.Id).ToHashSet();
-        await _db.Users
+        await db.Users
             .Where(u => ids.Contains(u.Id))
             .ExecuteUpdateAsync(s => s
                 .SetProperty(u => u.IsDirty, false)
@@ -71,14 +77,16 @@ public class UserRepository : IUserRepository
 
     public async Task PurgeSyncedOlderThanAsync(DateTime cutoffUtc)
     {
-        await _db.Users
+        await using var db = _factory();
+        await db.Users
             .Where(u => !u.IsDirty && u.SyncedAt.HasValue && u.SyncedAt.Value < cutoffUtc)
             .ExecuteDeleteAsync();
     }
 
     public async Task<bool> ExistsAsync(User user)
     {
-        return await _db.Users.AnyAsync(u => u.Email == user.Email);
+        await using var db = _factory();
+        return await db.Users.AnyAsync(u => u.Email == user.Email);
     }
 
     private static User ToDomain(UserEntity entity) => new()

@@ -7,11 +7,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DigitalTwin.Infrastructure.Repositories;
 
+/// <summary>
+/// Each method creates and disposes its own DbContext via the factory, so concurrent
+/// callers from different threads never share a DbContext instance.
+/// </summary>
 public class VitalSignRepository : IVitalSignRepository
 {
-    private readonly HealthAppDbContext _db;
+    // Func returns a BRAND NEW context every call — callers own lifetime via `await using`.
+    private readonly Func<HealthAppDbContext> _factory;
 
-    public VitalSignRepository(HealthAppDbContext db) => _db = db;
+    public VitalSignRepository(Func<HealthAppDbContext> factory) => _factory = factory;
 
     public async Task<IEnumerable<VitalSign>> GetByPatientAsync(
         long patientId,
@@ -19,7 +24,8 @@ public class VitalSignRepository : IVitalSignRepository
         DateTime? from = null,
         DateTime? to = null)
     {
-        var query = _db.VitalSigns.Where(v => v.PatientId == patientId);
+        await using var db = _factory();
+        var query = db.VitalSigns.Where(v => v.PatientId == patientId);
 
         if (type.HasValue)
             query = query.Where(v => v.Type == (int)type.Value);
@@ -34,20 +40,32 @@ public class VitalSignRepository : IVitalSignRepository
 
     public async Task AddAsync(VitalSign vitalSign)
     {
+        await using var db = _factory();
         var entity = ToEntity(vitalSign);
-        _db.VitalSigns.Add(entity);
-        await _db.SaveChangesAsync();
+        db.VitalSigns.Add(entity);
+        await db.SaveChangesAsync();
+    }
+
+    public async Task AddRangeAsync(IEnumerable<VitalSign> vitalSigns)
+    {
+        var entities = vitalSigns.Select(ToEntity).ToList();
+        if (entities.Count == 0) return;
+        await using var db = _factory();
+        await db.VitalSigns.AddRangeAsync(entities);
+        await db.SaveChangesAsync();
     }
 
     public async Task<bool> ExistsAsync(long patientId, VitalSignType type, DateTime timestamp)
     {
-        return await _db.VitalSigns
+        await using var db = _factory();
+        return await db.VitalSigns
             .AnyAsync(v => v.PatientId == patientId && v.Type == (int)type && v.Timestamp == timestamp);
     }
 
     public async Task<IEnumerable<VitalSign>> GetDirtyAsync()
     {
-        var entities = await _db.VitalSigns
+        await using var db = _factory();
+        var entities = await db.VitalSigns
             .Where(v => v.IsDirty)
             .OrderBy(v => v.Timestamp)
             .ToListAsync();
@@ -56,7 +74,8 @@ public class VitalSignRepository : IVitalSignRepository
 
     public async Task MarkSyncedAsync(long patientId, DateTime beforeTimestamp)
     {
-        await _db.VitalSigns
+        await using var db = _factory();
+        await db.VitalSigns
             .Where(v => v.PatientId == patientId && v.IsDirty && v.Timestamp <= beforeTimestamp)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(v => v.IsDirty, false)
@@ -65,7 +84,8 @@ public class VitalSignRepository : IVitalSignRepository
 
     public async Task PurgeSyncedOlderThanAsync(DateTime cutoffUtc)
     {
-        await _db.VitalSigns
+        await using var db = _factory();
+        await db.VitalSigns
             .Where(v => !v.IsDirty && v.SyncedAt.HasValue && v.SyncedAt.Value < cutoffUtc)
             .ExecuteDeleteAsync();
     }
