@@ -114,8 +114,16 @@ public class HealthAppDbContext : DbContext
             e.Property(r => r.Latitude).HasPrecision(10, 7);
             e.Property(r => r.Longitude).HasPrecision(10, 7);
             e.Property(r => r.PM25).HasPrecision(10, 2);
+            e.Property(r => r.PM10).HasPrecision(10, 2);
+            e.Property(r => r.O3).HasPrecision(10, 2);
+            e.Property(r => r.NO2).HasPrecision(10, 2);
             e.Property(r => r.Temperature).HasPrecision(5, 2);
             e.Property(r => r.Humidity).HasPrecision(5, 2);
+            // SQLite stores booleans as integers (0/1); PostgreSQL uses native booleans.
+            var isDirtyFilter = Database.ProviderName?.Contains("Npgsql") == true
+                ? "\"IsDirty\" = true"
+                : "\"IsDirty\" = 1";
+            e.HasIndex(r => r.IsDirty).HasFilter(isDirtyFilter);
             e.HasQueryFilter(r => r.DeletedAt == null);
         });
 

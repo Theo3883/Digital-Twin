@@ -13,29 +13,29 @@ public partial class DigitalTwinMannequin : ComponentBase
     [Parameter]
     public double StepsValue { get; set; } = 0;
 
-    protected string BodyColor => "#4a5568";
+    protected string BodyColor => "rgba(255, 255, 255, 0.35)";
 
     protected string PulseDuration => $"{60.0 / Math.Max(HeartRateValue, 40):F2}s";
 
     protected string HeartColor => HeartRateValue switch
     {
-        > 120 => "#ef4444",
-        > 100 => "#f59e0b",
-        _ => "#4ade80"
+        > 120 => "#FF2D55",
+        > 100 => "#FF9500",
+        _ => "#00D4C8"
     };
 
     protected string LungColor => OxygenValue switch
     {
-        < 90 => "#ef4444",
-        < 95 => "#f59e0b",
+        < 90 => "#FF2D55",
+        < 95 => "#FF9500",
         _ => "#60a5fa"
     };
 
     protected string ActivityColor => StepsValue switch
     {
-        > 8000 => "#4ade80",
-        > 3000 => "#fbbf24",
-        _ => "#6b7280"
+        > 8000 => "#30D158",
+        > 3000 => "#FF9500",
+        _ => "rgba(255, 255, 255, 0.25)"
     };
 
     protected string ActivityOpacity => StepsValue switch
@@ -52,5 +52,5 @@ public partial class DigitalTwinMannequin : ComponentBase
         _ => "Low"
     };
 
-    protected string ContainerStyle => "display: flex; flex-direction: column; align-items: center; padding: 20px; background: linear-gradient(145deg, rgba(26, 31, 46, 0.9), rgba(15, 20, 35, 0.95)); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 16px; backdrop-filter: blur(20px);";
+    protected string ContainerStyle => "display: flex; flex-direction: column; align-items: center; padding: 20px; border-radius: var(--radius-card); backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%); background: rgba(255, 255, 255, 0.14); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), inset 1px 0 0 rgba(255, 255, 255, 0.12);";
 }

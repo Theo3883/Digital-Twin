@@ -17,9 +17,9 @@
 
     private string ChipStyle => Level switch
     {
-        AirQualityLevel.Good => "background: #065f46; color: #6ee7b7;",
-        AirQualityLevel.Moderate => "background: #78350f; color: #fcd34d;",
-        AirQualityLevel.Unhealthy => "background: #7f1d1d; color: #fca5a5;",
-        _ => "background: #374151; color: #9ca3af;"
+        AirQualityLevel.Good => "background: rgba(48, 209, 88, 0.15); color: var(--green-positive); border-radius: var(--radius-chip); border: 1px solid rgba(48, 209, 88, 0.3);",
+        AirQualityLevel.Moderate => "background: rgba(255, 149, 0, 0.15); color: var(--amber-warning); border-radius: var(--radius-chip); border: 1px solid rgba(255, 149, 0, 0.3);",
+        AirQualityLevel.Unhealthy => "background: rgba(255, 45, 85, 0.15); color: var(--red-critical); border-radius: var(--radius-chip); border: 1px solid rgba(255, 45, 85, 0.3);",
+        _ => "background: var(--glass-bg-1); color: var(--text-sec); border-radius: var(--radius-chip);"
     };
 }

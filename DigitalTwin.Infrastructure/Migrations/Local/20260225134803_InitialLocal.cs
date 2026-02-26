@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace DigitalTwin.Infrastructure.Data.Migrations.Local
+namespace DigitalTwin.Infrastructure.Migrations.Local
 {
     /// <inheritdoc />
     public partial class InitialLocal : Migration
@@ -40,9 +40,15 @@ namespace DigitalTwin.Infrastructure.Data.Migrations.Local
                     Latitude = table.Column<decimal>(type: "TEXT", precision: 10, scale: 7, nullable: false),
                     Longitude = table.Column<decimal>(type: "TEXT", precision: 10, scale: 7, nullable: false),
                     PM25 = table.Column<decimal>(type: "TEXT", precision: 10, scale: 2, nullable: false),
+                    PM10 = table.Column<decimal>(type: "TEXT", precision: 10, scale: 2, nullable: false),
+                    O3 = table.Column<decimal>(type: "TEXT", precision: 10, scale: 2, nullable: false),
+                    NO2 = table.Column<decimal>(type: "TEXT", precision: 10, scale: 2, nullable: false),
                     Temperature = table.Column<decimal>(type: "TEXT", precision: 5, scale: 2, nullable: false),
                     Humidity = table.Column<decimal>(type: "TEXT", precision: 5, scale: 2, nullable: false),
                     AirQualityLevel = table.Column<int>(type: "INTEGER", nullable: false),
+                    AqiIndex = table.Column<int>(type: "INTEGER", nullable: false),
+                    IsDirty = table.Column<bool>(type: "INTEGER", nullable: false),
+                    SyncedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
                     Timestamp = table.Column<DateTime>(type: "TEXT", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
@@ -228,6 +234,12 @@ namespace DigitalTwin.Infrastructure.Data.Migrations.Local
                 table: "DoctorPatientAssignments",
                 columns: new[] { "DoctorId", "PatientId" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EnvironmentReadings_IsDirty",
+                table: "EnvironmentReadings",
+                column: "IsDirty",
+                filter: "\"IsDirty\" = 1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Medications_PatientId",

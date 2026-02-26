@@ -13,7 +13,7 @@ public interface IHealthDataSyncService
     /// <summary>Manually push a batch of vitals (e.g. from iOS background fetch).</summary>
     Task SyncBatchAsync(IEnumerable<VitalSign> vitals);
 
-    /// <summary>
+    /// <summary> 
     /// Drains any dirty records from the local SQLite cache to the cloud DB.
     /// Called automatically by the drain timer and by ConnectivityMonitor on reconnect.
     /// </summary>

@@ -10,9 +10,13 @@ public static class EnvironmentReadingMapper
         return new EnvironmentReadingDto
         {
             PM25 = model.PM25,
+            PM10 = model.PM10,
+            O3 = model.O3,
+            NO2 = model.NO2,
             Temperature = model.Temperature,
             Humidity = model.Humidity,
             AirQuality = EnumMapper.ToApp(model.AirQuality),
+            AqiIndex = model.AqiIndex,
             Timestamp = model.Timestamp
         };
     }

@@ -1,0 +1,238 @@
+@page "/environment"
+@implements IDisposable
+@inject IEnvironmentApplicationService EnvironmentService
+
+<RequireAuth>
+<div class="page-enter" style="display: flex; flex-direction: column; gap: 16px;">
+
+    @* AQI Hero Card *@
+    <MudCard Class="glass-card" Elevation="0" Style="position: relative; overflow: hidden; min-height: 180px;">
+        <div style="position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(100, 120, 180, 0.25), rgba(10, 14, 26, 0.9)); pointer-events: none;"></div>
+        <MudCardContent Style="position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: flex-end; min-height: 160px;">
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 12px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-sec);"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
+                <span style="font-size: 14px; color: var(--text-sec);">Bucharest, Romania · @DateTime.Now.ToString("dd MMM yyyy")</span>
+            </div>
+            <div style="display: inline-flex; align-items: center; padding: 8px 20px; border-radius: var(--radius-inner); @_aqiBadgeStyle backdrop-filter: blur(8px); margin-bottom: 8px; width: fit-content;">
+                <span style="font-family: var(--font-display); font-weight: 700; font-size: 22px; color: @_aqiTextColor; letter-spacing: -0.5px;">
+                    AQI @_aqiValue · @_aqiLabel
+                </span>
+            </div>
+            <span style="font-size: 12px; color: var(--text-sec);">Air quality is satisfactory and poses little or no risk.</span>
+        </MudCardContent>
+    </MudCard>
+
+    @* Metric Grid (2x3) *@
+    <MudGrid Spacing="3">
+        <MudItem xs="6">
+            <MudCard Class="glass-card" Elevation="0">
+                <MudCardContent>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                        <span style="font-size: 12px; color: var(--text-sec);">PM2.5</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>
+                    </div>
+                    <div style="font-family: var(--font-rounded); font-size: 24px; font-weight: 300; color: var(--text-main);">@_pm25.ToString("F0") µg/m³</div>
+                    <span style="font-size: 11px; color: @_pm25LabelColor; margin-top: 4px;">@_pm25Label</span>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="6">
+            <MudCard Class="glass-card" Elevation="0">
+                <MudCardContent>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                        <span style="font-size: 12px; color: var(--text-sec);">PM10</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>
+                    </div>
+                    <div style="font-family: var(--font-rounded); font-size: 24px; font-weight: 300; color: var(--text-main);">@_pm10.ToString("F0") µg/m³</div>
+                    <span style="font-size: 11px; color: @_pm10LabelColor; margin-top: 4px;">@_pm10Label</span>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="6">
+            <MudCard Class="glass-card" Elevation="0">
+                <MudCardContent>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                        <span style="font-size: 12px; color: var(--text-sec);">Temperature</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--amber-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
+                    </div>
+                    <div style="font-family: var(--font-rounded); font-size: 24px; font-weight: 300; color: var(--text-main);">@_temperature.ToString("F1")°C</div>
+                    <span style="font-size: 11px; color: var(--green-positive); margin-top: 4px;">Comfortable</span>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="6">
+            <MudCard Class="glass-card" Elevation="0">
+                <MudCardContent>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                        <span style="font-size: 12px; color: var(--text-sec);">Humidity</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/><path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2 4.9 4 6.5s3 3.5 3 5.5a6.98 6.98 0 0 1-11.91 4.97"/></svg>
+                    </div>
+                    <div style="font-family: var(--font-rounded); font-size: 24px; font-weight: 300; color: var(--text-main);">@_humidity.ToString("F0")%</div>
+                    <span style="font-size: 11px; color: var(--green-positive); margin-top: 4px;">Optimal</span>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="6">
+            <MudCard Class="glass-card" Elevation="0">
+                <MudCardContent>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                        <span style="font-size: 12px; color: var(--text-sec);">O₃ (Ozone)</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-positive)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                    </div>
+                    <div style="font-family: var(--font-rounded); font-size: 24px; font-weight: 300; color: var(--text-main);">@_o3.ToString("F0") µg/m³</div>
+                    <span style="font-size: 11px; color: var(--green-positive); margin-top: 4px;">Normal</span>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="6">
+            <MudCard Class="glass-card" Elevation="0">
+                <MudCardContent>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                        <span style="font-size: 12px; color: var(--text-sec);">NO₂</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green-positive)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                    </div>
+                    <div style="font-family: var(--font-rounded); font-size: 24px; font-weight: 300; color: var(--text-main);">@_no2.ToString("F0") µg/m³</div>
+                    <span style="font-size: 11px; color: var(--green-positive); margin-top: 4px;">Normal</span>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    @* Correlation Chart *@
+    <MudCard Class="glass-card" Elevation="0">
+        <MudCardContent>
+            <div style="font-family: var(--font-display); font-weight: 600; font-size: 16px; color: var(--text-main); margin-bottom: 16px;">
+                Heart Rate vs Air Quality — Last 24h
+            </div>
+            <div style="position: relative; height: 150px; width: 100%; border-bottom: 1px solid rgba(255,255,255,0.1); border-left: 1px solid rgba(255,255,255,0.1); margin-bottom: 8px;">
+                <svg viewBox="0 0 100 50" style="width: 100%; height: 100%;" preserveAspectRatio="none">
+                    <path d="M0,30 Q10,28 20,32 T40,25 T60,10 T80,28 T100,30" fill="none" stroke="var(--teal-primary)" stroke-width="1.5" />
+                    <path d="M0,40 Q15,42 30,38 T50,15 T70,35 T100,40" fill="none" stroke="var(--amber-warning)" stroke-width="1.5" stroke-dasharray="3,3" />
+                    <circle cx="55" cy="12" r="2" fill="var(--amber-warning)" />
+                    <line x1="55" y1="12" x2="55" y2="50" stroke="white" stroke-width="0.5" stroke-dasharray="1,1" opacity="0.4" />
+                </svg>
+                <div style="position: absolute; top: 0; left: 40%; padding: 3px 8px; font-size: 9px; color: var(--amber-warning); background: var(--glass-bg-1); border-radius: var(--radius-chip); border: 1px solid rgba(255, 149, 0, 0.3);">
+                    PM2.5 spike · HR +8 BPM
+                </div>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-tert); padding: 0 4px;">
+                <span>00:00</span>
+                <span>12:00</span>
+                <span>23:00</span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-sec); margin-top: 12px; line-height: 1.5;">
+                Moderate correlation detected (r = 0.62). Domain risk event threshold: PM2.5 &gt; 35 µg/m³.
+            </div>
+        </MudCardContent>
+    </MudCard>
+
+    @* AI Recommendation *@
+    <MudCard Class="glass-card" Elevation="0" Style="border-left: 4px solid var(--teal-primary) !important;">
+        <MudCardContent>
+            <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(0, 212, 200, 0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+                </div>
+                <div>
+                    <div style="font-size: 14px; color: var(--text-main); line-height: 1.6;">
+                        Low pollution levels detected. Outdoor activity recommended between 06:00–09:00 for optimal cardiac benefit.
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 12px;">
+                        <span style="padding: 3px 10px; font-size: 10px; color: var(--text-tert); background: var(--glass-bg-1); border-radius: var(--radius-chip);">OpenWeatherMap Weather</span>
+                        <span style="padding: 3px 10px; font-size: 10px; color: var(--text-tert); background: var(--glass-bg-1); border-radius: var(--radius-chip);">OpenWeatherMap Air Pollution</span>
+                    </div>
+                </div>
+            </div>
+        </MudCardContent>
+    </MudCard>
+
+</div>
+</RequireAuth>
+
+@code {
+    private IDisposable? _envSubscription;
+    private bool _loading = true;
+
+    private double _pm25;
+    private double _pm10;
+    private double _o3;
+    private double _no2;
+    private double _temperature;
+    private double _humidity;
+    private int _aqiValue;
+    private AirQualityLevel _aqiLevel = AirQualityLevel.Good;
+
+    private string _aqiLabel => _aqiLevel switch
+    {
+        AirQualityLevel.Good => "GOOD",
+        AirQualityLevel.Moderate => "MODERATE",
+        AirQualityLevel.Unhealthy => "UNHEALTHY",
+        _ => "GOOD"
+    };
+
+    private string _aqiBadgeStyle => _aqiLevel switch
+    {
+        AirQualityLevel.Good => "background: rgba(48, 209, 88, 0.2); border: 1px solid rgba(48, 209, 88, 0.4);",
+        AirQualityLevel.Moderate => "background: rgba(255, 149, 0, 0.2); border: 1px solid rgba(255, 149, 0, 0.4);",
+        AirQualityLevel.Unhealthy => "background: rgba(255, 45, 85, 0.2); border: 1px solid rgba(255, 45, 85, 0.4);",
+        _ => "background: rgba(48, 209, 88, 0.2); border: 1px solid rgba(48, 209, 88, 0.4);"
+    };
+
+    private string _aqiTextColor => _aqiLevel switch
+    {
+        AirQualityLevel.Good => "var(--green-positive)",
+        AirQualityLevel.Moderate => "var(--amber-warning)",
+        AirQualityLevel.Unhealthy => "var(--red-critical)",
+        _ => "var(--green-positive)"
+    };
+
+    private string _pm25Label => _pm25 <= 12 ? "Good" : _pm25 <= 35 ? "Fair" : "Poor";
+    private string _pm25LabelColor => _pm25 <= 12 ? "var(--green-positive)" : _pm25 <= 35 ? "var(--amber-warning)" : "var(--red-critical)";
+    private string _pm10Label => _pm10 <= 20 ? "Good" : _pm10 <= 50 ? "Fair" : "Poor";
+    private string _pm10LabelColor => _pm10 <= 20 ? "var(--green-positive)" : _pm10 <= 50 ? "var(--amber-warning)" : "var(--red-critical)";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var reading = await EnvironmentService.GetCurrentEnvironmentAsync();
+            ApplyReading(reading);
+        }
+        catch { }
+        finally
+        {
+            _loading = false;
+        }
+
+        _envSubscription = EnvironmentService.SubscribeToEnvironment()
+            .Subscribe(reading =>
+            {
+                ApplyReading(reading);
+                InvokeAsync(StateHasChanged);
+            });
+    }
+
+    private void ApplyReading(EnvironmentReadingDto reading)
+    {
+        _pm25 = reading.PM25;
+        _pm10 = reading.PM10;
+        _o3 = reading.O3;
+        _no2 = reading.NO2;
+        _temperature = reading.Temperature;
+        _humidity = reading.Humidity;
+        _aqiLevel = reading.AirQuality;
+        // Display the raw OpenWeather AQI index (1–5) when available
+        _aqiValue = reading.AqiIndex > 0 ? reading.AqiIndex : _aqiLevel switch
+        {
+            AirQualityLevel.Good => 1,
+            AirQualityLevel.Moderate => 3,
+            AirQualityLevel.Unhealthy => 4,
+            _ => 1
+        };
+    }
+
+    public void Dispose()
+    {
+        _envSubscription?.Dispose();
+    }
+}

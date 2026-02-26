@@ -3,14 +3,11 @@
 @inject ISnackbar Snackbar
 
 <RequireAuth>
-    <div>
-        <MudText Typo="Typo.h5" Style="color: #e2e8f0; font-weight: 700; margin-bottom: 24px;">
-            Medication Interactions
-        </MudText>
+    <div class="page-enter" style="display: flex; flex-direction: column; gap: 16px;">
 
-        <MudCard Style="background: linear-gradient(145deg, rgba(26, 31, 46, 0.9), rgba(15, 20, 35, 0.95)); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 16px; margin-bottom: 24px;" Elevation="0">
+        <MudCard Class="glass-card" Elevation="0">
             <MudCardContent>
-                <MudText Typo="Typo.subtitle1" Style="color: #e2e8f0; font-weight: 600; margin-bottom: 16px;">
+                <MudText Typo="Typo.subtitle1" Style="color: var(--text-main); font-weight: 600; margin-bottom: 16px;">
                     Check Drug Interactions
                 </MudText>
                 <MudStack Spacing="3">
@@ -19,15 +16,14 @@
                                   Variant="Variant.Outlined"
                                   Adornment="Adornment.Start"
                                   AdornmentIcon="@Icons.Material.Filled.Medication"
-                                  Placeholder="e.g. 207106, 152923"
-                                  Style="color: #e2e8f0;" />
+                                  Placeholder="e.g. 207106, 152923" />
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Primary"
                                OnClick="CheckInteractionsAsync"
-                               Loading="_isLoading"
-                               StartIcon="@Icons.Material.Filled.Search"
-                               Style="text-transform: none; border-radius: 12px;">
-                        Check Interactions
+                               Disabled="_isLoading"
+                               StartIcon="@(_isLoading ? Icons.Material.Filled.HourglassEmpty : Icons.Material.Filled.Search)"
+                               Style="text-transform: none;">
+                        @(_isLoading ? "Checking..." : "Check Interactions")
                     </MudButton>
                 </MudStack>
             </MudCardContent>
@@ -35,36 +31,39 @@
 
         @if (_interactions.Any())
         {
-            <MudTable Items="@_interactions"
-                      Hover="true"
-                      Breakpoint="Breakpoint.Sm"
-                      Style="background: linear-gradient(145deg, rgba(26, 31, 46, 0.9), rgba(15, 20, 35, 0.95)); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 16px;"
-                      Dense="true">
-                <HeaderContent>
-                    <MudTh Style="color: #94a3b8;">Drug A</MudTh>
-                    <MudTh Style="color: #94a3b8;">Drug B</MudTh>
-                    <MudTh Style="color: #94a3b8;">Severity</MudTh>
-                    <MudTh Style="color: #94a3b8;">Description</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="Drug A" Style="color: #e2e8f0;">@context.DrugARxCui</MudTd>
-                    <MudTd DataLabel="Drug B" Style="color: #e2e8f0;">@context.DrugBRxCui</MudTd>
-                    <MudTd DataLabel="Severity">
-                        <MudChip T="string"
-                                 Size="Size.Small"
-                                 Color="@GetSeverityColor(context.Severity)">
-                            @context.Severity.ToString()
-                        </MudChip>
-                    </MudTd>
-                    <MudTd DataLabel="Description" Style="color: #cbd5e1; max-width: 300px;">
-                        @context.Description
-                    </MudTd>
-                </RowTemplate>
-            </MudTable>
+            <MudCard Class="glass-card" Elevation="0" Style="overflow: hidden;">
+                <MudTable Items="@_interactions"
+                          Hover="true"
+                          Breakpoint="Breakpoint.Sm"
+                          Dense="true"
+                          Elevation="0"
+                          Style="background: transparent;">
+                    <HeaderContent>
+                        <MudTh Style="color: var(--text-sec);">Drug A</MudTh>
+                        <MudTh Style="color: var(--text-sec);">Drug B</MudTh>
+                        <MudTh Style="color: var(--text-sec);">Severity</MudTh>
+                        <MudTh Style="color: var(--text-sec);">Description</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Drug A" Style="color: var(--text-main);">@context.DrugARxCui</MudTd>
+                        <MudTd DataLabel="Drug B" Style="color: var(--text-main);">@context.DrugBRxCui</MudTd>
+                        <MudTd DataLabel="Severity">
+                            <MudChip T="string"
+                                     Size="Size.Small"
+                                     Color="@GetSeverityColor(context.Severity)">
+                                @context.Severity.ToString()
+                            </MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="Description" Style="color: var(--text-sec); max-width: 300px;">
+                            @context.Description
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudCard>
         }
         else if (_hasSearched && !_isLoading)
         {
-            <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Style="margin-top: 16px;">
+            <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Style="margin-top: 8px;">
                 No interactions found between the specified medications.
             </MudAlert>
         }

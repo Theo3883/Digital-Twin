@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace DigitalTwin.Infrastructure.Data.Migrations.Local
+namespace DigitalTwin.Infrastructure.Migrations.Local
 {
     [DbContext(typeof(LocalDbContext))]
     partial class LocalDbContextModelSnapshot : ModelSnapshot
@@ -65,6 +65,9 @@ namespace DigitalTwin.Infrastructure.Data.Migrations.Local
                     b.Property<int>("AirQualityLevel")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("AqiIndex")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
@@ -75,6 +78,9 @@ namespace DigitalTwin.Infrastructure.Data.Migrations.Local
                         .HasPrecision(5, 2)
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsDirty")
+                        .HasColumnType("INTEGER");
+
                     b.Property<decimal>("Latitude")
                         .HasPrecision(10, 7)
                         .HasColumnType("TEXT");
@@ -83,8 +89,23 @@ namespace DigitalTwin.Infrastructure.Data.Migrations.Local
                         .HasPrecision(10, 7)
                         .HasColumnType("TEXT");
 
+                    b.Property<decimal>("NO2")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("O3")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("PM10")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("TEXT");
+
                     b.Property<decimal>("PM25")
                         .HasPrecision(10, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("SyncedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("Temperature")
@@ -95,6 +116,9 @@ namespace DigitalTwin.Infrastructure.Data.Migrations.Local
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("IsDirty")
+                        .HasFilter("\"IsDirty\" = 1");
 
                     b.ToTable("EnvironmentReadings");
                 });

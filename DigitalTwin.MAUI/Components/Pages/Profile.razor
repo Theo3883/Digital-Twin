@@ -1,18 +1,16 @@
 @page "/profile"
 @inject IAuthApplicationService AuthService
+@inject NavigationManager Navigation
 
 <RequireAuth>
-    <div style="padding: 16px; max-width: 600px; margin: 0 auto;">
-        <MudText Typo="Typo.h5" Style="color: #e2e8f0; font-weight: 700; margin-bottom: 24px;">
-            Profile
-        </MudText>
+    <div class="page-enter" style="display: flex; flex-direction: column; gap: 16px; max-width: 600px; margin: 0 auto;">
 
         @if (_currentUser is not null)
         {
-            <MudCard Style="background: linear-gradient(145deg, rgba(26, 31, 46, 0.9), rgba(15, 20, 35, 0.95)); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 16px;" Elevation="0">
+            <MudCard Class="glass-card" Elevation="0">
                 <MudCardContent>
                     <MudStack Spacing="4" AlignItems="AlignItems.Center">
-                        <MudAvatar Size="Size.Large" Style="border: 3px solid rgba(96, 165, 250, 0.4);">
+                        <MudAvatar Size="Size.Large" Style="border: 3px solid rgba(0, 212, 200, 0.4);">
                             @if (!string.IsNullOrEmpty(_currentUser.PhotoUrl))
                             {
                                 <MudImage Src="@_currentUser.PhotoUrl" Alt="@_currentUser.DisplayName" />
@@ -22,9 +20,21 @@
                                 <MudText Typo="Typo.h3">@_currentUser.DisplayName.FirstOrDefault()</MudText>
                             }
                         </MudAvatar>
-                        <MudText Typo="Typo.h6" Style="color: #e2e8f0;">@_currentUser.DisplayName</MudText>
-                        <MudText Typo="Typo.body2" Style="color: #94a3b8;">@_currentUser.Email</MudText>
+                        <MudText Typo="Typo.h6" Style="color: var(--text-main);">@_currentUser.DisplayName</MudText>
+                        <MudText Typo="Typo.body2" Style="color: var(--text-sec);">@_currentUser.Email</MudText>
                     </MudStack>
+                </MudCardContent>
+            </MudCard>
+
+            <MudCard Class="glass-card" Elevation="0">
+                <MudCardContent>
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Error"
+                               FullWidth="true"
+                               OnClick="SignOutAsync"
+                               Style="text-transform: none; font-weight: 600;">
+                        Log out
+                    </MudButton>
                 </MudCardContent>
             </MudCard>
         }
@@ -37,5 +47,12 @@
     protected override async Task OnInitializedAsync()
     {
         _currentUser = await AuthService.GetCurrentUserAsync();
+    }
+
+    private async Task SignOutAsync()
+    {
+        await AuthService.SignOutAsync();
+        _currentUser = null;
+        Navigation.NavigateTo("/login");
     }
 }

@@ -1,17 +1,17 @@
-@* MetricCard.razor — Reusable vital sign display card with sparkline and trend indicator *@
+@* MetricCard.razor — Vital sign display card with sparkline and trend indicator *@
 
-<MudCard Style="@CardStyle" Elevation="0" Class="metric-card-container">
+<MudCard Elevation="0" Class="glass-card">
     <MudCardContent>
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div>
-                <MudText Typo="Typo.caption" Style="color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;">
+                <MudText Typo="Typo.caption" Style="color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;">
                     @Title
                 </MudText>
                 <div style="display: flex; align-items: baseline; gap: 8px; margin-top: 8px;">
                     <MudText Typo="Typo.h3" Style="@ValueStyle">
                         @FormattedValue
                     </MudText>
-                    <MudText Typo="Typo.body2" Style="color: #94a3b8;">
+                    <MudText Typo="Typo.body2" Style="color: var(--text-sec);">
                         @Unit
                     </MudText>
                 </div>
@@ -19,7 +19,6 @@
             <div style="font-size: 2rem; opacity: 0.6;">@Icon</div>
         </div>
 
-        @* Sparkline mini-chart *@
         @if (SparklineData.Count > 1)
         {
             <div style="margin-top: 16px; height: 40px;">
@@ -35,13 +34,12 @@
             </div>
         }
 
-        @* Footer: trend + last updated *@
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.06);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px;">
             <div style="display: flex; align-items: center; gap: 4px;">
                 <MudIcon Icon="@TrendIcon" Size="Size.Small" Style="@TrendStyle" />
                 <MudText Typo="Typo.caption" Style="@TrendStyle">@TrendLabel</MudText>
             </div>
-            <MudText Typo="Typo.caption" Style="color: #475569;">
+            <MudText Typo="Typo.caption" Style="color: var(--text-tert);">
                 @(LastUpdated == default ? "—" : LastUpdated.ToString("HH:mm:ss"))
             </MudText>
         </div>
@@ -57,20 +55,13 @@
     [Parameter] public TrendDirection Trend { get; set; } = TrendDirection.Stable;
     [Parameter] public List<double> SparklineData { get; set; } = [];
     [Parameter] public DateTime LastUpdated { get; set; }
-    [Parameter] public string AccentColor { get; set; } = "#26A69A";
+    [Parameter] public string AccentColor { get; set; } = "#00D4C8";
 
     public enum TrendDirection { Up, Down, Stable }
 
     private string FormattedValue => Value.ToString($"F{Decimals}");
-    private string ValueStyle => $"font-weight: 700; color: {AccentColor}; font-size: 2.2rem; line-height: 1;";
+    private string ValueStyle => $"font-weight: 300; color: {AccentColor}; font-size: 2.2rem; line-height: 1; font-family: var(--font-rounded);";
     private string SparklineColor => AccentColor;
-
-    private string CardStyle => @"
-        background: linear-gradient(145deg, rgba(26, 31, 46, 0.9), rgba(15, 20, 35, 0.95));
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        border-radius: 16px;
-        backdrop-filter: blur(20px);
-    ";
 
     private string TrendIcon => Trend switch
     {
@@ -81,9 +72,9 @@
 
     private string TrendStyle => Trend switch
     {
-        TrendDirection.Up => "color: #4ade80;",
-        TrendDirection.Down => "color: #f87171;",
-        _ => "color: #94a3b8;"
+        TrendDirection.Up => "color: var(--green-positive);",
+        TrendDirection.Down => "color: var(--red-critical);",
+        _ => "color: var(--text-sec);"
     };
 
     private string TrendLabel => Trend switch
@@ -105,7 +96,7 @@
         var points = SparklineData.Select((val, i) =>
         {
             var x = i * 10;
-            var y = 38 - (val - min) / range * 36; // 2px padding top/bottom
+            var y = 38 - (val - min) / range * 36;
             return $"{x},{y:F1}";
         });
 

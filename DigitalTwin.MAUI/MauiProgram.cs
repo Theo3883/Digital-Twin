@@ -59,20 +59,10 @@ public static class MauiProgram
         // use the factory to create a short-lived instance just for migrations.
         var localFactory = services.GetRequiredService<IDbContextFactory<LocalDbContext>>();
         using var localDb = localFactory.CreateDbContext();
+
         localDb.Database.Migrate();
 
-        var cloudFactory = services.GetService<IDbContextFactory<CloudDbContext>>();
-        if (cloudFactory is null) return;
-
-        try
-        {
-            using var cloudDb = cloudFactory.CreateDbContext();
-            cloudDb.Database.Migrate();
-        }
-        catch (Exception ex)
-        {
-            logger?.LogWarning(ex, "Cloud database migration failed. App continues with local database.");
-        }
+        // Cloud (PostgreSQL) migrations are run via `dotnet ef database update` — not at runtime.
     }
 
     private static void LoadEnv()

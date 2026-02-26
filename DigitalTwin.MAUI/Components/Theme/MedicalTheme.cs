@@ -9,26 +9,50 @@ public static class MedicalTheme
         PaletteLight = new PaletteLight()
         {
             Primary = "#009688",
-            Secondary = "#E91E63",
+            Secondary = "#FF2D55",
             AppbarBackground = "#009688"
         },
         PaletteDark = new PaletteDark()
         {
-            Primary = "#26A69A",
-            Secondary = "#F06292",
-            Surface = "#1a1f2e",
-            Background = "#0a0f1a",
-            AppbarBackground = "#111827",
-            DrawerBackground = "#111827",
-            TextPrimary = "#e2e8f0",
-            TextSecondary = "#94a3b8"
+            Primary = "#00D4C8",
+            Secondary = "#FF2D55",
+            Surface = "#0F1525",
+            Background = "#0A0E1A",
+            AppbarBackground = "rgba(10, 14, 26, 0.7)",
+            DrawerBackground = "rgba(10, 15, 26, 0.95)",
+            TextPrimary = "rgba(255,255,255,0.92)",
+            TextSecondary = "rgba(255,255,255,0.52)"
         },
         Typography = new Typography()
         {
             Default = new DefaultTypography()
             {
-                FontFamily = ["Inter", "Segoe UI", "Roboto", "sans-serif"]
-            }
+                FontFamily = ["-apple-system", "SF Pro Text", "Helvetica Neue", "sans-serif"]
+            },
+        H3 = new H3Typography()
+        {
+            FontFamily = ["-apple-system", "SF Pro Rounded", "Helvetica Neue", "sans-serif"],
+            FontWeight = "300"
+        },
+        H4 = new H4Typography()
+        {
+            FontFamily = ["-apple-system", "SF Pro Display", "Helvetica Neue", "sans-serif"],
+            FontWeight = "700"
+        },
+        H5 = new H5Typography()
+        {
+            FontFamily = ["-apple-system", "SF Pro Display", "Helvetica Neue", "sans-serif"],
+            FontWeight = "700"
+        },
+        H6 = new H6Typography()
+        {
+            FontFamily = ["-apple-system", "SF Pro Display", "Helvetica Neue", "sans-serif"],
+            FontWeight = "600"
+        }
+        },
+        LayoutProperties = new LayoutProperties()
+        {
+            DefaultBorderRadius = "32px"
         }
     };
 }

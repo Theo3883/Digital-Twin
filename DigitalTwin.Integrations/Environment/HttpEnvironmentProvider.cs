@@ -1,4 +1,5 @@
 using System.Reactive.Linq;
+using DigitalTwin.Domain.Enums;
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Models;
 using DigitalTwin.Domain.Services;
@@ -8,14 +9,14 @@ namespace DigitalTwin.Integrations.Environment;
 public class HttpEnvironmentProvider : IEnvironmentDataProvider
 {
     private readonly OpenWeatherMapProvider _weather;
-    private readonly GoogleAirQualityProvider _airQuality;
+    private readonly OpenWeatherAirQualityProvider _airQuality;
     private readonly EnvironmentAssessmentService _assessmentService;
     private readonly double _latitude;
     private readonly double _longitude;
 
     public HttpEnvironmentProvider(
         OpenWeatherMapProvider weather,
-        GoogleAirQualityProvider airQuality,
+        OpenWeatherAirQualityProvider airQuality,
         EnvironmentAssessmentService assessmentService,
         double latitude = 48.8566,
         double longitude = 2.3522)
@@ -39,13 +40,31 @@ public class HttpEnvironmentProvider : IEnvironmentDataProvider
 
         var reading = new EnvironmentReading
         {
+            Latitude = _latitude,
+            Longitude = _longitude,
             Temperature = weather?.Temperature ?? 0,
             Humidity = weather?.Humidity ?? 0,
             PM25 = air?.PM25 ?? 0,
+            PM10 = air?.PM10 ?? 0,
+            O3 = air?.O3 ?? 0,
+            NO2 = air?.NO2 ?? 0,
+            AqiIndex = air?.AqiIndex ?? 1,
             Timestamp = DateTime.UtcNow
         };
 
-        return _assessmentService.AssessReading(reading);
+        // Derive AirQualityLevel from the OpenWeather AQI index (1–5)
+        reading.AirQuality = reading.AqiIndex switch
+        {
+            1 or 2 => AirQualityLevel.Good,
+            3 => AirQualityLevel.Moderate,
+            4 or 5 => AirQualityLevel.Unhealthy,
+            _ => _assessmentService.DetermineAirQuality(reading.PM25)
+        };
+
+        // Still fire domain risk events for unhealthy readings
+        _assessmentService.AssessReading(reading);
+
+        return reading;
     }
 
     public IObservable<EnvironmentReading> SubscribeToUpdates()

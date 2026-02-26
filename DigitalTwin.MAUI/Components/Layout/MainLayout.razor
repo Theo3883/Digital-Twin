@@ -12,19 +12,16 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<MudLayout Style="min-height: 100vh; background: linear-gradient(135deg, #0a0f1a 0%, #111827 50%, #0d1320 100%);">
-    <MudAppBar Elevation="0" Style="background: rgba(10, 15, 26, 0.85); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255, 255, 255, 0.06);">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu"
-                       Color="Color.Inherit"
-                       Edge="Edge.Start"
-                       OnClick="ToggleDrawer" />
-        <MudText Typo="Typo.h6" Style="font-weight: 700; color: #e2e8f0;">Digital Twin</MudText>
-        <MudSpacer />
-        @if (_currentUser is not null)
-        {
-            <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Style="margin-left: 8px;">
-                <ActivatorContent>
-                    <MudAvatar Size="Size.Small" Style="cursor: pointer; border: 2px solid rgba(96, 165, 250, 0.3);">
+<div class="aurora-bg" style="min-height: 100dvh; color: var(--text-main);">
+
+    @if (_showTabBar)
+    {
+        <div class="glass-top-bar">
+            <span class="page-title">@_pageTitle</span>
+            @if (_currentUser is not null)
+            {
+                <div style="cursor: pointer;" @onclick="GoToProfile">
+                    <MudAvatar Size="Size.Small" Style="border: 2px solid rgba(0, 212, 200, 0.4);">
                         @if (!string.IsNullOrEmpty(_currentUser.PhotoUrl))
                         {
                             <MudImage Src="@_currentUser.PhotoUrl" Alt="@_currentUser.DisplayName" />
@@ -34,52 +31,54 @@
                             @_currentUser.DisplayName.FirstOrDefault()
                         }
                     </MudAvatar>
-                </ActivatorContent>
-                <ChildContent>
-                    <MudMenuItem OnClick="GoToProfile">
-                        Profile
-                    </MudMenuItem>
-                    <MudMenuItem OnClick="SignOutAsync">
-                        Log out
-                    </MudMenuItem>
-                </ChildContent>
-            </MudMenu>
-        }
-    </MudAppBar>
-
-    <MudDrawer @bind-Open="_drawerOpen"
-               ClipMode="DrawerClipMode.Always"
-               Elevation="0"
-               Variant="DrawerVariant.Temporary"
-               Style="background: rgba(10, 15, 26, 0.95); border-right: 1px solid rgba(255, 255, 255, 0.06);">
-        <MudNavMenu>
-            <MudNavLink Href="/" Match="NavLinkMatch.All" Style="color: #e2e8f0;" OnClick="CloseDrawer">
-                Dashboard
-            </MudNavLink>
-            <MudNavLink Href="/profile" Style="color: #e2e8f0;" OnClick="CloseDrawer">
-                Profile
-            </MudNavLink>
-            <MudNavLink Href="/medications" Style="color: #e2e8f0;" OnClick="CloseDrawer">
-                Medications
-            </MudNavLink>
-        </MudNavMenu>
-    </MudDrawer>
-
-    <MudMainContent Style="padding-top: 64px;">
-        <div class="page-content">
-            @Body
+                </div>
+            }
         </div>
-    </MudMainContent>
-</MudLayout>
+    }
+
+    <div class="page-content" style="@(_showTabBar ? "padding-bottom: 96px;" : "")">
+        @Body
+    </div>
+
+    @if (_showTabBar)
+    {
+        <nav class="glass-tab-bar">
+            <a class="tab-item @(IsActive("/", true) ? "active" : "")" @onclick='() => NavigateTo("/")'>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+                <span class="tab-label">Home</span>
+            </a>
+            <a class="tab-item @(IsActive("/ecg") ? "active" : "")" @onclick='() => NavigateTo("/ecg")'>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>
+                <span class="tab-label">ECG</span>
+            </a>
+            <a class="tab-item @(IsActive("/environment") ? "active" : "")" @onclick='() => NavigateTo("/environment")'>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.9C15.5 4.9 17 3.5 17 3.5s1.5 2 2.5 5c.3 1 .5 2 .5 3a7 7 0 0 1-7 7"/><path d="M11.2 13.5A3 3 0 0 0 8 16.5a3 3 0 0 0 3 3"/></svg>
+                <span class="tab-label">Environment</span>
+            </a>
+            <a class="tab-item @(IsActive("/medications") ? "active" : "")" @onclick='() => NavigateTo("/medications")'>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+                <span class="tab-label">Meds</span>
+            </a>
+            <a class="tab-item @(IsActive("/profile") ? "active" : "")" @onclick='() => NavigateTo("/profile")'>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
+                <span class="tab-label">Profile</span>
+            </a>
+        </nav>
+    }
+</div>
 
 @code {
     private bool _isDarkMode = true;
-    private bool _drawerOpen = false;
     private AuthResultDto? _currentUser;
     private IDisposable? _riskSubscription;
+    private string _pageTitle = "Digital Twin";
+    private bool _showTabBar = true;
 
     protected override async Task OnInitializedAsync()
     {
+        Navigation.LocationChanged += OnLocationChanged;
+        UpdatePageState();
+
         _currentUser = await AuthService.GetCurrentUserAsync();
 
         if (_currentUser is not null)
@@ -97,24 +96,49 @@
             });
     }
 
-    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        UpdatePageState();
+        InvokeAsync(StateHasChanged);
+    }
 
-    private void CloseDrawer() => _drawerOpen = false;
+    private void UpdatePageState()
+    {
+        var path = new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/');
+        _showTabBar = !path.Equals("/login", StringComparison.OrdinalIgnoreCase);
+        _pageTitle = path switch
+        {
+            "/" or "" => "Digital Twin",
+            "/ecg" => "ECG Monitor",
+            "/environment" => "Environment",
+            "/medications" => "Medications",
+            "/profile" => "Profile",
+            _ => "Digital Twin"
+        };
+    }
+
+    private bool IsActive(string href, bool exact = false)
+    {
+        var path = new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/');
+        var target = href.TrimEnd('/');
+        if (exact)
+            return path == target || (target == "" && path == "");
+        return path.StartsWith(target, StringComparison.OrdinalIgnoreCase) && target.Length > 0;
+    }
+
+    private void NavigateTo(string href)
+    {
+        Navigation.NavigateTo(href);
+    }
 
     private void GoToProfile()
     {
         Navigation.NavigateTo("/profile");
     }
 
-    private async Task SignOutAsync()
-    {
-        await AuthService.SignOutAsync();
-        _currentUser = null;
-        Navigation.NavigateTo("/login");
-    }
-
     public void Dispose()
     {
+        Navigation.LocationChanged -= OnLocationChanged;
         _riskSubscription?.Dispose();
     }
 }

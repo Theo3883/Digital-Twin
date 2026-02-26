@@ -7,10 +7,7 @@
 @inject IAuthApplicationService AuthService
 
 <RequireAuth>
-<div>
-    <MudText Typo="Typo.h5" Style="color: #e2e8f0; font-weight: 700; margin-bottom: 24px;">
-        Digital Twin Dashboard
-    </MudText>
+<div class="page-enter" style="display: flex; flex-direction: column; gap: 16px;">
 
     <MudGrid Spacing="3">
         @* Digital Twin Mannequin *@
@@ -34,7 +31,7 @@
                         Trend="@GetTrend(_hrTrend)"
                         SparklineData="@_hrHistory"
                         LastUpdated="@_lastUpdated"
-                        AccentColor="#E91E63" />
+                        AccentColor="#FF2D55" />
                 </MudItem>
                 <MudItem xs="6">
                     <MetricCard
@@ -58,7 +55,7 @@
                         Trend="@GetTrend(_stepsTrend)"
                         SparklineData="@_stepsHistory"
                         LastUpdated="@_lastUpdated"
-                        AccentColor="#4ade80" />
+                        AccentColor="#30D158" />
                 </MudItem>
                 <MudItem xs="6">
                     <MetricCard
@@ -70,17 +67,17 @@
                         Trend="@GetTrend(_caloriesTrend)"
                         SparklineData="@_caloriesHistory"
                         LastUpdated="@_lastUpdated"
-                        AccentColor="#fbbf24" />
+                        AccentColor="#FF9500" />
                 </MudItem>
             </MudGrid>
         </MudItem>
 
         @* Environment Widget *@
         <MudItem xs="12">
-            <MudCard Style="background: linear-gradient(145deg, rgba(26, 31, 46, 0.9), rgba(15, 20, 35, 0.95)); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 16px;" Elevation="0">
+            <MudCard Class="glass-card" Elevation="0">
                 <MudCardContent>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <MudText Typo="Typo.subtitle1" Style="color: #e2e8f0; font-weight: 600;">
+                        <MudText Typo="Typo.subtitle1" Style="color: var(--text-main); font-weight: 600;">
                             Environment
                         </MudText>
                         @if (_envReading is not null)
@@ -92,16 +89,16 @@
                     {
                         <MudGrid Spacing="3">
                             <MudItem xs="4">
-                                <MudText Typo="Typo.caption" Style="color: #64748b; text-transform: uppercase; letter-spacing: 0.1em;">Temperature</MudText>
-                                <MudText Typo="Typo.h6" Style="color: #fbbf24;">@_envReading.Temperature.ToString("F1")°C</MudText>
+                                <MudText Typo="Typo.caption" Style="color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.1em;">Temperature</MudText>
+                                <MudText Typo="Typo.h6" Style="color: var(--amber-warning); font-family: var(--font-rounded);">@_envReading.Temperature.ToString("F1")°C</MudText>
                             </MudItem>
                             <MudItem xs="4">
-                                <MudText Typo="Typo.caption" Style="color: #64748b; text-transform: uppercase; letter-spacing: 0.1em;">Humidity</MudText>
-                                <MudText Typo="Typo.h6" Style="color: #60a5fa;">@_envReading.Humidity.ToString("F1")%</MudText>
+                                <MudText Typo="Typo.caption" Style="color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.1em;">Humidity</MudText>
+                                <MudText Typo="Typo.h6" Style="color: #60a5fa; font-family: var(--font-rounded);">@_envReading.Humidity.ToString("F1")%</MudText>
                             </MudItem>
                             <MudItem xs="4">
-                                <MudText Typo="Typo.caption" Style="color: #64748b; text-transform: uppercase; letter-spacing: 0.1em;">PM2.5</MudText>
-                                <MudText Typo="Typo.h6" Style="@($"color: {Pm25Color};")">@_envReading.PM25.ToString("F1") µg/m³</MudText>
+                                <MudText Typo="Typo.caption" Style="color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.1em;">PM2.5</MudText>
+                                <MudText Typo="Typo.h6" Style="@($"color: {Pm25Color}; font-family: var(--font-rounded);")">@_envReading.PM25.ToString("F1") µg/m³</MudText>
                             </MudItem>
                         </MudGrid>
                     }
@@ -140,10 +137,10 @@
 
     private string Pm25Color => _envReading?.AirQuality switch
     {
-        AirQualityLevel.Good => "#4ade80",
-        AirQualityLevel.Moderate => "#fbbf24",
-        AirQualityLevel.Unhealthy => "#f87171",
-        _ => "#94a3b8"
+        AirQualityLevel.Good => "#30D158",
+        AirQualityLevel.Moderate => "#FF9500",
+        AirQualityLevel.Unhealthy => "#FF2D55",
+        _ => "var(--text-sec)"
     };
 
     protected override async Task OnInitializedAsync()
@@ -185,10 +182,7 @@
         {
             _envReading = await EnvironmentService.GetCurrentEnvironmentAsync();
         }
-        catch
-        {
-            // Will be populated by subscription
-        }
+        catch { }
 
         _envSubscription = EnvironmentService.SubscribeToEnvironment()
             .Subscribe(dto =>

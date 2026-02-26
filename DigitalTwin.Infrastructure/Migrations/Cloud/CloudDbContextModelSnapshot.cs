@@ -8,7 +8,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace DigitalTwin.Infrastructure.Data.Migrations.Cloud
+namespace DigitalTwin.Infrastructure.Migrations.Cloud
 {
     [DbContext(typeof(CloudDbContext))]
     partial class CloudDbContextModelSnapshot : ModelSnapshot
@@ -74,6 +74,9 @@ namespace DigitalTwin.Infrastructure.Data.Migrations.Cloud
                     b.Property<int>("AirQualityLevel")
                         .HasColumnType("integer");
 
+                    b.Property<int>("AqiIndex")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -84,6 +87,9 @@ namespace DigitalTwin.Infrastructure.Data.Migrations.Cloud
                         .HasPrecision(5, 2)
                         .HasColumnType("numeric(5,2)");
 
+                    b.Property<bool>("IsDirty")
+                        .HasColumnType("boolean");
+
                     b.Property<decimal>("Latitude")
                         .HasPrecision(10, 7)
                         .HasColumnType("numeric(10,7)");
@@ -92,9 +98,24 @@ namespace DigitalTwin.Infrastructure.Data.Migrations.Cloud
                         .HasPrecision(10, 7)
                         .HasColumnType("numeric(10,7)");
 
+                    b.Property<decimal>("NO2")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<decimal>("O3")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<decimal>("PM10")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
                     b.Property<decimal>("PM25")
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");
+
+                    b.Property<DateTime?>("SyncedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<decimal>("Temperature")
                         .HasPrecision(5, 2)
@@ -104,6 +125,9 @@ namespace DigitalTwin.Infrastructure.Data.Migrations.Cloud
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("IsDirty")
+                        .HasFilter("\"IsDirty\" = true");
 
                     b.ToTable("EnvironmentReadings");
                 });

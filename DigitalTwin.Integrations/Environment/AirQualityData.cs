@@ -1,21 +1,14 @@
-using DigitalTwin.Application.Enums;
+namespace DigitalTwin.Integrations.Environment;
 
-namespace DigitalTwin.Application.DTOs;
-
-public class EnvironmentReadingDto
+public class AirQualityData
 {
     public double PM25 { get; set; }
     public double PM10 { get; set; }
     public double O3 { get; set; }
     public double NO2 { get; set; }
-    public double Temperature { get; set; }
-    public double Humidity { get; set; }
-    public AirQualityLevel AirQuality { get; set; }
 
     /// <summary>
     /// OpenWeatherMap AQI index: 1=Good, 2=Fair, 3=Moderate, 4=Poor, 5=Very Poor.
     /// </summary>
     public int AqiIndex { get; set; }
-
-    public DateTime Timestamp { get; set; }
 }

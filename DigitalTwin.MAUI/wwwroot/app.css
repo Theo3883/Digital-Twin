@@ -555,42 +555,8 @@ video {
 }
 
 body {
-  --tw-bg-opacity: 1;
-  background-color: rgb(17 24 39 / var(--tw-bg-opacity, 1));
-  --tw-text-opacity: 1;
-  color: rgb(255 255 255 / var(--tw-text-opacity, 1));
-}
-
-.btn-primary {
-  border-radius: 0.5rem;
-  background-image: linear-gradient(to right, var(--tw-gradient-stops));
-  --tw-gradient-from: #3b82f6 var(--tw-gradient-from-position);
-  --tw-gradient-to: rgb(59 130 246 / 0) var(--tw-gradient-to-position);
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-  --tw-gradient-to: #9333ea var(--tw-gradient-to-position);
-  padding-top: 0.75rem;
-  padding-bottom: 0.75rem;
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
-  font-weight: 600;
-  --tw-text-opacity: 1;
-  color: rgb(255 255 255 / var(--tw-text-opacity, 1));
-  --tw-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --tw-shadow-colored: 0 10px 15px -3px var(--tw-shadow-color), 0 4px 6px -4px var(--tw-shadow-color);
-  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
-  transition-property: all;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 200ms;
-}
-
-.btn-primary:hover {
-  --tw-gradient-from: #2563eb var(--tw-gradient-from-position);
-  --tw-gradient-to: rgb(37 99 235 / 0) var(--tw-gradient-to-position);
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-  --tw-gradient-to: #7e22ce var(--tw-gradient-to-position);
-  --tw-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-  --tw-shadow-colored: 0 20px 25px -5px var(--tw-shadow-color), 0 8px 10px -6px var(--tw-shadow-color);
-  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+  background-color: var(--bg-deep, #0A0E1A);
+  color: var(--text-main, rgba(255, 255, 255, 0.92));
 }
 
 .table {
@@ -651,28 +617,17 @@ html, body {
 .safe-pad-left   { padding-left:   var(--safe-left);   }
 .safe-pad-right  { padding-right:  var(--safe-right);  }
 
-/* 5. MudBlazor AppBar: push content below the notch */
+/* 5. MudBlazor AppBar: push content below the notch (kept for compatibility) */
 .mud-appbar {
   padding-top: var(--safe-top) !important;
-  height: var(--appbar-height) !important;
-  min-height: var(--appbar-height) !important;
 }
 
-/* 6. MudMainContent: offset for the taller appbar */
+/* 6. MudMainContent: no top appbar offset in tab-bar layout */
 .mud-main-content {
-  padding-top: var(--appbar-height) !important;
-  /* Bottom safe area so content isn't hidden behind home indicator */
-  padding-bottom: var(--safe-bottom) !important;
-  /* Left/right safe area for landscape iPhones with notch */
+  padding-bottom: calc(80px + var(--safe-bottom)) !important;
   padding-left:  var(--safe-left)  !important;
   padding-right: var(--safe-right) !important;
   box-sizing: border-box;
-  min-height: calc(100dvh - var(--appbar-height));
-}
-
-/* 7. MudDrawer: honour top safe area so it doesn't go behind notch */
-.mud-drawer {
-  padding-top: var(--safe-top) !important;
 }
 
 /* 8. Login page: fill screen, respect safe areas */

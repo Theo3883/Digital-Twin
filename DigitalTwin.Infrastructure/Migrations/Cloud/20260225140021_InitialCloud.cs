@@ -4,7 +4,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace DigitalTwin.Infrastructure.Data.Migrations.Cloud
+namespace DigitalTwin.Infrastructure.Migrations.Cloud
 {
     /// <inheritdoc />
     public partial class InitialCloud : Migration
@@ -41,9 +41,15 @@ namespace DigitalTwin.Infrastructure.Data.Migrations.Cloud
                     Latitude = table.Column<decimal>(type: "numeric(10,7)", precision: 10, scale: 7, nullable: false),
                     Longitude = table.Column<decimal>(type: "numeric(10,7)", precision: 10, scale: 7, nullable: false),
                     PM25 = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false),
+                    PM10 = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false),
+                    O3 = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false),
+                    NO2 = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false),
                     Temperature = table.Column<decimal>(type: "numeric(5,2)", precision: 5, scale: 2, nullable: false),
                     Humidity = table.Column<decimal>(type: "numeric(5,2)", precision: 5, scale: 2, nullable: false),
                     AirQualityLevel = table.Column<int>(type: "integer", nullable: false),
+                    AqiIndex = table.Column<int>(type: "integer", nullable: false),
+                    IsDirty = table.Column<bool>(type: "boolean", nullable: false),
+                    SyncedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     Timestamp = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
@@ -229,6 +235,12 @@ namespace DigitalTwin.Infrastructure.Data.Migrations.Cloud
                 table: "DoctorPatientAssignments",
                 columns: new[] { "DoctorId", "PatientId" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_EnvironmentReadings_IsDirty",
+                table: "EnvironmentReadings",
+                column: "IsDirty",
+                filter: "\"IsDirty\" = true");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Medications_PatientId",
