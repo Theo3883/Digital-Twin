@@ -9,8 +9,13 @@ namespace DigitalTwin.Infrastructure.Repositories;
 public class PatientRepository : IPatientRepository
 {
     private readonly Func<HealthAppDbContext> _factory;
+    private readonly bool _markDirtyOnInsert;
 
-    public PatientRepository(Func<HealthAppDbContext> factory) => _factory = factory;
+    public PatientRepository(Func<HealthAppDbContext> factory, bool markDirtyOnInsert = true)
+    {
+        _factory = factory;
+        _markDirtyOnInsert = markDirtyOnInsert;
+    }
 
     public async Task<Patient?> GetByUserIdAsync(long userId)
     {
@@ -23,6 +28,7 @@ public class PatientRepository : IPatientRepository
     {
         await using var db = _factory();
         var entity = ToEntity(patient);
+        entity.IsDirty = _markDirtyOnInsert;
         db.Patients.Add(entity);
         await db.SaveChangesAsync();
         patient.Id = entity.Id;
@@ -38,7 +44,7 @@ public class PatientRepository : IPatientRepository
         entity.Allergies = patient.Allergies;
         entity.MedicalHistoryNotes = patient.MedicalHistoryNotes;
         entity.UpdatedAt = DateTime.UtcNow;
-        entity.IsDirty = true;
+        entity.IsDirty = _markDirtyOnInsert;
         await db.SaveChangesAsync();
     }
 
@@ -89,7 +95,6 @@ public class PatientRepository : IPatientRepository
     {
         Id = model.Id,
         UserId = model.UserId,
-        IsDirty = true,
         BloodType = model.BloodType,
         Allergies = model.Allergies,
         MedicalHistoryNotes = model.MedicalHistoryNotes,

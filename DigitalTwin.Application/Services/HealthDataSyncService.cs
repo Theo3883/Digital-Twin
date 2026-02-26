@@ -12,14 +12,13 @@ namespace DigitalTwin.Application.Services;
 /// <summary>
 /// Singleton background service with two responsibilities:
 ///
-/// 1. VITALS COLLECTION — subscribes to live <see cref="IHealthDataProvider"/> stream,
-///    buffers readings in a lock-free queue, and flushes them every 30 s (or eagerly at
-///    100 items). Each flush tries the cloud DB first; on failure it caches locally
-///    with IsDirty=true for the drain cycle to pick up.
+/// 1. TABLE DRAIN — every 60 s (and on connectivity restore) calls every registered
+///    <see cref="ITableDrainer"/> in sequence. Always runs once authenticated.
 ///
-/// 2. TABLE DRAIN — every 60 s (and on connectivity restore) calls every registered
-///    <see cref="ITableDrainer"/> in sequence. FAIL-FAST: the first drainer that throws
-///    stops the whole cycle; all tables retry on the next tick.
+/// 2. VITALS COLLECTION — subscribes to live <see cref="IHealthDataProvider"/> stream,
+///    buffers readings in a lock-free queue, and flushes them every 30 s (or eagerly at
+///    100 items). Only starts when a Patient profile exists. Each flush tries the cloud
+///    DB first; on failure it caches locally with IsDirty=true for the drain cycle.
 /// </summary>
 public class HealthDataSyncService : IHealthDataSyncService
 {
@@ -41,6 +40,7 @@ public class HealthDataSyncService : IHealthDataSyncService
     private Timer? _flushTimer;
     private Timer? _drainTimer;
     private long _patientId;
+    private bool _vitalsActive;
 
     public HealthDataSyncService(IServiceScopeFactory scopeFactory, ILogger<HealthDataSyncService> logger)
     {
@@ -54,34 +54,46 @@ public class HealthDataSyncService : IHealthDataSyncService
     {
         StopSync();
 
+        // Always start the drain timer so User/UserOAuth/Patient records sync to cloud.
+        _drainTimer = new Timer(_ => _ = Task.Run(PushToCloudAsync), null, DrainInterval, DrainInterval);
+        _logger.LogInformation("[Sync] Drain timer started (every {Sec}s).", DrainInterval.TotalSeconds);
+
+        // Try to start vitals collection if a patient profile exists.
         using var bootstrap = _scopeFactory.CreateScope();
         var patientId = await bootstrap.ServiceProvider
             .GetRequiredService<IAuthApplicationService>()
             .GetCurrentPatientIdAsync();
 
-        if (patientId is null)
+        if (patientId is not null)
         {
-            _logger.LogWarning("[Sync] No authenticated patient — sync not started.");
+            StartVitalsInternal(patientId.Value);
+        }
+        else
+        {
+            _logger.LogInformation("[Sync] No patient profile yet — vitals collection deferred.");
+        }
+    }
+
+    public async Task StartVitalsCollectionAsync()
+    {
+        if (_vitalsActive)
+        {
+            _logger.LogDebug("[Sync] Vitals collection already active — nothing to do.");
             return;
         }
-        _patientId = patientId.Value;
 
-        var session       = new CompositeDisposable();
-        var providerScope = _scopeFactory.CreateScope();
-        session.Add(providerScope);
+        using var scope = _scopeFactory.CreateScope();
+        var patientId = await scope.ServiceProvider
+            .GetRequiredService<IAuthApplicationService>()
+            .GetCurrentPatientIdAsync();
 
-        var sub = providerScope.ServiceProvider
-            .GetRequiredService<IHealthDataProvider>()
-            .GetLiveVitals()
-            .Subscribe(OnVitalReceived, ex => _logger.LogError(ex, "[Sync] Health provider stream faulted."));
+        if (patientId is null)
+        {
+            _logger.LogWarning("[Sync] StartVitalsCollectionAsync called but no patient profile exists.");
+            return;
+        }
 
-        session.Add(sub);
-        _session = session;
-
-        _flushTimer = new Timer(_ => _ = Task.Run(FlushAsync),       null, FlushInterval, FlushInterval);
-        _drainTimer = new Timer(_ => _ = Task.Run(PushToCloudAsync), null, DrainInterval, DrainInterval);
-
-        _logger.LogInformation("[Sync] Started for PatientId={PatientId}.", _patientId);
+        StartVitalsInternal(patientId.Value);
     }
 
     public void StopSync()
@@ -89,11 +101,17 @@ public class HealthDataSyncService : IHealthDataSyncService
         _flushTimer?.Dispose(); _flushTimer = null;
         _drainTimer?.Dispose(); _drainTimer = null;
         _session?.Dispose();    _session    = null;
+        _vitalsActive = false;
         _logger.LogInformation("[Sync] Stopped.");
     }
 
     public async Task SyncBatchAsync(IEnumerable<VitalSign> vitals)
     {
+        if (_patientId == 0)
+        {
+            _logger.LogWarning("[Sync] SyncBatchAsync skipped — no patient profile.");
+            return;
+        }
         var batch = vitals.ToList();
         if (batch.Count > 0) await PersistAsync(batch);
     }
@@ -109,7 +127,28 @@ public class HealthDataSyncService : IHealthDataSyncService
         finally { _drainGate.Release(); }
     }
 
-    // ── Vitals: receive → queue → flush ─────────────────────────────────────────
+    // ── Vitals: start / receive → queue → flush ─────────────────────────────────
+
+    private void StartVitalsInternal(long patientId)
+    {
+        _patientId = patientId;
+
+        var session       = new CompositeDisposable();
+        var providerScope = _scopeFactory.CreateScope();
+        session.Add(providerScope);
+
+        var sub = providerScope.ServiceProvider
+            .GetRequiredService<IHealthDataProvider>()
+            .GetLiveVitals()
+            .Subscribe(OnVitalReceived, ex => _logger.LogError(ex, "[Sync] Health provider stream faulted."));
+
+        session.Add(sub);
+        _session = session;
+
+        _flushTimer = new Timer(_ => _ = Task.Run(FlushAsync), null, FlushInterval, FlushInterval);
+        _vitalsActive = true;
+        _logger.LogInformation("[Sync] Vitals collection started for PatientId={PatientId}.", _patientId);
+    }
 
     private void OnVitalReceived(VitalSign vital)
     {
@@ -144,6 +183,12 @@ public class HealthDataSyncService : IHealthDataSyncService
     /// </summary>
     private async Task PersistAsync(List<VitalSign> batch)
     {
+        if (_patientId == 0)
+        {
+            _logger.LogWarning("[Sync] PersistAsync skipped — no patient profile.");
+            return;
+        }
+
         try
         {
             using var scope = _scopeFactory.CreateScope();

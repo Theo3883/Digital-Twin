@@ -10,8 +10,13 @@ namespace DigitalTwin.Infrastructure.Repositories;
 public class UserOAuthRepository : IUserOAuthRepository
 {
     private readonly Func<HealthAppDbContext> _factory;
+    private readonly bool _markDirtyOnInsert;
 
-    public UserOAuthRepository(Func<HealthAppDbContext> factory) => _factory = factory;
+    public UserOAuthRepository(Func<HealthAppDbContext> factory, bool markDirtyOnInsert = true)
+    {
+        _factory = factory;
+        _markDirtyOnInsert = markDirtyOnInsert;
+    }
 
     public async Task<UserOAuth?> FindByProviderAndUserIdAsync(OAuthProvider provider, string providerUserId)
     {
@@ -25,6 +30,7 @@ public class UserOAuthRepository : IUserOAuthRepository
     {
         await using var db = _factory();
         var entity = ToEntity(userOAuth);
+        entity.IsDirty = _markDirtyOnInsert;
         db.UserOAuths.Add(entity);
         await db.SaveChangesAsync();
         userOAuth.Id = entity.Id;
@@ -41,7 +47,7 @@ public class UserOAuthRepository : IUserOAuthRepository
         entity.ExpiresAt = userOAuth.ExpiresAt;
         entity.Email = userOAuth.Email;
         entity.UpdatedAt = DateTime.UtcNow;
-        entity.IsDirty = true;
+        entity.IsDirty = _markDirtyOnInsert;
         await db.SaveChangesAsync();
     }
 
@@ -96,7 +102,6 @@ public class UserOAuthRepository : IUserOAuthRepository
     {
         Id = model.Id,
         UserId = model.UserId,
-        IsDirty = true,
         Provider = (int)model.Provider,
         ProviderUserId = model.ProviderUserId,
         Email = model.Email,

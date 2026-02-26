@@ -4,9 +4,9 @@ namespace DigitalTwin.Application.DTOs;
 public record AuthResultDto
 {
     public long UserId { get; init; }
-    public long PatientId { get; init; }
     public string Email { get; init; } = string.Empty;
     public string DisplayName { get; init; } = string.Empty;
     public string? PhotoUrl { get; init; }
+    public bool HasPatientProfile { get; init; }
 }
 

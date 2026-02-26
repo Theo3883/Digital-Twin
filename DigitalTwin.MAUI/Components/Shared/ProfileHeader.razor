@@ -1,0 +1,54 @@
+@* ProfileHeader.razor — Avatar, display name, email, user ID pill *@
+
+<MudCard Class="glass-card" Elevation="0">
+    <MudCardContent>
+        <MudStack Spacing="4" AlignItems="AlignItems.Center">
+            <div style="position: relative;">
+                <MudAvatar Size="Size.Large"
+                           Style="width: 88px; height: 88px; font-size: 2rem; border: 3px solid rgba(0, 212, 200, 0.4); background: linear-gradient(135deg, rgba(0,212,200,0.3), rgba(0,212,200,0.1));">
+                    @if (!string.IsNullOrEmpty(PhotoUrl))
+                    {
+                        <MudImage Src="@PhotoUrl" Alt="@DisplayName" />
+                    }
+                    else
+                    {
+                        @Initials
+                    }
+                </MudAvatar>
+                @if (HasPatientProfile)
+                {
+                    <div style="position: absolute; top: -4px; right: -4px; width: 24px; height: 24px; border-radius: 50%; background: var(--green-positive); display: flex; align-items: center; justify-content: center;">
+                        <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" Style="color: white; font-size: 14px;" />
+                    </div>
+                }
+            </div>
+
+            <MudText Typo="Typo.h5" Style="color: var(--text-main); font-weight: 700;">
+                @DisplayName
+            </MudText>
+            <MudText Typo="Typo.body2" Style="color: var(--text-sec);">
+                @Email
+            </MudText>
+
+            <MudChip T="string"
+                     Size="Size.Small"
+                     Variant="Variant.Outlined"
+                     Style="border-color: var(--teal-primary); color: var(--teal-primary); font-family: var(--font-mono); font-size: 0.75rem;">
+                @($"ID: USR-{UserId:D5}")
+            </MudChip>
+        </MudStack>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public string DisplayName { get; set; } = string.Empty;
+    [Parameter] public string Email { get; set; } = string.Empty;
+    [Parameter] public string? PhotoUrl { get; set; }
+    [Parameter] public long UserId { get; set; }
+    [Parameter] public bool HasPatientProfile { get; set; }
+
+    private string Initials => string.IsNullOrEmpty(DisplayName)
+        ? "?"
+        : string.Concat(DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Take(2).Select(w => w[0])).ToUpperInvariant();
+}

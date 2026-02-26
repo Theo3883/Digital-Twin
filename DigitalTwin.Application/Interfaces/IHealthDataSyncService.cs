@@ -4,8 +4,18 @@ namespace DigitalTwin.Application.Interfaces;
 
 public interface IHealthDataSyncService
 {
-    /// <summary>Starts the live vitals subscription and background timers.</summary>
+    /// <summary>
+    /// Starts the drain timer (always) and optionally the live vitals subscription
+    /// if a Patient profile exists for the current user.
+    /// </summary>
     Task StartSyncAsync();
+
+    /// <summary>
+    /// Starts vitals collection after a Patient profile has been created.
+    /// Call this from the Profile page after CreatePatientProfileAsync succeeds.
+    /// Does nothing if vitals are already being collected.
+    /// </summary>
+    Task StartVitalsCollectionAsync();
 
     /// <summary>Stops the subscription and timers. Safe to call multiple times.</summary>
     void StopSync();

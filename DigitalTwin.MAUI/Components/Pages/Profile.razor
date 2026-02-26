@@ -1,5 +1,6 @@
 @page "/profile"
 @inject IAuthApplicationService AuthService
+@inject IHealthDataSyncService SyncService
 @inject NavigationManager Navigation
 
 <RequireAuth>
@@ -7,25 +8,33 @@
 
         @if (_currentUser is not null)
         {
-            <MudCard Class="glass-card" Elevation="0">
-                <MudCardContent>
-                    <MudStack Spacing="4" AlignItems="AlignItems.Center">
-                        <MudAvatar Size="Size.Large" Style="border: 3px solid rgba(0, 212, 200, 0.4);">
-                            @if (!string.IsNullOrEmpty(_currentUser.PhotoUrl))
-                            {
-                                <MudImage Src="@_currentUser.PhotoUrl" Alt="@_currentUser.DisplayName" />
-                            }
-                            else
-                            {
-                                <MudText Typo="Typo.h3">@_currentUser.DisplayName.FirstOrDefault()</MudText>
-                            }
-                        </MudAvatar>
-                        <MudText Typo="Typo.h6" Style="color: var(--text-main);">@_currentUser.DisplayName</MudText>
-                        <MudText Typo="Typo.body2" Style="color: var(--text-sec);">@_currentUser.Email</MudText>
-                    </MudStack>
-                </MudCardContent>
-            </MudCard>
+            <ProfileHeader DisplayName="@_currentUser.DisplayName"
+                           Email="@_currentUser.Email"
+                           PhotoUrl="@_currentUser.PhotoUrl"
+                           UserId="@_currentUser.UserId"
+                           HasPatientProfile="@_currentUser.HasPatientProfile" />
 
+            @if (!_showForm)
+            {
+                <PatientProfileCard Patient="@_patient"
+                                    OnCreateClicked="ShowCreateForm"
+                                    OnEditClicked="ShowEditForm" />
+            }
+            else
+            {
+                <PatientProfileForm IsEditing="@(_patient is not null)"
+                                    IsSaving="@_isSaving"
+                                    ErrorMessage="@_formError"
+                                    InitialBloodType="@_patient?.BloodType"
+                                    InitialAllergies="@_patient?.Allergies"
+                                    InitialMedicalHistory="@_patient?.MedicalHistoryNotes"
+                                    OnSave="SaveProfileAsync"
+                                    OnCancel="CancelForm" />
+            }
+
+            <ProfileCompletionChecklist Items="@_checklistItems" />
+
+            @* ── Sign Out ──────────────────────────────────────────────── *@
             <MudCard Class="glass-card" Elevation="0">
                 <MudCardContent>
                     <MudButton Variant="Variant.Outlined"
@@ -43,16 +52,81 @@
 
 @code {
     private AuthResultDto? _currentUser;
+    private PatientDisplayDto? _patient;
+    private bool _showForm;
+    private bool _isSaving;
+    private string? _formError;
+    private List<ProfileCompletionChecklist.ChecklistItem> _checklistItems = new();
 
     protected override async Task OnInitializedAsync()
     {
         _currentUser = await AuthService.GetCurrentUserAsync();
+        if (_currentUser is not null)
+        {
+            _patient = await AuthService.GetPatientProfileAsync();
+        }
+        RebuildChecklist();
+    }
+
+    private void ShowCreateForm()
+    {
+        _formError = null;
+        _showForm = true;
+    }
+
+    private void ShowEditForm()
+    {
+        _formError = null;
+        _showForm = true;
+    }
+
+    private void CancelForm()
+    {
+        _showForm = false;
+        _formError = null;
+    }
+
+    private async Task SaveProfileAsync(PatientProfileDto profile)
+    {
+        _isSaving = true;
+        _formError = null;
+
+        try
+        {
+            _currentUser = await AuthService.CreatePatientProfileAsync(profile);
+            _patient = await AuthService.GetPatientProfileAsync();
+            await SyncService.StartVitalsCollectionAsync();
+            _showForm = false;
+            RebuildChecklist();
+        }
+        catch (Exception ex)
+        {
+            _formError = ex.Message;
+        }
+        finally
+        {
+            _isSaving = false;
+        }
     }
 
     private async Task SignOutAsync()
     {
+        SyncService.StopSync();
         await AuthService.SignOutAsync();
         _currentUser = null;
+        _patient = null;
         Navigation.NavigateTo("/login");
+    }
+
+    private void RebuildChecklist()
+    {
+        _checklistItems = new List<ProfileCompletionChecklist.ChecklistItem>
+        {
+            new(true, "Personal info"),
+            new(_currentUser?.HasPatientProfile == true, "Medical profile"),
+            new(!string.IsNullOrEmpty(_patient?.BloodType), "Blood type"),
+            new(!string.IsNullOrEmpty(_patient?.Allergies), "Allergies info"),
+            new(!string.IsNullOrEmpty(_patient?.MedicalHistoryNotes), "Medical history")
+        };
     }
 }

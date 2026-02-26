@@ -10,13 +10,20 @@ namespace DigitalTwin.Infrastructure.Repositories;
 public class EnvironmentReadingRepository : IEnvironmentReadingRepository
 {
     private readonly Func<HealthAppDbContext> _factory;
+    private readonly bool _markDirtyOnInsert;
 
-    public EnvironmentReadingRepository(Func<HealthAppDbContext> factory) => _factory = factory;
+    public EnvironmentReadingRepository(Func<HealthAppDbContext> factory, bool markDirtyOnInsert = true)
+    {
+        _factory = factory;
+        _markDirtyOnInsert = markDirtyOnInsert;
+    }
 
     public async Task AddAsync(EnvironmentReading reading)
     {
         await using var db = _factory();
-        db.EnvironmentReadings.Add(ToEntity(reading));
+        var entity = ToEntity(reading);
+        entity.IsDirty = _markDirtyOnInsert;
+        db.EnvironmentReadings.Add(entity);
         await db.SaveChangesAsync();
     }
 
@@ -24,6 +31,7 @@ public class EnvironmentReadingRepository : IEnvironmentReadingRepository
     {
         var entities = readings.Select(ToEntity).ToList();
         if (entities.Count == 0) return;
+        foreach (var e in entities) e.IsDirty = _markDirtyOnInsert;
         await using var db = _factory();
         await db.EnvironmentReadings.AddRangeAsync(entities);
         await db.SaveChangesAsync();
@@ -83,6 +91,5 @@ public class EnvironmentReadingRepository : IEnvironmentReadingRepository
         AirQualityLevel = (int)r.AirQuality,
         AqiIndex = r.AqiIndex,
         Timestamp = r.Timestamp,
-        IsDirty = true
     };
 }

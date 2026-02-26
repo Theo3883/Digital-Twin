@@ -10,8 +10,13 @@ namespace DigitalTwin.Infrastructure.Repositories;
 public class UserRepository : IUserRepository
 {
     private readonly Func<HealthAppDbContext> _factory;
+    private readonly bool _markDirtyOnInsert;
 
-    public UserRepository(Func<HealthAppDbContext> factory) => _factory = factory;
+    public UserRepository(Func<HealthAppDbContext> factory, bool markDirtyOnInsert = true)
+    {
+        _factory = factory;
+        _markDirtyOnInsert = markDirtyOnInsert;
+    }
 
     public async Task<User?> GetByIdAsync(long id)
     {
@@ -31,6 +36,7 @@ public class UserRepository : IUserRepository
     {
         await using var db = _factory();
         var entity = ToEntity(user);
+        entity.IsDirty = _markDirtyOnInsert;
         db.Users.Add(entity);
         await db.SaveChangesAsync();
         user.Id = entity.Id;
@@ -53,7 +59,7 @@ public class UserRepository : IUserRepository
         entity.Country = user.Country;
         entity.DateOfBirth = user.DateOfBirth;
         entity.UpdatedAt = DateTime.UtcNow;
-        entity.IsDirty = true;
+        entity.IsDirty = _markDirtyOnInsert;
         await db.SaveChangesAsync();
     }
 
@@ -110,7 +116,6 @@ public class UserRepository : IUserRepository
     {
         Id = model.Id,
         Email = model.Email,
-        IsDirty = true,
         Role = (int)model.Role,
         FirstName = model.FirstName,
         LastName = model.LastName,

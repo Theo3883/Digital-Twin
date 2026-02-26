@@ -13,7 +13,7 @@ public class EnvironmentReadingEntity
     public decimal Humidity { get; set; }
     public int AirQualityLevel { get; set; }
     public int AqiIndex { get; set; }
-    public bool IsDirty { get; set; } = true;
+    public bool IsDirty { get; set; }
     public DateTime? SyncedAt { get; set; }
     public DateTime Timestamp { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

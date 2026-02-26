@@ -1,0 +1,89 @@
+@* PatientProfileCard.razor — Shows existing patient profile or empty state CTA *@
+
+<MudCard Class="glass-card" Elevation="0">
+    <MudCardContent>
+        <MudStack Spacing="3">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <MudText Typo="Typo.subtitle1" Style="color: var(--text-main); font-weight: 600;">
+                    Patient Profile
+                </MudText>
+                @if (Patient is not null)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                   Size="Size.Small"
+                                   Style="color: var(--teal-primary);"
+                                   OnClick="OnEditClicked" />
+                }
+            </div>
+
+            @if (Patient is null)
+            {
+                @* ── Empty state ──────────────────────────────────────── *@
+                <div style="text-align: center; padding: 24px 0;">
+                    <MudIcon Icon="@Icons.Material.Filled.MedicalServices"
+                             Size="Size.Large"
+                             Style="color: var(--text-sec); opacity: 0.5; font-size: 48px;" />
+                    <MudText Typo="Typo.subtitle1" Style="color: var(--text-main); margin-top: 12px; font-weight: 600;">
+                        Patient Profile Not Created
+                    </MudText>
+                    <MudText Typo="Typo.body2" Style="color: var(--text-sec); margin-top: 4px; max-width: 280px; margin-left: auto; margin-right: auto;">
+                        Create your medical profile to enable full health tracking and vitals collection.
+                    </MudText>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Size="Size.Large"
+                               StartIcon="@Icons.Material.Filled.PersonAdd"
+                               OnClick="OnCreateClicked"
+                               Style="text-transform: none; font-weight: 600; height: 48px; margin-top: 16px;">
+                        Create Patient Profile
+                    </MudButton>
+                </div>
+            }
+            else
+            {
+                @* ── Existing profile display ─────────────────────────── *@
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px;">
+                    @if (!string.IsNullOrEmpty(Patient.BloodType))
+                    {
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
+                                 Style="background: rgba(255, 45, 85, 0.15); color: #FF2D55;">
+                            🩸 @Patient.BloodType
+                        </MudChip>
+                    }
+                    @if (!string.IsNullOrEmpty(Patient.Allergies))
+                    {
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
+                                 Style="background: rgba(255, 149, 0, 0.15); color: var(--amber-warning);">
+                            ⚠️ @Patient.Allergies
+                        </MudChip>
+                    }
+                </div>
+
+                @if (!string.IsNullOrEmpty(Patient.MedicalHistoryNotes))
+                {
+                    <div style="margin-top: 8px;">
+                        <MudText Typo="Typo.caption" Style="color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.1em;">
+                            Medical History
+                        </MudText>
+                        <MudText Typo="Typo.body2" Style="color: var(--text-main); margin-top: 4px;">
+                            @Patient.MedicalHistoryNotes
+                        </MudText>
+                    </div>
+                }
+
+                @if (string.IsNullOrEmpty(Patient.BloodType) && string.IsNullOrEmpty(Patient.Allergies) && string.IsNullOrEmpty(Patient.MedicalHistoryNotes))
+                {
+                    <MudText Typo="Typo.body2" Style="color: var(--text-sec); font-style: italic;">
+                        No medical details added yet. Tap edit to add your information.
+                    </MudText>
+                }
+            }
+        </MudStack>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public PatientDisplayDto? Patient { get; set; }
+    [Parameter] public EventCallback OnCreateClicked { get; set; }
+    [Parameter] public EventCallback OnEditClicked { get; set; }
+}

@@ -20,8 +20,7 @@ public class AuthApplicationService : IAuthApplicationService
     private AuthResultDto? _cachedUser;
     private OAuthTokenResult? _pendingTokens;
 
-    private const string UserIdKey    = "auth_user_id";
-    private const string PatientIdKey = "auth_patient_id";
+    private const string UserIdKey = "auth_user_id";
 
     public AuthApplicationService(
         IOAuthTokenProvider tokenProvider,
@@ -55,8 +54,7 @@ public class AuthApplicationService : IAuthApplicationService
         {
             _logger.LogInformation("[Auth] Returning user. UserId={UserId}", existingOAuth.UserId);
 
-            var user    = (await _userRepo.GetByIdAsync(existingOAuth.UserId))!;
-            var patient = (await _patientRepo.GetByUserIdAsync(user.Id))!;
+            var user = (await _userRepo.GetByIdAsync(existingOAuth.UserId))!;
 
             existingOAuth.AccessToken  = tokens.AccessToken;
             existingOAuth.RefreshToken = tokens.RefreshToken;
@@ -66,10 +64,9 @@ public class AuthApplicationService : IAuthApplicationService
 
             await SyncAuthToCloudAsync();
 
-            await _tokenStorage.StoreAsync(UserIdKey,    user.Id.ToString());
-            await _tokenStorage.StoreAsync(PatientIdKey, patient.Id.ToString());
+            await _tokenStorage.StoreAsync(UserIdKey, user.Id.ToString());
 
-            var authResult = BuildAuthResult(user, patient);
+            var authResult = await BuildAuthResultAsync(user);
             _cachedUser = authResult;
 
             return new GoogleAuthCheckResult
@@ -123,10 +120,6 @@ public class AuthApplicationService : IAuthApplicationService
         await _userRepo.AddAsync(user);
         _logger.LogInformation("[Auth] User created locally. UserId={UserId}", user.Id);
 
-        var patient = new Patient { UserId = user.Id };
-        await _patientRepo.AddAsync(patient);
-        _logger.LogInformation("[Auth] Patient created locally. PatientId={PatientId}", patient.Id);
-
         var oauth = new UserOAuth
         {
             UserId         = user.Id,
@@ -142,13 +135,66 @@ public class AuthApplicationService : IAuthApplicationService
 
         await SyncAuthToCloudAsync();
 
-        await _tokenStorage.StoreAsync(UserIdKey,    user.Id.ToString());
-        await _tokenStorage.StoreAsync(PatientIdKey, patient.Id.ToString());
+        await _tokenStorage.StoreAsync(UserIdKey, user.Id.ToString());
 
-        var authResult = BuildAuthResult(user, patient);
+        var authResult = await BuildAuthResultAsync(user);
         _cachedUser = authResult;
         _logger.LogInformation("[Auth] Registration complete. DisplayName={Name}", authResult.DisplayName);
         return authResult;
+    }
+
+    public async Task<AuthResultDto> CreatePatientProfileAsync(PatientProfileDto profile)
+    {
+        _logger.LogInformation("[Auth] CreatePatientProfileAsync called.");
+
+        var current = await GetCurrentUserAsync();
+        if (current is null)
+            throw new InvalidOperationException("No authenticated user. Sign in first.");
+
+        var existingPatient = await _patientRepo.GetByUserIdAsync(current.UserId);
+        if (existingPatient is not null)
+        {
+            _logger.LogWarning("[Auth] Patient profile already exists for UserId={UserId}. Updating.", current.UserId);
+            existingPatient.BloodType = profile.BloodType;
+            existingPatient.Allergies = profile.Allergies;
+            existingPatient.MedicalHistoryNotes = profile.MedicalHistoryNotes;
+            await _patientRepo.UpdateAsync(existingPatient);
+        }
+        else
+        {
+            var patient = new Patient
+            {
+                UserId              = current.UserId,
+                BloodType           = profile.BloodType,
+                Allergies           = profile.Allergies,
+                MedicalHistoryNotes = profile.MedicalHistoryNotes
+            };
+            await _patientRepo.AddAsync(patient);
+            _logger.LogInformation("[Auth] Patient profile created. PatientId={PatientId}", patient.Id);
+        }
+
+        await SyncAuthToCloudAsync();
+
+        var user = (await _userRepo.GetByIdAsync(current.UserId))!;
+        var authResult = await BuildAuthResultAsync(user);
+        _cachedUser = authResult;
+        return authResult;
+    }
+
+    public async Task<PatientDisplayDto?> GetPatientProfileAsync()
+    {
+        var current = await GetCurrentUserAsync();
+        if (current is null) return null;
+        var patient = await _patientRepo.GetByUserIdAsync(current.UserId);
+        if (patient is null) return null;
+        return new PatientDisplayDto
+        {
+            PatientId           = patient.Id,
+            BloodType           = patient.BloodType,
+            Allergies           = patient.Allergies,
+            MedicalHistoryNotes = patient.MedicalHistoryNotes,
+            CreatedAt           = patient.CreatedAt
+        };
     }
 
     public async Task<AuthResultDto> SignInExistingUserAsync()
@@ -181,33 +227,36 @@ public class AuthApplicationService : IAuthApplicationService
             return null;
         }
 
-        var patient = await _patientRepo.GetByUserIdAsync(userId);
-        if (patient is null) return null;
-
-        _cachedUser = BuildAuthResult(user, patient);
+        _cachedUser = await BuildAuthResultAsync(user);
         return _cachedUser;
     }
 
     public async Task<long?> GetCurrentPatientIdAsync()
     {
         var current = await GetCurrentUserAsync();
-        return current?.PatientId;
+        if (current is null) return null;
+        var patient = await _patientRepo.GetByUserIdAsync(current.UserId);
+        return patient?.Id;
     }
 
-    private static AuthResultDto BuildAuthResult(User user, Patient patient) => new()
+    private async Task<AuthResultDto> BuildAuthResultAsync(User user)
     {
-        UserId      = user.Id,
-        PatientId   = patient.Id,
-        Email       = user.Email,
-        DisplayName = $"{user.FirstName} {user.LastName}".Trim(),
-        PhotoUrl    = user.PhotoUrl
-    };
+        var patient = await _patientRepo.GetByUserIdAsync(user.Id);
+        return new AuthResultDto
+        {
+            UserId            = user.Id,
+            Email             = user.Email,
+            DisplayName       = $"{user.FirstName} {user.LastName}".Trim(),
+            PhotoUrl          = user.PhotoUrl,
+            HasPatientProfile = patient is not null
+        };
+    }
 
     /// <summary>
-    /// Triggers a full cloud drain covering User, Patient, UserOAuth (and all other
+    /// Triggers a full cloud drain covering User, UserOAuth, Patient (and all other
     /// registered <see cref="ITableDrainer"/> implementations). Called immediately
-    /// after login and registration so auth data reaches the cloud without waiting
-    /// for the background drain timer.
+    /// after login/registration/profile creation so data reaches the cloud without
+    /// waiting for the background drain timer.
     /// </summary>
     private async Task SyncAuthToCloudAsync()
     {

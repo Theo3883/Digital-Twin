@@ -15,8 +15,13 @@ public class VitalSignRepository : IVitalSignRepository
 {
     // Func returns a BRAND NEW context every call — callers own lifetime via `await using`.
     private readonly Func<HealthAppDbContext> _factory;
+    private readonly bool _markDirtyOnInsert;
 
-    public VitalSignRepository(Func<HealthAppDbContext> factory) => _factory = factory;
+    public VitalSignRepository(Func<HealthAppDbContext> factory, bool markDirtyOnInsert = true)
+    {
+        _factory = factory;
+        _markDirtyOnInsert = markDirtyOnInsert;
+    }
 
     public async Task<IEnumerable<VitalSign>> GetByPatientAsync(
         long patientId,
@@ -42,6 +47,7 @@ public class VitalSignRepository : IVitalSignRepository
     {
         await using var db = _factory();
         var entity = ToEntity(vitalSign);
+        entity.IsDirty = _markDirtyOnInsert;
         db.VitalSigns.Add(entity);
         await db.SaveChangesAsync();
     }
@@ -50,6 +56,7 @@ public class VitalSignRepository : IVitalSignRepository
     {
         var entities = vitalSigns.Select(ToEntity).ToList();
         if (entities.Count == 0) return;
+        foreach (var e in entities) e.IsDirty = _markDirtyOnInsert;
         await using var db = _factory();
         await db.VitalSigns.AddRangeAsync(entities);
         await db.SaveChangesAsync();
@@ -108,6 +115,5 @@ public class VitalSignRepository : IVitalSignRepository
         Unit = model.Unit,
         Source = model.Source,
         Timestamp = model.Timestamp,
-        IsDirty = true
     };
 }

@@ -1,0 +1,112 @@
+@* PatientProfileForm.razor — Create or edit patient medical profile form *@
+
+<MudCard Class="glass-card" Elevation="0">
+    <MudCardContent>
+        <MudStack Spacing="3">
+            <MudText Typo="Typo.subtitle1" Style="color: var(--text-main); font-weight: 600;">
+                @(IsEditing ? "Edit Medical Profile" : "Create Medical Profile")
+            </MudText>
+
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Dense="true">
+                    @ErrorMessage
+                </MudAlert>
+            }
+
+            <MudSelect T="string"
+                       @bind-Value="_bloodType"
+                       Label="Blood Type"
+                       Variant="Variant.Outlined"
+                       Adornment="Adornment.Start"
+                       AdornmentIcon="@Icons.Material.Filled.Bloodtype"
+                       Placeholder="Select blood type">
+                <MudSelectItem T="string" Value="@("A+")">A+</MudSelectItem>
+                <MudSelectItem T="string" Value="@("A-")">A-</MudSelectItem>
+                <MudSelectItem T="string" Value="@("B+")">B+</MudSelectItem>
+                <MudSelectItem T="string" Value="@("B-")">B-</MudSelectItem>
+                <MudSelectItem T="string" Value="@("AB+")">AB+</MudSelectItem>
+                <MudSelectItem T="string" Value="@("AB-")">AB-</MudSelectItem>
+                <MudSelectItem T="string" Value="@("O+")">O+</MudSelectItem>
+                <MudSelectItem T="string" Value="@("O-")">O-</MudSelectItem>
+            </MudSelect>
+
+            <MudTextField @bind-Value="_allergies"
+                          Label="Allergies"
+                          Variant="Variant.Outlined"
+                          Lines="2"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Warning"
+                          Placeholder="e.g. Penicillin, Peanuts" />
+
+            <MudTextField @bind-Value="_medicalHistory"
+                          Label="Medical History Notes"
+                          Variant="Variant.Outlined"
+                          Lines="3"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Description"
+                          Placeholder="Any relevant medical history..." />
+
+            <MudStack Row="true" Spacing="2" Style="margin-top: 8px;">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           FullWidth="true"
+                           Size="Size.Large"
+                           OnClick="HandleSave"
+                           Disabled="IsSaving"
+                           Style="text-transform: none; font-weight: 600; height: 48px;">
+                    @if (IsSaving)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Inherit" Class="mr-2" />
+                        <span>Saving...</span>
+                    }
+                    else
+                    {
+                        <span>Save Profile</span>
+                    }
+                </MudButton>
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Default"
+                           Size="Size.Large"
+                           OnClick="OnCancel"
+                           Disabled="IsSaving"
+                           Style="text-transform: none; color: var(--text-sec); height: 48px;">
+                    Cancel
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </MudCardContent>
+</MudCard>
+
+@code {
+    [Parameter] public bool IsEditing { get; set; }
+    [Parameter] public bool IsSaving { get; set; }
+    [Parameter] public string? ErrorMessage { get; set; }
+    [Parameter] public string? InitialBloodType { get; set; }
+    [Parameter] public string? InitialAllergies { get; set; }
+    [Parameter] public string? InitialMedicalHistory { get; set; }
+    [Parameter] public EventCallback<PatientProfileDto> OnSave { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private string? _bloodType;
+    private string? _allergies;
+    private string? _medicalHistory;
+
+    protected override void OnParametersSet()
+    {
+        _bloodType = InitialBloodType;
+        _allergies = InitialAllergies;
+        _medicalHistory = InitialMedicalHistory;
+    }
+
+    private async Task HandleSave()
+    {
+        var dto = new PatientProfileDto
+        {
+            BloodType           = _bloodType,
+            Allergies           = string.IsNullOrWhiteSpace(_allergies) ? null : _allergies.Trim(),
+            MedicalHistoryNotes = string.IsNullOrWhiteSpace(_medicalHistory) ? null : _medicalHistory.Trim()
+        };
+        await OnSave.InvokeAsync(dto);
+    }
+}
