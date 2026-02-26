@@ -40,30 +40,23 @@ public static class DependencyInjection
 
         services.AddScoped<IHealthDataProvider, MockHealthProvider>();
 
-        if (config.UseRealEnvironmentApis)
+        services.AddSingleton(sp =>
         {
-            services.AddSingleton(sp =>
-            {
-                var factory = sp.GetRequiredService<IHttpClientFactory>();
-                return new OpenWeatherMapProvider(factory.CreateClient(), config.OpenWeatherMapApiKey ?? string.Empty);
-            });
-            services.AddSingleton(sp =>
-            {
-                var factory = sp.GetRequiredService<IHttpClientFactory>();
-                // Air pollution uses the same OpenWeatherMap API key
-                return new OpenWeatherAirQualityProvider(factory.CreateClient(), config.OpenWeatherMapApiKey ?? string.Empty);
-            });
-            services.AddScoped<IEnvironmentDataProvider>(sp => new HttpEnvironmentProvider(
-                sp.GetRequiredService<OpenWeatherMapProvider>(),
-                sp.GetRequiredService<OpenWeatherAirQualityProvider>(),
-                sp.GetRequiredService<EnvironmentAssessmentService>(),
-                config.Latitude,
-                config.Longitude));
-        }
-        else
+            var factory = sp.GetRequiredService<IHttpClientFactory>();
+            return new OpenWeatherMapProvider(factory.CreateClient(), config.OpenWeatherMapApiKey ?? string.Empty);
+        });
+        services.AddSingleton(sp =>
         {
-            services.AddScoped<IEnvironmentDataProvider, MockEnvironmentProvider>();
-        }
+            var factory = sp.GetRequiredService<IHttpClientFactory>();
+            // Air pollution uses the same OpenWeatherMap API key
+            return new OpenWeatherAirQualityProvider(factory.CreateClient(), config.OpenWeatherMapApiKey ?? string.Empty);
+        });
+        services.AddScoped<IEnvironmentDataProvider>(sp => new HttpEnvironmentProvider(
+            sp.GetRequiredService<OpenWeatherMapProvider>(),
+            sp.GetRequiredService<OpenWeatherAirQualityProvider>(),
+            sp.GetRequiredService<EnvironmentAssessmentService>(),
+            config.Latitude,
+            config.Longitude));
 
         services.AddScoped<ICoachingProvider, MockCoachingProvider>();
 

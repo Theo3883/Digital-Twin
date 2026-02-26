@@ -6,8 +6,8 @@ namespace DigitalTwin.Application.Sync.Drainers;
 
 /// <summary>
 /// Drains dirty <c>Patient</c> rows from local SQLite to the cloud database.
-/// Uses an upsert strategy keyed on <c>UserId</c>: existing cloud patients are
-/// updated (medical notes, blood type, allergies), new patients are inserted.
+/// Must run after <see cref="UserDrainer"/>. Maps local UserId → cloud UserId via Email.
+/// Uses an upsert strategy keyed on cloud UserId.
 /// </summary>
 public sealed class PatientDrainer : ITableDrainer
 {
@@ -15,23 +15,30 @@ public sealed class PatientDrainer : ITableDrainer
 
     private readonly IPatientRepository _local;
     private readonly IPatientRepository? _cloud;
+    private readonly IUserRepository _localUser;
+    private readonly IUserRepository? _cloudUser;
     private readonly ILogger<PatientDrainer> _logger;
 
+    public int Order => 1;
     public string TableName => "Patients";
 
     public PatientDrainer(
         IPatientRepository local,
         IPatientRepository? cloud,
+        IUserRepository localUser,
+        IUserRepository? cloudUser,
         ILogger<PatientDrainer> logger)
     {
         _local = local;
         _cloud = cloud;
+        _localUser = localUser;
+        _cloudUser = cloudUser;
         _logger = logger;
     }
 
     public async Task<int> DrainAsync(CancellationToken ct = default)
     {
-        if (_cloud is null)
+        if (_cloud is null || _cloudUser is null)
         {
             _logger.LogDebug("[{Table}] Cloud repository not configured — skipping.", TableName);
             return 0;
@@ -56,7 +63,14 @@ public sealed class PatientDrainer : ITableDrainer
 
     private async Task UpsertAsync(Patient patient)
     {
-        var existing = await _cloud!.GetByUserIdAsync(patient.UserId);
+        var cloudUserId = await ResolveCloudUserIdAsync(patient.UserId);
+        if (cloudUserId is null)
+        {
+            _logger.LogWarning("[{Table}] Cloud User not found for local UserId {UserId} — ensure UserDrainer runs first.", TableName, patient.UserId);
+            return;
+        }
+
+        var existing = await _cloud!.GetByUserIdAsync(cloudUserId.Value);
         if (existing is not null)
         {
             existing.BloodType = patient.BloodType;
@@ -66,7 +80,24 @@ public sealed class PatientDrainer : ITableDrainer
         }
         else
         {
-            await _cloud.AddAsync(patient);
+            var cloudPatient = new Patient
+            {
+                UserId = cloudUserId.Value,
+                BloodType = patient.BloodType,
+                Allergies = patient.Allergies,
+                MedicalHistoryNotes = patient.MedicalHistoryNotes,
+                CreatedAt = patient.CreatedAt,
+                UpdatedAt = patient.UpdatedAt
+            };
+            await _cloud.AddAsync(cloudPatient);
         }
+    }
+
+    private async Task<long?> ResolveCloudUserIdAsync(long localUserId)
+    {
+        var localUser = await _localUser.GetByIdAsync(localUserId);
+        if (localUser is null) return null;
+        var cloudUser = await _cloudUser!.GetByEmailAsync(localUser.Email);
+        return cloudUser?.Id;
     }
 }

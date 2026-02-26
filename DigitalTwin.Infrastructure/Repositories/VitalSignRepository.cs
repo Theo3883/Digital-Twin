@@ -48,6 +48,7 @@ public class VitalSignRepository : IVitalSignRepository
         await using var db = _factory();
         var entity = ToEntity(vitalSign);
         entity.IsDirty = _markDirtyOnInsert;
+        if (!_markDirtyOnInsert) entity.SyncedAt = DateTime.UtcNow;
         db.VitalSigns.Add(entity);
         await db.SaveChangesAsync();
     }
@@ -57,6 +58,7 @@ public class VitalSignRepository : IVitalSignRepository
         var entities = vitalSigns.Select(ToEntity).ToList();
         if (entities.Count == 0) return;
         foreach (var e in entities) e.IsDirty = _markDirtyOnInsert;
+        if (!_markDirtyOnInsert) foreach (var e in entities) e.SyncedAt = DateTime.UtcNow;
         await using var db = _factory();
         await db.VitalSigns.AddRangeAsync(entities);
         await db.SaveChangesAsync();

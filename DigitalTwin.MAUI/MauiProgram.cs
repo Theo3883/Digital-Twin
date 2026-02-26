@@ -31,7 +31,8 @@ public static class MauiProgram
         builder.Services.AddMudServices();
 
         var localDbPath = Path.Combine(FileSystem.AppDataDirectory, "healthapp.db");
-
+        System.Diagnostics.Debug.WriteLine($"[DB PATH] {localDbPath}");
+        
         builder.Services.AddDigitalTwin(
             localConnectionString: $"Data Source={localDbPath}",
             cloudConnectionString: config.PostgresConnectionString);

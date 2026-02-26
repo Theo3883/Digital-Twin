@@ -4,6 +4,7 @@ using DigitalTwin.Application.Interfaces;
 using DigitalTwin.Application.Sync.Drainers;
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Models;
+using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -26,7 +27,7 @@ public class HealthDataSyncService : IHealthDataSyncService
     private const int MaxBufferSize  = 500;
     private const int FlushThreshold = 100;
     private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(30);
-    private static readonly TimeSpan DrainInterval = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan DrainInterval = TimeSpan.FromSeconds(10);
 
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<HealthDataSyncService> _logger;
@@ -180,6 +181,7 @@ public class HealthDataSyncService : IHealthDataSyncService
     /// <summary>
     /// Cloud-first: write directly to the cloud DB; on any failure cache locally
     /// with IsDirty=true so the drain timer picks it up on the next cycle.
+    /// Maps local PatientId → cloud PatientId via UserId (local and cloud use different ID spaces).
     /// </summary>
     private async Task PersistAsync(List<VitalSign> batch)
     {
@@ -193,11 +195,31 @@ public class HealthDataSyncService : IHealthDataSyncService
         {
             using var scope = _scopeFactory.CreateScope();
             var cloud = scope.ServiceProvider.GetKeyedService<IVitalSignRepository>("Cloud");
-            if (cloud is not null)
+            var localPatient = scope.ServiceProvider.GetRequiredService<IPatientRepository>();
+            var cloudPatient = scope.ServiceProvider.GetKeyedService<IPatientRepository>("Cloud");
+
+            if (cloud is not null && cloudPatient is not null)
             {
-                await cloud.AddRangeAsync(batch);
-                _logger.LogInformation("[Sync] {Count} vitals written directly to cloud.", batch.Count);
-                return;
+                var patient = await localPatient.GetByIdAsync(_patientId);
+                if (patient is not null)
+                {
+                    var cloudP = await cloudPatient.GetByUserIdAsync(patient.UserId);
+                    if (cloudP is not null)
+                    {
+                        var cloudBatch = batch.Select(v => new VitalSign
+                        {
+                            PatientId = cloudP.Id,
+                            Type = v.Type,
+                            Value = v.Value,
+                            Unit = v.Unit,
+                            Source = v.Source,
+                            Timestamp = v.Timestamp
+                        }).ToList();
+                        await cloud.AddRangeAsync(cloudBatch);
+                        _logger.LogInformation("[Sync] {Count} vitals written directly to cloud.", batch.Count);
+                        return;
+                    }
+                }
             }
         }
         catch (Exception ex)
@@ -230,7 +252,7 @@ public class HealthDataSyncService : IHealthDataSyncService
     private async Task DrainAllTablesAsync(CancellationToken ct = default)
     {
         using var scope   = _scopeFactory.CreateScope();
-        var drainers = scope.ServiceProvider.GetServices<ITableDrainer>();
+        var drainers = scope.ServiceProvider.GetServices<ITableDrainer>().OrderBy(d => d.Order);
 
         foreach (var drainer in drainers)
         {
@@ -241,11 +263,25 @@ public class HealthDataSyncService : IHealthDataSyncService
                 if (count > 0)
                     _logger.LogInformation("[Sync] {Table}: {Count} records drained.", drainer.TableName, count);
             }
+            catch (Exception ex) when (IsTransientCloudFailure(ex))
+            {
+                _logger.LogWarning("[Sync] {Table}: cloud unavailable ({Message}) — skipping, will retry next cycle.", drainer.TableName, ex.InnerException?.Message ?? ex.Message);
+            }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[Sync] {Table}: drain failed — all tables retry next cycle.", drainer.TableName);
-                throw;
+                _logger.LogWarning(ex, "[Sync] {Table}: drain failed — will retry next cycle.", drainer.TableName);
             }
         }
+    }
+
+    private static bool IsTransientCloudFailure(Exception ex)
+    {
+        for (var e = ex; e is not null; e = e.InnerException)
+        {
+            var name = e.GetType().FullName ?? "";
+            if (name.Contains("NpgsqlException") || e is System.Net.Sockets.SocketException)
+                return true;
+        }
+        return false;
     }
 }

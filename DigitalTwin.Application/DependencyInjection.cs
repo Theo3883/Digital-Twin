@@ -39,16 +39,22 @@ public static class DependencyInjection
         services.AddScoped<ITableDrainer>(sp => new PatientDrainer(
             sp.GetRequiredService<IPatientRepository>(),
             sp.GetKeyedService<IPatientRepository>("Cloud"),
+            sp.GetRequiredService<IUserRepository>(),
+            sp.GetKeyedService<IUserRepository>("Cloud"),
             sp.GetRequiredService<ILogger<PatientDrainer>>()));
 
         services.AddScoped<ITableDrainer>(sp => new UserOAuthDrainer(
             sp.GetRequiredService<IUserOAuthRepository>(),
             sp.GetKeyedService<IUserOAuthRepository>("Cloud"),
+            sp.GetRequiredService<IUserRepository>(),
+            sp.GetKeyedService<IUserRepository>("Cloud"),
             sp.GetRequiredService<ILogger<UserOAuthDrainer>>()));
 
         services.AddScoped<ITableDrainer>(sp => new VitalSignDrainer(
             sp.GetRequiredService<IVitalSignRepository>(),
             sp.GetKeyedService<IVitalSignRepository>("Cloud"),
+            sp.GetRequiredService<IPatientRepository>(),
+            sp.GetKeyedService<IPatientRepository>("Cloud"),
             sp.GetRequiredService<ILogger<VitalSignDrainer>>()));
 
         services.AddScoped<ITableDrainer>(sp => new EnvironmentReadingDrainer(

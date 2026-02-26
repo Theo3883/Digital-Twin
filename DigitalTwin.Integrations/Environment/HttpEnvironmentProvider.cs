@@ -69,7 +69,7 @@ public class HttpEnvironmentProvider : IEnvironmentDataProvider
 
     public IObservable<EnvironmentReading> SubscribeToUpdates()
     {
-        return Observable.Interval(TimeSpan.FromMinutes(5))
+        return Observable.Interval(TimeSpan.FromSeconds(30))
             .SelectMany(_ => Observable.FromAsync(GetCurrentAsync));
     }
 }

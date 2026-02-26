@@ -37,6 +37,7 @@ public class UserRepository : IUserRepository
         await using var db = _factory();
         var entity = ToEntity(user);
         entity.IsDirty = _markDirtyOnInsert;
+        if (!_markDirtyOnInsert) entity.SyncedAt = DateTime.UtcNow;
         db.Users.Add(entity);
         await db.SaveChangesAsync();
         user.Id = entity.Id;
@@ -60,6 +61,7 @@ public class UserRepository : IUserRepository
         entity.DateOfBirth = user.DateOfBirth;
         entity.UpdatedAt = DateTime.UtcNow;
         entity.IsDirty = _markDirtyOnInsert;
+        if (!_markDirtyOnInsert) entity.SyncedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
     }
 

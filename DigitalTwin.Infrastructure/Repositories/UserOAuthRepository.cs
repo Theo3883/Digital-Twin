@@ -31,6 +31,7 @@ public class UserOAuthRepository : IUserOAuthRepository
         await using var db = _factory();
         var entity = ToEntity(userOAuth);
         entity.IsDirty = _markDirtyOnInsert;
+        if (!_markDirtyOnInsert) entity.SyncedAt = DateTime.UtcNow;
         db.UserOAuths.Add(entity);
         await db.SaveChangesAsync();
         userOAuth.Id = entity.Id;
@@ -48,6 +49,7 @@ public class UserOAuthRepository : IUserOAuthRepository
         entity.Email = userOAuth.Email;
         entity.UpdatedAt = DateTime.UtcNow;
         entity.IsDirty = _markDirtyOnInsert;
+        if (!_markDirtyOnInsert) entity.SyncedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
     }
 

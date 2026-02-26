@@ -19,6 +19,8 @@ namespace DigitalTwin.Application.Sync.Drainers;
 /// </summary>
 public interface ITableDrainer
 {
+    /// <summary>Lower values run first. User=0, Patient=1, UserOAuth=2, VitalSign=3, EnvironmentReading=4.</summary>
+    int Order { get; }
     string TableName { get; }
 
     /// <summary>

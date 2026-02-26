@@ -17,6 +17,13 @@ public class PatientRepository : IPatientRepository
         _markDirtyOnInsert = markDirtyOnInsert;
     }
 
+    public async Task<Patient?> GetByIdAsync(long id)
+    {
+        await using var db = _factory();
+        var entity = await db.Patients.FindAsync(id);
+        return entity is null ? null : ToDomain(entity);
+    }
+
     public async Task<Patient?> GetByUserIdAsync(long userId)
     {
         await using var db = _factory();
@@ -29,6 +36,7 @@ public class PatientRepository : IPatientRepository
         await using var db = _factory();
         var entity = ToEntity(patient);
         entity.IsDirty = _markDirtyOnInsert;
+        if (!_markDirtyOnInsert) entity.SyncedAt = DateTime.UtcNow;
         db.Patients.Add(entity);
         await db.SaveChangesAsync();
         patient.Id = entity.Id;
@@ -45,6 +53,7 @@ public class PatientRepository : IPatientRepository
         entity.MedicalHistoryNotes = patient.MedicalHistoryNotes;
         entity.UpdatedAt = DateTime.UtcNow;
         entity.IsDirty = _markDirtyOnInsert;
+        if (!_markDirtyOnInsert) entity.SyncedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
     }
 

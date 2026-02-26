@@ -17,6 +17,7 @@ public sealed class UserDrainer : ITableDrainer
     private readonly IUserRepository? _cloud;
     private readonly ILogger<UserDrainer> _logger;
 
+    public int Order => 0;
     public string TableName => "Users";
 
     public UserDrainer(

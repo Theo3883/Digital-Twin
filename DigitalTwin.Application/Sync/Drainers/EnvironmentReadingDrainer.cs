@@ -17,6 +17,7 @@ public sealed class EnvironmentReadingDrainer : ITableDrainer
     private readonly IEnvironmentReadingRepository? _cloud;
     private readonly ILogger<EnvironmentReadingDrainer> _logger;
 
+    public int Order => 4;
     public string TableName => "EnvironmentReadings";
 
     public EnvironmentReadingDrainer(
