@@ -2,9 +2,44 @@
 
 import { useEffect, useState } from "react";
 import { useApi } from "@/hooks/use-api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, Activity, Moon } from "lucide-react";
+import { Users, Activity, Moon, TrendingUp } from "lucide-react";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
+import { AreaChart, Area, CartesianGrid, XAxis, YAxis } from "recharts";
+
+const weeklyChartData = [
+  { day: "Mon", heartRate: 72, steps: 6200 },
+  { day: "Tue", heartRate: 68, steps: 8100 },
+  { day: "Wed", heartRate: 75, steps: 5400 },
+  { day: "Thu", heartRate: 70, steps: 9300 },
+  { day: "Fri", heartRate: 74, steps: 7800 },
+  { day: "Sat", heartRate: 66, steps: 11200 },
+  { day: "Sun", heartRate: 69, steps: 4900 },
+];
+
+const weeklyChartConfig = {
+  heartRate: {
+    label: "Heart Rate",
+    color: "var(--chart-1)",
+  },
+  steps: {
+    label: "Steps",
+    color: "var(--chart-2)",
+  },
+} satisfies ChartConfig;
 
 interface Dashboard {
   totalAssignedPatients: number;
@@ -94,6 +129,66 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Weekly activity area chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Weekly Patient Activity</CardTitle>
+          <CardDescription>Average heart rate &amp; steps across your patients</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer config={weeklyChartConfig} className="h-[280px] w-full">
+            <AreaChart
+              accessibilityLayer
+              data={weeklyChartData}
+              margin={{ left: -20, right: 12 }}
+            >
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="day"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                tickCount={4}
+              />
+              <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+              <Area
+                dataKey="steps"
+                type="natural"
+                fill="var(--color-steps)"
+                fillOpacity={0.4}
+                stroke="var(--color-steps)"
+                stackId="a"
+              />
+              <Area
+                dataKey="heartRate"
+                type="natural"
+                fill="var(--color-heartRate)"
+                fillOpacity={0.4}
+                stroke="var(--color-heartRate)"
+                stackId="a"
+              />
+            </AreaChart>
+          </ChartContainer>
+        </CardContent>
+        <CardFooter>
+          <div className="flex w-full items-start gap-2 text-sm">
+            <div className="grid gap-2">
+              <div className="flex items-center gap-2 font-medium leading-none">
+                Trending up this week <TrendingUp className="h-4 w-4" />
+              </div>
+              <div className="text-muted-foreground flex items-center gap-2 leading-none">
+                Showing avg daily metrics across all assigned patients
+              </div>
+            </div>
+          </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

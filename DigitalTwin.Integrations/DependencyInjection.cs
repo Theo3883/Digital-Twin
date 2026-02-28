@@ -41,7 +41,9 @@ public static class DependencyInjection
         services.AddScoped<ISecureTokenStorage, InMemoryTokenStorage>();
 #endif
 
-#if IOS || MACCATALYST
+#if MOCK_HEALTH
+        services.AddScoped<IHealthDataProvider, MockHealthProvider>();
+#elif IOS || MACCATALYST
         services.AddScoped<IHealthDataProvider, HealthKitProvider>();
 #else
         services.AddScoped<IHealthDataProvider, MockHealthProvider>();

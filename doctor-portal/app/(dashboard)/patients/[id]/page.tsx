@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
 import type { PatientDetail, VitalSign, SleepSession } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,17 +22,17 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
+  type ChartConfig,
 } from "@/components/ui/chart";
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
-  BarChart,
-  Bar,
 } from "recharts";
-import { ArrowLeft, Heart, Activity, Footprints, Moon } from "lucide-react";
+import { TrendingUp } from "lucide-react";
+import { ArrowLeft, Heart, Moon } from "lucide-react";
 import { format } from "date-fns";
 
 const vitalTypes = [
@@ -45,16 +45,16 @@ const vitalTypes = [
   "StandHours",
 ];
 
-const chartConfig: Record<string, { label: string; color: string }> = {
-  HeartRate: { label: "Heart Rate", color: "hsl(var(--chart-1))" },
-  SpO2: { label: "SpO2", color: "hsl(var(--chart-2))" },
-  Steps: { label: "Steps", color: "hsl(var(--chart-3))" },
-  Calories: { label: "Calories", color: "hsl(var(--chart-4))" },
-  ActiveEnergy: { label: "Active Energy", color: "hsl(var(--chart-5))" },
-  ExerciseMinutes: { label: "Exercise", color: "hsl(var(--chart-1))" },
-  StandHours: { label: "Stand Hours", color: "hsl(var(--chart-2))" },
-  sleep: { label: "Duration (min)", color: "hsl(var(--chart-3))" },
-};
+const chartConfig: ChartConfig = {
+  HeartRate: { label: "Heart Rate", color: "var(--chart-1)" },
+  SpO2: { label: "SpO2", color: "var(--chart-2)" },
+  Steps: { label: "Steps", color: "var(--chart-3)" },
+  Calories: { label: "Calories", color: "var(--chart-4)" },
+  ActiveEnergy: { label: "Active Energy", color: "var(--chart-5)" },
+  ExerciseMinutes: { label: "Exercise", color: "var(--chart-1)" },
+  StandHours: { label: "Stand Hours", color: "var(--chart-2)" },
+  sleep: { label: "Duration (min)", color: "var(--chart-3)" },
+} satisfies ChartConfig;
 
 export default function PatientDetailPage() {
   const params = useParams();
@@ -216,23 +216,54 @@ export default function PatientDetailPage() {
 
           {vitalChartData.length > 0 ? (
             <Card>
-              <CardContent className="pt-6">
-                <ChartContainer config={{ [vitalType]: chartConfig[vitalType] ?? { label: vitalType, color: "hsl(var(--chart-1))" } }} className="h-[300px] w-full">
-                  <LineChart data={vitalChartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="time" fontSize={12} />
-                    <YAxis fontSize={12} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Line
-                      type="monotone"
-                      dataKey="value"
-                      stroke={chartConfig[vitalType]?.color ?? "hsl(var(--chart-1))"}
-                      strokeWidth={2}
-                      dot={false}
+              <CardHeader>
+                <CardTitle>{chartConfig[vitalType]?.label as string ?? vitalType}</CardTitle>
+                <CardDescription>
+                  {vitals.length} readings — latest {vitals.at(-1) ? format(new Date(vitals.at(-1)!.timestamp), "MMM d, HH:mm") : ""}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer
+                  config={{ value: chartConfig[vitalType] ?? { label: vitalType, color: "var(--chart-1)" } }}
+                  className="h-[300px] w-full"
+                >
+                  <AreaChart
+                    accessibilityLayer
+                    data={vitalChartData}
+                    margin={{ left: -20, right: 12 }}
+                  >
+                    <CartesianGrid vertical={false} />
+                    <XAxis
+                      dataKey="time"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
                     />
-                  </LineChart>
+                    <YAxis
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                      tickCount={4}
+                    />
+                    <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                    <Area
+                      dataKey="value"
+                      type="natural"
+                      fill={chartConfig[vitalType]?.color as string ?? "var(--chart-1)"}
+                      fillOpacity={0.4}
+                      stroke={chartConfig[vitalType]?.color as string ?? "var(--chart-1)"}
+                    />
+                  </AreaChart>
                 </ChartContainer>
               </CardContent>
+              <CardFooter>
+                <div className="flex w-full items-start gap-2 text-sm">
+                  <div className="flex items-center gap-2 font-medium leading-none">
+                    {chartConfig[vitalType]?.label as string ?? vitalType} trend
+                    <TrendingUp className="h-4 w-4" />
+                  </div>
+                </div>
+              </CardFooter>
             </Card>
           ) : (
             <Card>
@@ -249,23 +280,47 @@ export default function PatientDetailPage() {
             <>
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-sm">Sleep Duration</CardTitle>
+                  <CardTitle>Sleep Duration</CardTitle>
+                  <CardDescription>Minutes per night</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ChartContainer config={{ sleep: chartConfig.sleep }} className="h-[250px] w-full">
-                    <BarChart data={sleepChartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" fontSize={12} />
-                      <YAxis fontSize={12} />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Bar
-                        dataKey="duration"
-                        fill="hsl(var(--chart-3))"
-                        radius={[4, 4, 0, 0]}
+                  <ChartContainer config={{ duration: chartConfig.sleep }} className="h-[250px] w-full">
+                    <AreaChart
+                      accessibilityLayer
+                      data={sleepChartData}
+                      margin={{ left: -20, right: 12 }}
+                    >
+                      <CartesianGrid vertical={false} />
+                      <XAxis
+                        dataKey="date"
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={8}
                       />
-                    </BarChart>
+                      <YAxis
+                        tickLine={false}
+                        axisLine={false}
+                        tickMargin={8}
+                        tickCount={3}
+                      />
+                      <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                      <Area
+                        dataKey="duration"
+                        type="natural"
+                        fill="var(--chart-3)"
+                        fillOpacity={0.4}
+                        stroke="var(--chart-3)"
+                      />
+                    </AreaChart>
                   </ChartContainer>
                 </CardContent>
+                <CardFooter>
+                  <div className="flex w-full items-start gap-2 text-sm">
+                    <div className="flex items-center gap-2 font-medium leading-none">
+                      Sleep duration trend <TrendingUp className="h-4 w-4" />
+                    </div>
+                  </div>
+                </CardFooter>
               </Card>
 
               <Card>
