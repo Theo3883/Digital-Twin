@@ -2,18 +2,18 @@ using DigitalTwin.Application.DTOs;
 using DigitalTwin.Application.Interfaces;
 using DigitalTwin.Application.Mappers;
 using DigitalTwin.Domain.Interfaces;
-using DigitalTwin.Domain.Services;
+using DigitalTwin.Domain.Interfaces.Providers;
 
 namespace DigitalTwin.Application.Services;
 
 public class MedicationApplicationService : IMedicationApplicationService
 {
     private readonly IMedicationInteractionProvider _provider;
-    private readonly MedicationInteractionService _interactionService;
+    private readonly IMedicationInteractionService _interactionService;
 
     public MedicationApplicationService(
         IMedicationInteractionProvider provider,
-        MedicationInteractionService interactionService)
+        IMedicationInteractionService interactionService)
     {
         _provider = provider;
         _interactionService = interactionService;

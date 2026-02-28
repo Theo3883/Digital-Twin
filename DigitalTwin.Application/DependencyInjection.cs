@@ -3,6 +3,7 @@ using DigitalTwin.Application.Interfaces;
 using DigitalTwin.Application.Services;
 using DigitalTwin.Application.Sync.Drainers;
 using DigitalTwin.Domain.Interfaces;
+using DigitalTwin.Domain.Interfaces.Repositories;
 using DigitalTwin.Domain.Models;
 using DigitalTwin.Domain.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,9 +16,12 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         // ── Domain services ──────────────────────────────────────────────────────
-        services.AddScoped<VitalSignService>();
-        services.AddScoped<EnvironmentAssessmentService>();
-        services.AddScoped<MedicationInteractionService>();
+        services.AddScoped<IVitalSignService, VitalSignService>();
+        services.AddScoped<IEnvironmentAssessmentService, EnvironmentAssessmentService>();
+        services.AddScoped<IMedicationInteractionService, MedicationInteractionService>();
+        services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IPatientService, PatientService>();
+        services.AddScoped<IAuthService, AuthService>();
 
         // ── Application services ─────────────────────────────────────────────────
         services.AddScoped<IVitalsApplicationService, VitalsApplicationService>();

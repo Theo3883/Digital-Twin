@@ -3,7 +3,8 @@ using DigitalTwin.Application.DTOs;
 using DigitalTwin.Application.Interfaces;
 using DigitalTwin.Application.Mappers;
 using DigitalTwin.Domain.Interfaces;
-using DigitalTwin.Domain.Services;
+using DigitalTwin.Domain.Interfaces.Providers;
+using DigitalTwin.Domain.Interfaces.Repositories;
 using Microsoft.Extensions.Logging;
 
 namespace DigitalTwin.Application.Services;
@@ -11,13 +12,13 @@ namespace DigitalTwin.Application.Services;
 public class EnvironmentApplicationService : IEnvironmentApplicationService
 {
     private readonly IEnvironmentDataProvider _environmentDataProvider;
-    private readonly EnvironmentAssessmentService _assessmentService;
+    private readonly IEnvironmentAssessmentService _assessmentService;
     private readonly IEnvironmentReadingRepository _repository;
     private readonly ILogger<EnvironmentApplicationService> _logger;
 
     public EnvironmentApplicationService(
         IEnvironmentDataProvider environmentDataProvider,
-        EnvironmentAssessmentService assessmentService,
+        IEnvironmentAssessmentService assessmentService,
         IEnvironmentReadingRepository repository,
         ILogger<EnvironmentApplicationService> logger)
     {

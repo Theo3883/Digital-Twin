@@ -1,6 +1,6 @@
 using DigitalTwin.Domain.Models;
 
-namespace DigitalTwin.Domain.Interfaces;
+namespace DigitalTwin.Domain.Interfaces.Repositories;
 
 public interface IUserRepository
 {

@@ -1,5 +1,6 @@
 using DigitalTwin.Domain.Enums;
 using DigitalTwin.Domain.Interfaces;
+using DigitalTwin.Domain.Interfaces.Repositories;
 using DigitalTwin.Domain.Models;
 using DigitalTwin.Infrastructure.Data;
 using DigitalTwin.Infrastructure.Entities;
@@ -69,6 +70,8 @@ public class EnvironmentReadingRepository : IEnvironmentReadingRepository
 
     private static EnvironmentReading ToDomain(EnvironmentReadingEntity e) => new()
     {
+        Latitude = (double)e.Latitude,
+        Longitude = (double)e.Longitude,
         PM25 = (double)e.PM25,
         PM10 = (double)e.PM10,
         O3 = (double)e.O3,

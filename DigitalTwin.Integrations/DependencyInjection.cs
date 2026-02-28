@@ -1,7 +1,7 @@
 using DigitalTwin.Application.Configuration;
 using DigitalTwin.Application.Interfaces;
 using DigitalTwin.Domain.Interfaces;
-using DigitalTwin.Domain.Services;
+using DigitalTwin.Domain.Interfaces.Providers;
 using DigitalTwin.Integrations.Auth;
 using DigitalTwin.Integrations.Environment;
 using DigitalTwin.Integrations.Medication;
@@ -54,7 +54,7 @@ public static class DependencyInjection
         services.AddScoped<IEnvironmentDataProvider>(sp => new HttpEnvironmentProvider(
             sp.GetRequiredService<OpenWeatherMapProvider>(),
             sp.GetRequiredService<OpenWeatherAirQualityProvider>(),
-            sp.GetRequiredService<EnvironmentAssessmentService>(),
+            sp.GetRequiredService<IEnvironmentAssessmentService>(),
             config.Latitude,
             config.Longitude));
 

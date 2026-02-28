@@ -15,11 +15,13 @@ namespace DigitalTwin.Application.Sync.Drainers;
 ///     succeeds — guaranteeing at-least-once delivery.
 ///
 /// Adding support for a new table = add one new class that implements this interface
-/// and register it in DI. Zero changes to existing code (Open/Closed Principle).
+/// and register it in DI.
 /// </summary>
 public interface ITableDrainer
 {
-    /// <summary>Lower values run first. User=0, Patient=1, UserOAuth=2, VitalSign=3, EnvironmentReading=4.</summary>
+    /// <summary>
+    /// Lower values run first. User=0, Patient=1, UserOAuth=2, VitalSign=3, EnvironmentReading=4.
+    /// </summary>
     int Order { get; }
     string TableName { get; }
 

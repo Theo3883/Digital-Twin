@@ -4,19 +4,19 @@ using DigitalTwin.Application.Enums;
 using DigitalTwin.Application.Interfaces;
 using DigitalTwin.Application.Mappers;
 using DigitalTwin.Domain.Interfaces;
-using DigitalTwin.Domain.Services;
+using DigitalTwin.Domain.Interfaces.Providers;
 
 namespace DigitalTwin.Application.Services;
 
 public class VitalsApplicationService : IVitalsApplicationService
 {
     private readonly IHealthDataProvider _healthDataProvider;
-    private readonly VitalSignService _vitalSignService;
+    private readonly IVitalSignService _vitalSignService;
     private readonly Dictionary<Domain.Enums.VitalSignType, double> _lastValues = new();
 
     public VitalsApplicationService(
         IHealthDataProvider healthDataProvider,
-        VitalSignService vitalSignService)
+        IVitalSignService vitalSignService)
     {
         _healthDataProvider = healthDataProvider;
         _vitalSignService = vitalSignService;

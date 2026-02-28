@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using DigitalTwin.Domain.Enums;
 using DigitalTwin.Domain.Interfaces;
+using DigitalTwin.Domain.Interfaces.Providers;
 using DigitalTwin.Domain.Models;
 
 namespace DigitalTwin.Integrations.Medication;

@@ -1,6 +1,8 @@
 namespace DigitalTwin.Application.DTOs;
 
-/// <summary>Data required to create or update a patient medical profile.</summary>
+/// <summary>
+/// Data required to create or update a patient medical profile.
+/// </summary>
 public record PatientProfileDto
 {
     public string? BloodType { get; init; }

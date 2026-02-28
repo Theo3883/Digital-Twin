@@ -1,8 +1,8 @@
 using System.Reactive.Linq;
 using DigitalTwin.Domain.Enums;
 using DigitalTwin.Domain.Interfaces;
+using DigitalTwin.Domain.Interfaces.Providers;
 using DigitalTwin.Domain.Models;
-using DigitalTwin.Domain.Services;
 
 namespace DigitalTwin.Integrations.Environment;
 
@@ -10,14 +10,14 @@ public class HttpEnvironmentProvider : IEnvironmentDataProvider
 {
     private readonly OpenWeatherMapProvider _weather;
     private readonly OpenWeatherAirQualityProvider _airQuality;
-    private readonly EnvironmentAssessmentService _assessmentService;
+    private readonly IEnvironmentAssessmentService _assessmentService;
     private readonly double _latitude;
     private readonly double _longitude;
 
     public HttpEnvironmentProvider(
         OpenWeatherMapProvider weather,
         OpenWeatherAirQualityProvider airQuality,
-        EnvironmentAssessmentService assessmentService,
+        IEnvironmentAssessmentService assessmentService,
         double latitude = 48.8566,
         double longitude = 2.3522)
     {

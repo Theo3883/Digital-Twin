@@ -1,9 +1,11 @@
 using DigitalTwin.Domain.Enums;
 using DigitalTwin.Domain.Models;
 
+using DigitalTwin.Domain.Interfaces;
+
 namespace DigitalTwin.Domain.Services;
 
-public class MedicationInteractionService
+public class MedicationInteractionService : IMedicationInteractionService
 {
     public InteractionSeverity EvaluateSeverity(MedicationInteraction interaction)
     {

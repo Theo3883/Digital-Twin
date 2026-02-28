@@ -1,4 +1,5 @@
 using DigitalTwin.Domain.Interfaces;
+using DigitalTwin.Domain.Interfaces.Repositories;
 using DigitalTwin.Infrastructure.Data;
 using DigitalTwin.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;

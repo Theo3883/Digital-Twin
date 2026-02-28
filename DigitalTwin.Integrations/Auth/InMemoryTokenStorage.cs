@@ -1,4 +1,5 @@
-using DigitalTwin.Application.Interfaces;
+using DigitalTwin.Domain.Interfaces;
+using DigitalTwin.Domain.Interfaces.Providers;
 
 namespace DigitalTwin.Integrations.Auth;
 

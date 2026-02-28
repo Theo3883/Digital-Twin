@@ -1,6 +1,8 @@
 namespace DigitalTwin.Application.DTOs;
 
-/// <summary>Immutable authentication result returned after a successful sign-in or registration.</summary>
+/// <summary>
+/// Immutable authentication result returned after a successful sign-in or registration.
+/// </summary>
 public record AuthResultDto
 {
     public long UserId { get; init; }

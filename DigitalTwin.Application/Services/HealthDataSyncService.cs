@@ -5,6 +5,8 @@ using DigitalTwin.Application.Sync.Drainers;
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Models;
 using System.Linq;
+using DigitalTwin.Domain.Interfaces.Providers;
+using DigitalTwin.Domain.Interfaces.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 

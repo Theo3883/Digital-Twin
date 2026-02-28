@@ -1,9 +1,11 @@
 using DigitalTwin.Domain.Enums;
 using DigitalTwin.Domain.Models;
 
+using DigitalTwin.Domain.Interfaces;
+
 namespace DigitalTwin.Domain.Services;
 
-public class VitalSignService
+public class VitalSignService : IVitalSignService
 {
     /// <summary>
     /// Determines the trend direction by comparing the two most recent values.

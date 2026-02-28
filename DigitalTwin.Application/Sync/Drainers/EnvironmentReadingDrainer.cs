@@ -1,4 +1,4 @@
-using DigitalTwin.Domain.Interfaces;
+using DigitalTwin.Domain.Interfaces.Repositories;
 using Microsoft.Extensions.Logging;
 
 namespace DigitalTwin.Application.Sync.Drainers;

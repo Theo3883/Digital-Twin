@@ -1,4 +1,4 @@
-namespace DigitalTwin.Application.Interfaces;
+namespace DigitalTwin.Domain.Interfaces.Providers;
 
 /// <summary>
 /// Immutable result returned by <see cref="IOAuthTokenProvider"/> after a successful

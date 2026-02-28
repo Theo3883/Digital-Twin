@@ -1,5 +1,6 @@
 using System.Text.Json;
-using DigitalTwin.Application.Interfaces;
+using DigitalTwin.Domain.Interfaces;
+using DigitalTwin.Domain.Interfaces.Providers;
 using Microsoft.Extensions.Logging;
 
 namespace DigitalTwin.Integrations.Auth;

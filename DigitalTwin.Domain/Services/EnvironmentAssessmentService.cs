@@ -3,9 +3,11 @@ using DigitalTwin.Domain.Enums;
 using DigitalTwin.Domain.Events;
 using DigitalTwin.Domain.Models;
 
+using DigitalTwin.Domain.Interfaces;
+
 namespace DigitalTwin.Domain.Services;
 
-public class EnvironmentAssessmentService
+public class EnvironmentAssessmentService : IEnvironmentAssessmentService
 {
     private readonly Subject<RiskEvent> _riskEvents = new();
 
