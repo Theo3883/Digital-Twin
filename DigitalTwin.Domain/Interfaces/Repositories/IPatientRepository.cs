@@ -6,6 +6,7 @@ public interface IPatientRepository
 {
     Task<Patient?> GetByIdAsync(long id);
     Task<Patient?> GetByUserIdAsync(long userId);
+    Task<IEnumerable<Patient>> GetAllAsync();
     Task AddAsync(Patient patient);
     Task UpdateAsync(Patient patient);
     Task<IEnumerable<Patient>> GetDirtyAsync();

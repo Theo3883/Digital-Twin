@@ -32,6 +32,13 @@ public class PatientRepository : IPatientRepository
         return entity is null ? null : ToDomain(entity);
     }
 
+    public async Task<IEnumerable<Patient>> GetAllAsync()
+    {
+        await using var db = _factory();
+        var entities = await db.Patients.OrderByDescending(p => p.CreatedAt).ToListAsync();
+        return entities.Select(ToDomain);
+    }
+
     public async Task AddAsync(Patient patient)
     {
         await using var db = _factory();

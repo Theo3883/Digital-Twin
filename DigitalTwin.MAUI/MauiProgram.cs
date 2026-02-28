@@ -7,6 +7,7 @@ using DigitalTwin.Integrations.Sync;
 using DigitalTwin.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Xml.Linq;
+// Composition is the single DI entry point — MAUI passes integrations via callback.
 
 namespace DigitalTwin;
 
@@ -33,11 +34,10 @@ public static class MauiProgram
         var localDbPath = Path.Combine(FileSystem.AppDataDirectory, "healthapp.db");
         System.Diagnostics.Debug.WriteLine($"[DB PATH] {localDbPath}");
         
-        builder.Services.AddDigitalTwin(
+        builder.Services.AddDigitalTwinForMaui(
             localConnectionString: $"Data Source={localDbPath}",
-            cloudConnectionString: config.PostgresConnectionString);
-
-        builder.Services.AddIntegrations(config);
+            cloudConnectionString: config.PostgresConnectionString,
+            registerIntegrations: svc => svc.AddIntegrations(config));
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();

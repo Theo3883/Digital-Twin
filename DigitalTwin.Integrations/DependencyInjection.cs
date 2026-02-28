@@ -9,6 +9,9 @@ using DigitalTwin.Integrations.Mocks;
 using DigitalTwin.Integrations.Sync;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+#if IOS || MACCATALYST
+using DigitalTwin.Integrations.HealthKit;
+#endif
 
 namespace DigitalTwin.Integrations;
 
@@ -38,7 +41,11 @@ public static class DependencyInjection
         services.AddScoped<ISecureTokenStorage, InMemoryTokenStorage>();
 #endif
 
+#if IOS || MACCATALYST
+        services.AddScoped<IHealthDataProvider, HealthKitProvider>();
+#else
         services.AddScoped<IHealthDataProvider, MockHealthProvider>();
+#endif
 
         services.AddSingleton(sp =>
         {

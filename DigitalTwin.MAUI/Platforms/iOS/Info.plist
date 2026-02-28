@@ -51,6 +51,13 @@
     <key>UIBackgroundModes</key>
     <array>
         <string>fetch</string>
+        <string>processing</string>
+    </array>
+
+    <!-- Permitted background task identifiers -->
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>com.digitaltwin.health.sync</string>
     </array>
 
 </dict>

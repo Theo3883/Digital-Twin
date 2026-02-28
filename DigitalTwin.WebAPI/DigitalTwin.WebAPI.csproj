@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+    <PackageReference Include="Google.Apis.Auth" Version="1.69.0" />
+    <PackageReference Include="DotNetEnv" Version="3.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DigitalTwin.Composition\DigitalTwin.Composition.csproj" />
+    <ProjectReference Include="..\DigitalTwin.Application\DigitalTwin.Application.csproj" />
+    <ProjectReference Include="..\DigitalTwin.Infrastructure\DigitalTwin.Infrastructure.csproj" />
+    <ProjectReference Include="..\DigitalTwin.Domain\DigitalTwin.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

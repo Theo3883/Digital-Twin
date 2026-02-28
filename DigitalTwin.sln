@@ -19,6 +19,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{F354CA28
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DigitalTwin.Integrations", "DigitalTwin.Integrations\DigitalTwin.Integrations.csproj", "{F61AF89B-35AC-48FE-AA05-2D60B62C8F9D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DigitalTwin.WebAPI", "DigitalTwin.WebAPI\DigitalTwin.WebAPI.csproj", "{452347F9-DDCF-421E-B558-C9D4F365B1AA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -113,6 +115,18 @@ Global
 		{F61AF89B-35AC-48FE-AA05-2D60B62C8F9D}.Release|x64.Build.0 = Release|Any CPU
 		{F61AF89B-35AC-48FE-AA05-2D60B62C8F9D}.Release|x86.ActiveCfg = Release|Any CPU
 		{F61AF89B-35AC-48FE-AA05-2D60B62C8F9D}.Release|x86.Build.0 = Release|Any CPU
+		{452347F9-DDCF-421E-B558-C9D4F365B1AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{452347F9-DDCF-421E-B558-C9D4F365B1AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{452347F9-DDCF-421E-B558-C9D4F365B1AA}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{452347F9-DDCF-421E-B558-C9D4F365B1AA}.Debug|x64.Build.0 = Debug|Any CPU
+		{452347F9-DDCF-421E-B558-C9D4F365B1AA}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{452347F9-DDCF-421E-B558-C9D4F365B1AA}.Debug|x86.Build.0 = Debug|Any CPU
+		{452347F9-DDCF-421E-B558-C9D4F365B1AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{452347F9-DDCF-421E-B558-C9D4F365B1AA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{452347F9-DDCF-421E-B558-C9D4F365B1AA}.Release|x64.ActiveCfg = Release|Any CPU
+		{452347F9-DDCF-421E-B558-C9D4F365B1AA}.Release|x64.Build.0 = Release|Any CPU
+		{452347F9-DDCF-421E-B558-C9D4F365B1AA}.Release|x86.ActiveCfg = Release|Any CPU
+		{452347F9-DDCF-421E-B558-C9D4F365B1AA}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

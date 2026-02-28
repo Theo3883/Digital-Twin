@@ -30,6 +30,7 @@ public class HealthDataSyncService : IHealthDataSyncService
     private const int FlushThreshold = 100;
     private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan DrainInterval = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan SleepCollectInterval = TimeSpan.FromMinutes(15);
 
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<HealthDataSyncService> _logger;
@@ -42,6 +43,7 @@ public class HealthDataSyncService : IHealthDataSyncService
     private CompositeDisposable? _session;
     private Timer? _flushTimer;
     private Timer? _drainTimer;
+    private Timer? _sleepTimer;
     private long _patientId;
     private bool _vitalsActive;
 
@@ -103,6 +105,7 @@ public class HealthDataSyncService : IHealthDataSyncService
     {
         _flushTimer?.Dispose(); _flushTimer = null;
         _drainTimer?.Dispose(); _drainTimer = null;
+        _sleepTimer?.Dispose(); _sleepTimer = null;
         _session?.Dispose();    _session    = null;
         _vitalsActive = false;
         _logger.LogInformation("[Sync] Stopped.");
@@ -149,6 +152,7 @@ public class HealthDataSyncService : IHealthDataSyncService
         _session = session;
 
         _flushTimer = new Timer(_ => _ = Task.Run(FlushAsync), null, FlushInterval, FlushInterval);
+        _sleepTimer = new Timer(_ => _ = Task.Run(CollectSleepAsync), null, TimeSpan.FromSeconds(5), SleepCollectInterval);
         _vitalsActive = true;
         _logger.LogInformation("[Sync] Vitals collection started for PatientId={PatientId}.", _patientId);
     }
@@ -247,6 +251,48 @@ public class HealthDataSyncService : IHealthDataSyncService
         var batch = new List<VitalSign>();
         while (_queue.TryDequeue(out var item)) batch.Add(item);
         return batch;
+    }
+
+    // ── Sleep collection ────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Fetches recent sleep sessions from <see cref="IHealthDataProvider"/> and persists
+    /// them locally. Deduplication is done via <c>ExistsAsync</c>.
+    /// </summary>
+    private async Task CollectSleepAsync()
+    {
+        if (_patientId == 0) return;
+
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var provider = scope.ServiceProvider.GetRequiredService<IHealthDataProvider>();
+            var repo = scope.ServiceProvider.GetRequiredService<ISleepSessionRepository>();
+
+            var to = DateTime.UtcNow;
+            var from = to.AddDays(-3); // look back 3 days to catch late-arriving data
+
+            var sessions = (await provider.GetSleepSessionsAsync(from, to)).ToList();
+            if (sessions.Count == 0) return;
+
+            var inserted = 0;
+            foreach (var s in sessions)
+            {
+                s.PatientId = _patientId;
+                if (await repo.ExistsAsync(s.PatientId, s.StartTime))
+                    continue;
+
+                await repo.AddAsync(s);
+                inserted++;
+            }
+
+            if (inserted > 0)
+                _logger.LogInformation("[Sync] {Count} sleep sessions collected and persisted locally.", inserted);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[Sync] Sleep session collection failed.");
+        }
     }
 
     // ── Table drain ──────────────────────────────────────────────────────────────

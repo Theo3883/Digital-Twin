@@ -32,6 +32,9 @@ public class VitalSignService : IVitalSignService
             VitalSignType.SpO2 => vitalSign.Value is >= 0 and <= 100,
             VitalSignType.Steps => vitalSign.Value >= 0,
             VitalSignType.Calories => vitalSign.Value >= 0,
+            VitalSignType.ActiveEnergy => vitalSign.Value >= 0,
+            VitalSignType.ExerciseMinutes => vitalSign.Value is >= 0 and <= 1440,
+            VitalSignType.StandHours => vitalSign.Value is >= 0 and <= 24,
             _ => false
         };
     }
@@ -44,6 +47,9 @@ public class VitalSignService : IVitalSignService
             VitalSignType.SpO2 => "%",
             VitalSignType.Steps => "steps",
             VitalSignType.Calories => "kcal",
+            VitalSignType.ActiveEnergy => "kcal",
+            VitalSignType.ExerciseMinutes => "min",
+            VitalSignType.StandHours => "hrs",
             _ => ""
         };
     }

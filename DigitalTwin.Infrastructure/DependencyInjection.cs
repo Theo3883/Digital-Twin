@@ -47,6 +47,16 @@ public static class DependencyInjection
             var f = sp.GetRequiredService<IDbContextFactory<LocalDbContext>>();
             return new EnvironmentReadingRepository(() => f.CreateDbContext());
         });
+        services.AddScoped<ISleepSessionRepository>(sp =>
+        {
+            var f = sp.GetRequiredService<IDbContextFactory<LocalDbContext>>();
+            return new SleepSessionRepository(() => f.CreateDbContext());
+        });
+        services.AddScoped<IDoctorPatientAssignmentRepository>(sp =>
+        {
+            var f = sp.GetRequiredService<IDbContextFactory<LocalDbContext>>();
+            return new DoctorPatientAssignmentRepository(() => f.CreateDbContext());
+        });
 
         return services;
     }
@@ -81,6 +91,16 @@ public static class DependencyInjection
         {
             var f = sp.GetRequiredService<IDbContextFactory<CloudDbContext>>();
             return new EnvironmentReadingRepository(() => f.CreateDbContext(), markDirtyOnInsert: false);
+        });
+        services.AddKeyedScoped<ISleepSessionRepository>("Cloud", (sp, _) =>
+        {
+            var f = sp.GetRequiredService<IDbContextFactory<CloudDbContext>>();
+            return new SleepSessionRepository(() => f.CreateDbContext(), markDirtyOnInsert: false);
+        });
+        services.AddKeyedScoped<IDoctorPatientAssignmentRepository>("Cloud", (sp, _) =>
+        {
+            var f = sp.GetRequiredService<IDbContextFactory<CloudDbContext>>();
+            return new DoctorPatientAssignmentRepository(() => f.CreateDbContext());
         });
 
         return services;

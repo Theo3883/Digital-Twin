@@ -31,6 +31,34 @@ public class MockHealthProvider : IHealthDataProvider
         }
     }
 
+    public Task<IEnumerable<SleepSession>> GetSleepSessionsAsync(DateTime from, DateTime to)
+    {
+        // Generate a few mock sleep sessions within the requested range
+        var sessions = new List<SleepSession>();
+        var current = from.Date.AddHours(23); // Start at 11 PM
+
+        while (current < to)
+        {
+            var duration = 360 + _random.Next(0, 120); // 6-8 hours
+            var end = current.AddMinutes(duration);
+            if (end > to) break;
+
+            sessions.Add(new SleepSession
+            {
+                StartTime = current,
+                EndTime = end,
+                DurationMinutes = duration,
+                QualityScore = Math.Round(60 + _random.NextDouble() * 35, 1)
+            });
+
+            current = current.AddDays(1);
+        }
+
+        return Task.FromResult<IEnumerable<SleepSession>>(sessions);
+    }
+
+    public Task<bool> RequestPermissionsAsync() => Task.FromResult(true);
+
     private List<VitalSign> GenerateVitals()
     {
         var now = DateTime.UtcNow;
@@ -73,13 +101,44 @@ public class MockHealthProvider : IHealthDataProvider
             Timestamp = now
         };
 
-        var vitals = new List<VitalSign> { heartRate, spo2, steps, calories };
+        var activeEnergy = new VitalSign
+        {
+            Type = VitalSignType.ActiveEnergy,
+            Value = Math.Round(hourOfDay * 35 + _random.Next(0, 20)),
+            Unit = "kcal",
+            Source = "Mock",
+            Timestamp = now
+        };
+
+        var exerciseMinutes = new VitalSign
+        {
+            Type = VitalSignType.ExerciseMinutes,
+            Value = Math.Round(Math.Min(hourOfDay * 2.5 + _random.Next(0, 5), 120)),
+            Unit = "min",
+            Source = "Mock",
+            Timestamp = now
+        };
+
+        var standHours = new VitalSign
+        {
+            Type = VitalSignType.StandHours,
+            Value = Math.Min((int)(hourOfDay * 0.6) + _random.Next(0, 2), 24),
+            Unit = "hrs",
+            Source = "Mock",
+            Timestamp = now
+        };
+
+        var vitals = new List<VitalSign>
+        {
+            heartRate, spo2, steps, calories,
+            activeEnergy, exerciseMinutes, standHours
+        };
 
         lock (_sync)
         {
             _buffer.AddRange(vitals);
-            if (_buffer.Count > 400)
-                _buffer.RemoveRange(0, _buffer.Count - 400);
+            if (_buffer.Count > 700)
+                _buffer.RemoveRange(0, _buffer.Count - 700);
         }
 
         return vitals;

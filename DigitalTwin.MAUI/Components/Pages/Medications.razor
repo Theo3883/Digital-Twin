@@ -48,11 +48,7 @@
                         <MudTd DataLabel="Drug A" Style="color: var(--text-main);">@context.DrugARxCui</MudTd>
                         <MudTd DataLabel="Drug B" Style="color: var(--text-main);">@context.DrugBRxCui</MudTd>
                         <MudTd DataLabel="Severity">
-                            <MudChip T="string"
-                                     Size="Size.Small"
-                                     Color="@GetSeverityColor(context.Severity)">
-                                @context.Severity.ToString()
-                            </MudChip>
+                            <MedicationSafetyBadge Severity="@context.Severity" />
                         </MudTd>
                         <MudTd DataLabel="Description" Style="color: var(--text-sec); max-width: 300px;">
                             @context.Description
@@ -109,16 +105,5 @@
         {
             _isLoading = false;
         }
-    }
-
-    private static Color GetSeverityColor(InteractionSeverity severity)
-    {
-        return severity switch
-        {
-            InteractionSeverity.High => Color.Error,
-            InteractionSeverity.Medium => Color.Warning,
-            InteractionSeverity.Low => Color.Info,
-            _ => Color.Default
-        };
     }
 }

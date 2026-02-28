@@ -1,0 +1,40 @@
+@using DigitalTwin.Application.Enums
+
+<MudChip T="string"
+         Style="@ChipStyle"
+         Size="Size.Small"
+         Icon="@Icon">
+    @Label
+</MudChip>
+
+@code {
+    [Parameter] public InteractionSeverity Severity { get; set; }
+
+    private string Label => Severity switch
+    {
+        InteractionSeverity.High => "High Risk",
+        InteractionSeverity.Medium => "Caution",
+        InteractionSeverity.Low => "Low Risk",
+        _ => "Unknown"
+    };
+
+    private string Icon => Severity switch
+    {
+        InteractionSeverity.High => Icons.Material.Filled.Warning,
+        InteractionSeverity.Medium => Icons.Material.Filled.Info,
+        InteractionSeverity.Low => Icons.Material.Filled.CheckCircle,
+        _ => Icons.Material.Filled.HelpOutline
+    };
+
+    private string ChipStyle => Severity switch
+    {
+        InteractionSeverity.High =>
+            "background: rgba(255, 45, 85, 0.15); color: var(--red-critical); border-radius: var(--radius-chip); border: 1px solid rgba(255, 45, 85, 0.3);",
+        InteractionSeverity.Medium =>
+            "background: rgba(255, 149, 0, 0.15); color: var(--amber-warning); border-radius: var(--radius-chip); border: 1px solid rgba(255, 149, 0, 0.3);",
+        InteractionSeverity.Low =>
+            "background: rgba(48, 209, 88, 0.15); color: var(--green-positive); border-radius: var(--radius-chip); border: 1px solid rgba(48, 209, 88, 0.3);",
+        _ =>
+            "background: var(--glass-bg-1); color: var(--text-sec); border-radius: var(--radius-chip);"
+    };
+}

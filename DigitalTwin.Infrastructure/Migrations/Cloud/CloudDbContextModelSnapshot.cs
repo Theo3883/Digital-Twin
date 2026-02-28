@@ -260,6 +260,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                     b.Property<DateTime>("EndTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("IsDirty")
+                        .HasColumnType("boolean");
+
                     b.Property<long>("PatientId")
                         .HasColumnType("bigint");
 
@@ -268,6 +271,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                         .HasColumnType("numeric(5,2)");
 
                     b.Property<DateTime>("StartTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("SyncedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");

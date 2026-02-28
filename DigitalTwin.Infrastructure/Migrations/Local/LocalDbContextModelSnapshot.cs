@@ -245,6 +245,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                     b.Property<DateTime>("EndTime")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsDirty")
+                        .HasColumnType("INTEGER");
+
                     b.Property<long>("PatientId")
                         .HasColumnType("INTEGER");
 
@@ -253,6 +256,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("StartTime")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("SyncedAt")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
