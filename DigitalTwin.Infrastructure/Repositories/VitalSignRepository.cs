@@ -25,7 +25,7 @@ public class VitalSignRepository : IVitalSignRepository
     }
 
     public async Task<IEnumerable<VitalSign>> GetByPatientAsync(
-        long patientId,
+        Guid patientId,
         VitalSignType? type = null,
         DateTime? from = null,
         DateTime? to = null)
@@ -65,7 +65,7 @@ public class VitalSignRepository : IVitalSignRepository
         await db.SaveChangesAsync();
     }
 
-    public async Task<bool> ExistsAsync(long patientId, VitalSignType type, DateTime timestamp)
+    public async Task<bool> ExistsAsync(Guid patientId, VitalSignType type, DateTime timestamp)
     {
         await using var db = _factory();
         return await db.VitalSigns
@@ -82,7 +82,7 @@ public class VitalSignRepository : IVitalSignRepository
         return entities.Select(ToDomain);
     }
 
-    public async Task MarkSyncedAsync(long patientId, DateTime beforeTimestamp)
+    public async Task MarkSyncedAsync(Guid patientId, DateTime beforeTimestamp)
     {
         await using var db = _factory();
         await db.VitalSigns

@@ -21,7 +21,7 @@ public class PatientService : IPatientService
     /// Creates a new patient profile or updates an existing one for the given user.
     /// </summary>
     public async Task<Patient> CreateOrUpdateProfileAsync(
-        long userId, string? bloodType, string? allergies, string? medicalHistoryNotes)
+        Guid userId, string? bloodType, string? allergies, string? medicalHistoryNotes)
     {
         var existing = await _patientRepo.GetByUserIdAsync(userId);
 
@@ -48,7 +48,7 @@ public class PatientService : IPatientService
     /// <summary>
     /// Returns the patient profile for a given user, or null if none exists.
     /// </summary>
-    public async Task<Patient?> GetByUserIdAsync(long userId)
+    public async Task<Patient?> GetByUserIdAsync(Guid userId)
     {
         return await _patientRepo.GetByUserIdAsync(userId);
     }
@@ -56,7 +56,7 @@ public class PatientService : IPatientService
     /// <summary>
     /// Returns whether the given user has a patient profile.
     /// </summary>
-    public async Task<bool> HasPatientProfileAsync(long userId)
+    public async Task<bool> HasPatientProfileAsync(Guid userId)
     {
         var patient = await _patientRepo.GetByUserIdAsync(userId);
         return patient is not null;
@@ -65,7 +65,7 @@ public class PatientService : IPatientService
     /// <summary>
     /// Returns the patient ID for the given user, or null if no profile exists.
     /// </summary>
-    public async Task<long?> GetPatientIdForUserAsync(long userId)
+    public async Task<Guid?> GetPatientIdForUserAsync(Guid userId)
     {
         var patient = await _patientRepo.GetByUserIdAsync(userId);
         return patient?.Id;

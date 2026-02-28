@@ -28,7 +28,7 @@ import { UserPlus, ArrowRight } from "lucide-react";
 import { format } from "date-fns";
 
 export default function PatientsPage() {
-  const api = useApi();
+  const { api, ready } = useApi();
   const [patients, setPatients] = useState<PatientSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [assignEmail, setAssignEmail] = useState("");
@@ -38,6 +38,7 @@ export default function PatientsPage() {
   const [error, setError] = useState("");
 
   const loadPatients = () => {
+    if (!ready) return;
     setLoading(true);
     api
       .getMyPatients()
@@ -47,8 +48,9 @@ export default function PatientsPage() {
   };
 
   useEffect(() => {
+    console.log("[Patients] effect fired | ready:", ready);
     loadPatients();
-  }, [api]);
+  }, [ready]);
 
   const handleAssign = async () => {
     if (!assignEmail.trim()) return;

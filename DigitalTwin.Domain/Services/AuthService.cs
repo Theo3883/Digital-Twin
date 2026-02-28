@@ -110,7 +110,7 @@ public class AuthService : IAuthService
     public async Task<User?> GetCurrentUserAsync()
     {
         var userIdStr = await _tokenStorage.GetAsync(UserIdKey);
-        if (userIdStr is null || !long.TryParse(userIdStr, out var userId)) return null;
+        if (userIdStr is null || !Guid.TryParse(userIdStr, out var userId)) return null;
 
         var user = await _userService.GetByIdAsync(userId);
         if (user is null)

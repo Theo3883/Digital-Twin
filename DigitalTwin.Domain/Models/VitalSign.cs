@@ -4,7 +4,7 @@ namespace DigitalTwin.Domain.Models;
 
 public class VitalSign
 {
-    public long PatientId { get; set; }
+    public Guid PatientId { get; set; }
     public VitalSignType Type { get; set; }
     public double Value { get; set; }
     public string Unit { get; set; } = string.Empty;

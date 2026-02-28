@@ -11,7 +11,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, account }) {
+    async jwt({ token, account, trigger, session }) {
+      // Handle client-side session.update() calls (e.g. after registration).
+      if (trigger === "update") {
+        const incoming = session as any;
+        console.log("[NextAuth jwt] update trigger | incoming apiToken present:", !!incoming?.apiToken);
+        if (incoming?.apiToken) {
+          token.apiToken = incoming.apiToken;
+          token.apiTokenExpires = incoming.apiTokenExpires;
+          token.registrationRequired = false;
+          token.googleIdToken = undefined;
+        }
+        return token;
+      }
+
       // On first sign-in, exchange the Google id_token for a .NET API JWT.
       if (account?.id_token) {
         try {
@@ -41,6 +54,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       (session as any).registrationRequired = token.registrationRequired ?? false;
       (session as any).googleIdToken = token.googleIdToken;
       (session as any).pendingEmail = token.pendingEmail;
+      console.log("[NextAuth session] apiToken present:", !!(token as any).apiToken, "| registrationRequired:", token.registrationRequired);
       return session;
     },
   },

@@ -151,7 +151,7 @@ public class AuthApplicationService : IAuthApplicationService
         return _cachedUser;
     }
 
-    public async Task<long?> GetCurrentPatientIdAsync()
+    public async Task<Guid?> GetCurrentPatientIdAsync()
     {
         var user = await _authService.GetCurrentUserAsync();
         if (user is null) return null;

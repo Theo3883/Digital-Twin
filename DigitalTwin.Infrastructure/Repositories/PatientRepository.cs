@@ -18,14 +18,14 @@ public class PatientRepository : IPatientRepository
         _markDirtyOnInsert = markDirtyOnInsert;
     }
 
-    public async Task<Patient?> GetByIdAsync(long id)
+    public async Task<Patient?> GetByIdAsync(Guid id)
     {
         await using var db = _factory();
         var entity = await db.Patients.FindAsync(id);
         return entity is null ? null : ToDomain(entity);
     }
 
-    public async Task<Patient?> GetByUserIdAsync(long userId)
+    public async Task<Patient?> GetByUserIdAsync(Guid userId)
     {
         await using var db = _factory();
         var entity = await db.Patients.FirstOrDefaultAsync(p => p.UserId == userId);
@@ -110,7 +110,7 @@ public class PatientRepository : IPatientRepository
 
     private static PatientEntity ToEntity(Patient model) => new()
     {
-        Id = model.Id,
+        Id = model.Id == Guid.Empty ? Guid.NewGuid() : model.Id,
         UserId = model.UserId,
         BloodType = model.BloodType,
         Allergies = model.Allergies,

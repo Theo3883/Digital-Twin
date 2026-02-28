@@ -103,7 +103,7 @@ public class UserOAuthRepository : IUserOAuthRepository
 
     private static UserOAuthEntity ToEntity(UserOAuth model) => new()
     {
-        Id = model.Id,
+        Id = model.Id == Guid.Empty ? Guid.NewGuid() : model.Id,
         UserId = model.UserId,
         Provider = (int)model.Provider,
         ProviderUserId = model.ProviderUserId,

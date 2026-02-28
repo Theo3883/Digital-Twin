@@ -61,7 +61,7 @@ public class UserService : IUserService
     /// <summary>
     /// Returns a user by ID, or null if not found.
     /// </summary>
-    public async Task<User?> GetByIdAsync(long userId)
+    public async Task<User?> GetByIdAsync(Guid userId)
     {
         return await _userRepo.GetByIdAsync(userId);
     }

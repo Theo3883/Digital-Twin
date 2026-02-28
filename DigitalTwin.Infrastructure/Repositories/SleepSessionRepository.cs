@@ -18,7 +18,7 @@ public class SleepSessionRepository : ISleepSessionRepository
     }
 
     public async Task<IEnumerable<SleepSession>> GetByPatientAsync(
-        long patientId, DateTime? from = null, DateTime? to = null)
+        Guid patientId, DateTime? from = null, DateTime? to = null)
     {
         await using var db = _factory();
         var query = db.SleepSessions.Where(s => s.PatientId == patientId);
@@ -51,7 +51,7 @@ public class SleepSessionRepository : ISleepSessionRepository
         await db.SaveChangesAsync();
     }
 
-    public async Task<bool> ExistsAsync(long patientId, DateTime startTime)
+    public async Task<bool> ExistsAsync(Guid patientId, DateTime startTime)
     {
         await using var db = _factory();
         return await db.SleepSessions
@@ -68,7 +68,7 @@ public class SleepSessionRepository : ISleepSessionRepository
         return entities.Select(ToDomain);
     }
 
-    public async Task MarkSyncedAsync(long patientId, DateTime beforeTimestamp)
+    public async Task MarkSyncedAsync(Guid patientId, DateTime beforeTimestamp)
     {
         await using var db = _factory();
         await db.SleepSessions

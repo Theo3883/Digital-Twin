@@ -15,7 +15,7 @@ public class DoctorPatientAssignmentRepository : IDoctorPatientAssignmentReposit
         _factory = factory;
     }
 
-    public async Task<IEnumerable<DoctorPatientAssignment>> GetByDoctorIdAsync(long doctorId)
+    public async Task<IEnumerable<DoctorPatientAssignment>> GetByDoctorIdAsync(Guid doctorId)
     {
         await using var db = _factory();
         var entities = await db.DoctorPatientAssignments
@@ -25,7 +25,7 @@ public class DoctorPatientAssignmentRepository : IDoctorPatientAssignmentReposit
         return entities.Select(ToDomain);
     }
 
-    public async Task<DoctorPatientAssignment?> GetByDoctorAndPatientAsync(long doctorId, long patientId)
+    public async Task<DoctorPatientAssignment?> GetByDoctorAndPatientAsync(Guid doctorId, Guid patientId)
     {
         await using var db = _factory();
         var entity = await db.DoctorPatientAssignments
@@ -33,7 +33,7 @@ public class DoctorPatientAssignmentRepository : IDoctorPatientAssignmentReposit
         return entity is null ? null : ToDomain(entity);
     }
 
-    public async Task<bool> IsAssignedAsync(long doctorId, long patientId)
+    public async Task<bool> IsAssignedAsync(Guid doctorId, Guid patientId)
     {
         await using var db = _factory();
         return await db.DoctorPatientAssignments
@@ -49,7 +49,7 @@ public class DoctorPatientAssignmentRepository : IDoctorPatientAssignmentReposit
         assignment.Id = entity.Id;
     }
 
-    public async Task RemoveAsync(long doctorId, long patientId)
+    public async Task RemoveAsync(Guid doctorId, Guid patientId)
     {
         await using var db = _factory();
         // Soft-delete via DeletedAt (query filter will exclude it)
@@ -74,7 +74,7 @@ public class DoctorPatientAssignmentRepository : IDoctorPatientAssignmentReposit
 
     private static DoctorPatientAssignmentEntity ToEntity(DoctorPatientAssignment m) => new()
     {
-        Id = m.Id,
+        Id = m.Id == Guid.Empty ? Guid.NewGuid() : m.Id,
         DoctorId = m.DoctorId,
         PatientId = m.PatientId,
         PatientEmail = m.PatientEmail,

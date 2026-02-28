@@ -1,9 +1,11 @@
 namespace DigitalTwin.Application.DTOs;
 
-/// <summary>Summary of a patient for the doctor's patient list.</summary>
+/// <summary>
+/// Summary of a patient for the doctor's patient list.
+/// </summary>
 public record DoctorPatientSummaryDto
 {
-    public long PatientId { get; init; }
+    public Guid PatientId { get; init; }
     public string Email { get; init; } = string.Empty;
     public string FullName { get; init; } = string.Empty;
     public string? BloodType { get; init; }

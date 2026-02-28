@@ -76,7 +76,7 @@ public sealed class VitalSignDrainer : ITableDrainer
     private async Task<List<VitalSign>> MapToCloudPatientIdsAsync(List<VitalSign> vitals, CancellationToken ct)
     {
         var result = new List<VitalSign>();
-        var localToCloud = new Dictionary<long, long>();
+        var localToCloud = new Dictionary<Guid, Guid>();
 
         foreach (var v in vitals)
         {

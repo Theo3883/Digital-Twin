@@ -35,8 +35,8 @@ public class PatientsController : ControllerBase
     }
 
     /// <summary>GET /api/patients/{id} — single patient detail (only if assigned).</summary>
-    [HttpGet("{id:long}")]
-    public async Task<ActionResult<DoctorPatientDetailDto>> GetById(long id)
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<DoctorPatientDetailDto>> GetById(Guid id)
     {
         var detail = await _service.GetPatientDetailAsync(DoctorEmail, id);
         if (detail is null) return NotFound();
@@ -44,9 +44,9 @@ public class PatientsController : ControllerBase
     }
 
     /// <summary>GET /api/patients/{id}/vitals?from=&amp;to=&amp;type=</summary>
-    [HttpGet("{id:long}/vitals")]
+    [HttpGet("{id:guid}/vitals")]
     public async Task<ActionResult<IEnumerable<VitalSignDto>>> GetVitals(
-        long id,
+        Guid id,
         [FromQuery] DateTime? from,
         [FromQuery] DateTime? to,
         [FromQuery] string? type)
@@ -56,9 +56,9 @@ public class PatientsController : ControllerBase
     }
 
     /// <summary>GET /api/patients/{id}/sleep?from=&amp;to=</summary>
-    [HttpGet("{id:long}/sleep")]
+    [HttpGet("{id:guid}/sleep")]
     public async Task<ActionResult<IEnumerable<SleepSessionDto>>> GetSleep(
-        long id,
+        Guid id,
         [FromQuery] DateTime? from,
         [FromQuery] DateTime? to)
     {
@@ -77,8 +77,8 @@ public class PatientsController : ControllerBase
     }
 
     /// <summary>DELETE /api/patients/{id}/unassign — remove assignment.</summary>
-    [HttpDelete("{id:long}/unassign")]
-    public async Task<IActionResult> Unassign(long id)
+    [HttpDelete("{id:guid}/unassign")]
+    public async Task<IActionResult> Unassign(Guid id)
     {
         var removed = await _service.UnassignPatientAsync(DoctorEmail, id);
         if (!removed) return NotFound();

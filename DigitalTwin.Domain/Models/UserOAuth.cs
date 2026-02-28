@@ -4,8 +4,8 @@ namespace DigitalTwin.Domain.Models;
 
 public class UserOAuth
 {
-    public long Id { get; set; }
-    public long UserId { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UserId { get; set; }
     public OAuthProvider Provider { get; set; }
     public string ProviderUserId { get; set; } = string.Empty;
     public string? Email { get; set; }

@@ -75,7 +75,7 @@ public sealed class SleepSessionDrainer : ITableDrainer
         List<SleepSession> sessions, CancellationToken ct)
     {
         var result = new List<SleepSession>();
-        var localToCloud = new Dictionary<long, long>();
+        var localToCloud = new Dictionary<Guid, Guid>();
 
         foreach (var s in sessions)
         {

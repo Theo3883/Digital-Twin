@@ -35,6 +35,6 @@ public interface IAuthApplicationService
 
     Task SignOutAsync();
     Task<AuthResultDto?> GetCurrentUserAsync();
-    Task<long?> GetCurrentPatientIdAsync();
+    Task<Guid?> GetCurrentPatientIdAsync();
 }
 

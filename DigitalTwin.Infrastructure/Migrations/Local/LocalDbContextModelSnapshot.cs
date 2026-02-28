@@ -19,15 +19,15 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
 
             modelBuilder.Entity("DigitalTwin.Infrastructure.Entities.DoctorPatientAssignmentEntity", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("AssignedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<long>("AssignedByDoctorId")
-                        .HasColumnType("INTEGER");
+                    b.Property<Guid>("AssignedByDoctorId")
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
@@ -35,8 +35,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<long>("DoctorId")
-                        .HasColumnType("INTEGER");
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Notes")
                         .HasColumnType("TEXT");
@@ -45,8 +45,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<long>("PatientId")
-                        .HasColumnType("INTEGER");
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -58,9 +58,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
 
             modelBuilder.Entity("DigitalTwin.Infrastructure.Entities.EnvironmentReadingEntity", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("AirQualityLevel")
                         .HasColumnType("INTEGER");
@@ -125,9 +125,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
 
             modelBuilder.Entity("DigitalTwin.Infrastructure.Entities.MedicationEntity", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
@@ -155,11 +155,11 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<long>("PatientId")
-                        .HasColumnType("INTEGER");
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("TEXT");
 
-                    b.Property<long?>("PrescribedByUserId")
-                        .HasColumnType("INTEGER");
+                    b.Property<Guid?>("PrescribedByUserId")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Reason")
                         .HasColumnType("TEXT");
@@ -188,9 +188,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
 
             modelBuilder.Entity("DigitalTwin.Infrastructure.Entities.PatientEntity", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Allergies")
                         .HasColumnType("TEXT");
@@ -216,8 +216,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<long>("UserId")
-                        .HasColumnType("INTEGER");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -229,9 +229,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
 
             modelBuilder.Entity("DigitalTwin.Infrastructure.Entities.SleepSessionEntity", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
@@ -248,8 +248,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                     b.Property<bool>("IsDirty")
                         .HasColumnType("INTEGER");
 
-                    b.Property<long>("PatientId")
-                        .HasColumnType("INTEGER");
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("QualityScore")
                         .HasPrecision(5, 2)
@@ -270,9 +270,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
 
             modelBuilder.Entity("DigitalTwin.Infrastructure.Entities.UserEntity", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Address")
                         .HasColumnType("TEXT");
@@ -332,9 +332,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
 
             modelBuilder.Entity("DigitalTwin.Infrastructure.Entities.UserOAuthEntity", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("AccessToken")
                         .HasColumnType("TEXT");
@@ -370,8 +370,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<long>("UserId")
-                        .HasColumnType("INTEGER");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -382,9 +382,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
 
             modelBuilder.Entity("DigitalTwin.Infrastructure.Entities.VitalSignEntity", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
@@ -395,8 +395,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                     b.Property<bool>("IsDirty")
                         .HasColumnType("INTEGER");
 
-                    b.Property<long>("PatientId")
-                        .HasColumnType("INTEGER");
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Source")
                         .HasColumnType("TEXT");

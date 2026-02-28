@@ -44,7 +44,7 @@ public class HealthDataSyncService : IHealthDataSyncService
     private Timer? _flushTimer;
     private Timer? _drainTimer;
     private Timer? _sleepTimer;
-    private long _patientId;
+    private Guid _patientId;
     private bool _vitalsActive;
 
     public HealthDataSyncService(IServiceScopeFactory scopeFactory, ILogger<HealthDataSyncService> logger)
@@ -113,7 +113,7 @@ public class HealthDataSyncService : IHealthDataSyncService
 
     public async Task SyncBatchAsync(IEnumerable<VitalSign> vitals)
     {
-        if (_patientId == 0)
+        if (_patientId == Guid.Empty)
         {
             _logger.LogWarning("[Sync] SyncBatchAsync skipped — no patient profile.");
             return;
@@ -135,7 +135,7 @@ public class HealthDataSyncService : IHealthDataSyncService
 
     // ── Vitals: start / receive → queue → flush ─────────────────────────────────
 
-    private void StartVitalsInternal(long patientId)
+    private void StartVitalsInternal(Guid patientId)
     {
         _patientId = patientId;
 
@@ -191,7 +191,7 @@ public class HealthDataSyncService : IHealthDataSyncService
     /// </summary>
     private async Task PersistAsync(List<VitalSign> batch)
     {
-        if (_patientId == 0)
+        if (_patientId == Guid.Empty)
         {
             _logger.LogWarning("[Sync] PersistAsync skipped — no patient profile.");
             return;
@@ -261,7 +261,7 @@ public class HealthDataSyncService : IHealthDataSyncService
     /// </summary>
     private async Task CollectSleepAsync()
     {
-        if (_patientId == 0) return;
+        if (_patientId == Guid.Empty) return;
 
         try
         {

@@ -2,7 +2,7 @@ namespace DigitalTwin.Infrastructure.Entities;
 
 public class EnvironmentReadingEntity
 {
-    public long Id { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
     public decimal Latitude { get; set; }
     public decimal Longitude { get; set; }
     public decimal PM25 { get; set; }

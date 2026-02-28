@@ -2,8 +2,8 @@ namespace DigitalTwin.Infrastructure.Entities;
 
 public class PatientEntity
 {
-    public long Id { get; set; }
-    public long UserId { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UserId { get; set; }
     public string? BloodType { get; set; }
     public string? Allergies { get; set; }
     public string? MedicalHistoryNotes { get; set; }

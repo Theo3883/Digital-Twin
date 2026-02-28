@@ -5,7 +5,7 @@ namespace DigitalTwin.Domain.Interfaces.Repositories;
 public interface ISleepSessionRepository
 {
     Task<IEnumerable<SleepSession>> GetByPatientAsync(
-        long patientId,
+        Guid patientId,
         DateTime? from = null,
         DateTime? to = null);
 
@@ -13,11 +13,11 @@ public interface ISleepSessionRepository
 
     Task AddRangeAsync(IEnumerable<SleepSession> sessions);
 
-    Task<bool> ExistsAsync(long patientId, DateTime startTime);
+    Task<bool> ExistsAsync(Guid patientId, DateTime startTime);
 
     Task<IEnumerable<SleepSession>> GetDirtyAsync();
 
-    Task MarkSyncedAsync(long patientId, DateTime beforeTimestamp);
+    Task MarkSyncedAsync(Guid patientId, DateTime beforeTimestamp);
 
     Task PurgeSyncedOlderThanAsync(DateTime cutoffUtc);
 }

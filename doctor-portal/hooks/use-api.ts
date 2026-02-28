@@ -1,21 +1,26 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useEffect, useMemo } from "react";
-import { api } from "@/lib/api";
+import { useMemo } from "react";
+import { ApiClient } from "@/lib/api";
 
-/**
- * Hook that returns the API client with the session JWT applied.
- * Must be used within a SessionProvider context.
- */
-export function useApi() {
-  const { data: session } = useSession();
+type UseApiReturn = {
+  api: ApiClient;
+  /** true only once the session has loaded AND the API token is present */
+  ready: boolean;
+};
 
-  useEffect(() => {
-    if (session?.apiToken) {
-      api.setToken(session.apiToken);
-    }
-  }, [session?.apiToken]);
+export function useApi(): UseApiReturn {
+  const { data: session, status } = useSession();
+  const token = (session as any)?.apiToken as string | undefined;
 
-  return useMemo(() => api, []);
+  console.log("[useApi] status:", status, "| token present:", !!token, "| token preview:", token?.slice(0, 20));
+
+  const api = useMemo(() => {
+    const client = new ApiClient();
+    if (token) client.setToken(token);
+    return client;
+  }, [token]);
+
+  return { api, ready: status === "authenticated" && !!token };
 }

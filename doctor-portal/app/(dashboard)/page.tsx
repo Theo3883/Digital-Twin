@@ -13,17 +13,20 @@ interface Dashboard {
 }
 
 export default function DashboardPage() {
-  const api = useApi();
+  const { api, ready } = useApi();
   const [data, setData] = useState<Dashboard | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log("[Dashboard] effect fired | ready:", ready);
+    if (!ready) return;
+    console.log("[Dashboard] calling getDashboard()");
     api
       .getDashboard()
-      .then(setData)
-      .catch(console.error)
+      .then((d) => { console.log("[Dashboard] success:", d); setData(d); })
+      .catch((e) => console.error("[Dashboard] error:", e))
       .finally(() => setLoading(false));
-  }, [api]);
+  }, [api, ready]);
 
   if (loading) {
     return (

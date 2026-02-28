@@ -2,8 +2,8 @@ namespace DigitalTwin.Infrastructure.Entities;
 
 public class MedicationEntity
 {
-    public long Id { get; set; }
-    public long PatientId { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid PatientId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Dosage { get; set; } = string.Empty;
     public string? Frequency { get; set; }
@@ -11,7 +11,7 @@ public class MedicationEntity
     public string? RxCui { get; set; }
     public string? Instructions { get; set; }
     public string? Reason { get; set; }
-    public long? PrescribedByUserId { get; set; }
+    public Guid? PrescribedByUserId { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
     public int Status { get; set; }

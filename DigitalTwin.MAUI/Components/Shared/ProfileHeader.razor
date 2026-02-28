@@ -34,7 +34,7 @@
                      Size="Size.Small"
                      Variant="Variant.Outlined"
                      Style="border-color: var(--teal-primary); color: var(--teal-primary); font-family: var(--font-mono); font-size: 0.75rem;">
-                @($"ID: USR-{UserId:D5}")
+                @($"ID: {UserId.ToString()[..8].ToUpper()}")
             </MudChip>
         </MudStack>
     </MudCardContent>
@@ -44,7 +44,7 @@
     [Parameter] public string DisplayName { get; set; } = string.Empty;
     [Parameter] public string Email { get; set; } = string.Empty;
     [Parameter] public string? PhotoUrl { get; set; }
-    [Parameter] public long UserId { get; set; }
+    [Parameter] public Guid UserId { get; set; }
     [Parameter] public bool HasPatientProfile { get; set; }
 
     private string Initials => string.IsNullOrEmpty(DisplayName)

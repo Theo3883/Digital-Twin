@@ -2,8 +2,8 @@ namespace DigitalTwin.Infrastructure.Entities;
 
 public class VitalSignEntity
 {
-    public long Id { get; set; }
-    public long PatientId { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid PatientId { get; set; }
     public int Type { get; set; }
     public decimal Value { get; set; }
     public string Unit { get; set; } = string.Empty;

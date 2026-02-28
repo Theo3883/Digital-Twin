@@ -1,6 +1,5 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -16,12 +15,11 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                 name: "DoctorPatientAssignments",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    DoctorId = table.Column<long>(type: "bigint", nullable: false),
-                    PatientId = table.Column<long>(type: "bigint", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    DoctorId = table.Column<Guid>(type: "uuid", nullable: false),
+                    PatientId = table.Column<Guid>(type: "uuid", nullable: false),
                     PatientEmail = table.Column<string>(type: "text", nullable: false),
-                    AssignedByDoctorId = table.Column<long>(type: "bigint", nullable: false),
+                    AssignedByDoctorId = table.Column<Guid>(type: "uuid", nullable: false),
                     Notes = table.Column<string>(type: "text", nullable: true),
                     AssignedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -36,8 +34,7 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                 name: "EnvironmentReadings",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Latitude = table.Column<decimal>(type: "numeric(10,7)", precision: 10, scale: 7, nullable: false),
                     Longitude = table.Column<decimal>(type: "numeric(10,7)", precision: 10, scale: 7, nullable: false),
                     PM25 = table.Column<decimal>(type: "numeric(10,2)", precision: 10, scale: 2, nullable: false),
@@ -63,8 +60,7 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                 name: "Users",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Email = table.Column<string>(type: "text", nullable: false),
                     Role = table.Column<int>(type: "integer", nullable: false),
                     FirstName = table.Column<string>(type: "text", nullable: false),
@@ -90,9 +86,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                 name: "Patients",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    UserId = table.Column<long>(type: "bigint", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     BloodType = table.Column<string>(type: "text", nullable: true),
                     Allergies = table.Column<string>(type: "text", nullable: true),
                     MedicalHistoryNotes = table.Column<string>(type: "text", nullable: true),
@@ -117,9 +112,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                 name: "UserOAuths",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    UserId = table.Column<long>(type: "bigint", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     Provider = table.Column<int>(type: "integer", nullable: false),
                     ProviderUserId = table.Column<string>(type: "text", nullable: false),
                     Email = table.Column<string>(type: "text", nullable: true),
@@ -147,9 +141,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                 name: "Medications",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    PatientId = table.Column<long>(type: "bigint", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    PatientId = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Dosage = table.Column<string>(type: "text", nullable: false),
                     Frequency = table.Column<string>(type: "text", nullable: true),
@@ -157,7 +150,7 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                     RxCui = table.Column<string>(type: "text", nullable: true),
                     Instructions = table.Column<string>(type: "text", nullable: true),
                     Reason = table.Column<string>(type: "text", nullable: true),
-                    PrescribedByUserId = table.Column<long>(type: "bigint", nullable: true),
+                    PrescribedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
                     StartDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     EndDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     Status = table.Column<int>(type: "integer", nullable: false),
@@ -181,13 +174,14 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                 name: "SleepSessions",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    PatientId = table.Column<long>(type: "bigint", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    PatientId = table.Column<Guid>(type: "uuid", nullable: false),
                     StartTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     EndTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     DurationMinutes = table.Column<int>(type: "integer", nullable: false),
                     QualityScore = table.Column<decimal>(type: "numeric(5,2)", precision: 5, scale: 2, nullable: false),
+                    IsDirty = table.Column<bool>(type: "boolean", nullable: false),
+                    SyncedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
@@ -206,9 +200,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                 name: "VitalSigns",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    PatientId = table.Column<long>(type: "bigint", nullable: false),
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    PatientId = table.Column<Guid>(type: "uuid", nullable: false),
                     Type = table.Column<int>(type: "integer", nullable: false),
                     Value = table.Column<decimal>(type: "numeric(18,4)", precision: 18, scale: 4, nullable: false),
                     Unit = table.Column<string>(type: "text", nullable: false),

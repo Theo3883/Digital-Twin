@@ -94,7 +94,7 @@ public sealed class PatientDrainer : ITableDrainer
         }
     }
 
-    private async Task<long?> ResolveCloudUserIdAsync(long localUserId)
+    private async Task<Guid?> ResolveCloudUserIdAsync(Guid localUserId)
     {
         var localUser = await _localUser.GetByIdAsync(localUserId);
         if (localUser is null) return null;

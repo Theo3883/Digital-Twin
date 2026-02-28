@@ -16,21 +16,21 @@ public interface IDoctorPortalApplicationService
     Task<IEnumerable<DoctorPatientSummaryDto>> GetMyPatientsAsync(string doctorEmail);
 
     /// <summary>Get full detail of a patient (only if assigned to this doctor).</summary>
-    Task<DoctorPatientDetailDto?> GetPatientDetailAsync(string doctorEmail, long patientId);
+    Task<DoctorPatientDetailDto?> GetPatientDetailAsync(string doctorEmail, Guid patientId);
 
     /// <summary>Get vital signs for an assigned patient.</summary>
     Task<IEnumerable<VitalSignDto>> GetPatientVitalsAsync(
-        string doctorEmail, long patientId,
+        string doctorEmail, Guid patientId,
         string? type = null, DateTime? from = null, DateTime? to = null);
 
     /// <summary>Get sleep sessions for an assigned patient.</summary>
     Task<IEnumerable<SleepSessionDto>> GetPatientSleepAsync(
-        string doctorEmail, long patientId,
+        string doctorEmail, Guid patientId,
         DateTime? from = null, DateTime? to = null);
 
     /// <summary>Assign a patient to a doctor by patient email.</summary>
     Task<DoctorPatientSummaryDto?> AssignPatientAsync(string doctorEmail, AssignPatientDto dto);
 
     /// <summary>Remove a patient assignment.</summary>
-    Task<bool> UnassignPatientAsync(string doctorEmail, long patientId);
+    Task<bool> UnassignPatientAsync(string doctorEmail, Guid patientId);
 }

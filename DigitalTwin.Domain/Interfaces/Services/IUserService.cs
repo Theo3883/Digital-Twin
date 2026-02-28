@@ -9,5 +9,5 @@ public interface IUserService
         OAuthTokenResult tokens,
         string firstName, string lastName, string? phone,
         string? address, string? city, string? country, DateTime? dateOfBirth);
-    Task<User?> GetByIdAsync(long userId);
+    Task<User?> GetByIdAsync(Guid userId);
 }

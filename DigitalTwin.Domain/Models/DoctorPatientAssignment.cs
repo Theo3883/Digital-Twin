@@ -6,9 +6,9 @@ namespace DigitalTwin.Domain.Models;
 /// </summary>
 public class DoctorPatientAssignment
 {
-    public long Id { get; set; }
-    public long DoctorId { get; set; }
-    public long PatientId { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid DoctorId { get; set; }
+    public Guid PatientId { get; set; }
 
     /// <summary>
     /// The patient's email used to create the assignment (lookup key).
@@ -20,7 +20,7 @@ public class DoctorPatientAssignment
     /// <summary>
     /// The doctor who created this assignment (may differ from DoctorId in admin scenarios).
     /// </summary>
-    public long AssignedByDoctorId { get; set; }
+    public Guid AssignedByDoctorId { get; set; }
 
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

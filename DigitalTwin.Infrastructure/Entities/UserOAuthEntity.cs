@@ -2,8 +2,8 @@ namespace DigitalTwin.Infrastructure.Entities;
 
 public class UserOAuthEntity
 {
-    public long Id { get; set; }
-    public long UserId { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UserId { get; set; }
     public int Provider { get; set; }
     public string ProviderUserId { get; set; } = string.Empty;
     public string? Email { get; set; }

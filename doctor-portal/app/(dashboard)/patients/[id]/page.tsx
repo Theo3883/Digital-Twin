@@ -59,8 +59,8 @@ const chartConfig: Record<string, { label: string; color: string }> = {
 export default function PatientDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const api = useApi();
-  const patientId = Number(params.id);
+  const { api, ready } = useApi();
+  const patientId = params.id as string;
 
   const [patient, setPatient] = useState<PatientDetail | null>(null);
   const [vitals, setVitals] = useState<VitalSign[]>([]);
@@ -69,7 +69,8 @@ export default function PatientDetailPage() {
   const [vitalType, setVitalType] = useState("HeartRate");
 
   useEffect(() => {
-    if (!patientId) return;
+    console.log("[PatientDetail] effect fired | ready:", ready, "| patientId:", patientId);
+    if (!patientId || !ready) return;
     setLoading(true);
 
     Promise.all([
@@ -77,14 +78,10 @@ export default function PatientDetailPage() {
       api.getPatientVitals(patientId, { type: "HeartRate" }),
       api.getPatientSleep(patientId),
     ])
-      .then(([p, v, s]) => {
-        setPatient(p);
-        setVitals(v);
-        setSleep(s);
-      })
-      .catch(console.error)
+      .then(([p, v, s]) => { setPatient(p); setVitals(v); setSleep(s); })
+      .catch((e) => console.error("[PatientDetail] error:", e))
       .finally(() => setLoading(false));
-  }, [api, patientId]);
+  }, [api, patientId, ready]);
 
   const loadVitals = (type: string) => {
     setVitalType(type);

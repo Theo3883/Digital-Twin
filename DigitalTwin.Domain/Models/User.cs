@@ -4,7 +4,7 @@ namespace DigitalTwin.Domain.Models;
 
 public class User
 {
-    public long Id { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
     public string Email { get; set; } = string.Empty;
     public UserRole Role { get; set; }
     public string FirstName { get; set; } = string.Empty;

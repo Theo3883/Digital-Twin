@@ -4,8 +4,8 @@ namespace DigitalTwin.Domain.Interfaces.Repositories;
 
 public interface IPatientRepository
 {
-    Task<Patient?> GetByIdAsync(long id);
-    Task<Patient?> GetByUserIdAsync(long userId);
+    Task<Patient?> GetByIdAsync(Guid id);
+    Task<Patient?> GetByUserIdAsync(Guid userId);
     Task<IEnumerable<Patient>> GetAllAsync();
     Task AddAsync(Patient patient);
     Task UpdateAsync(Patient patient);

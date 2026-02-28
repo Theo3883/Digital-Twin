@@ -1,6 +1,8 @@
 namespace DigitalTwin.Application.DTOs;
 
-/// <summary>Sleep session data returned to doctor portal.</summary>
+/// <summary>
+/// Sleep session data returned to doctor portal.
+/// </summary>
 public record SleepSessionDto
 {
     public DateTime StartTime { get; init; }

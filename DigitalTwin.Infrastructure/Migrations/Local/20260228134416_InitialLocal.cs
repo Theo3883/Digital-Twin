@@ -15,12 +15,11 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                 name: "DoctorPatientAssignments",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    DoctorId = table.Column<long>(type: "INTEGER", nullable: false),
-                    PatientId = table.Column<long>(type: "INTEGER", nullable: false),
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    DoctorId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    PatientId = table.Column<Guid>(type: "TEXT", nullable: false),
                     PatientEmail = table.Column<string>(type: "TEXT", nullable: false),
-                    AssignedByDoctorId = table.Column<long>(type: "INTEGER", nullable: false),
+                    AssignedByDoctorId = table.Column<Guid>(type: "TEXT", nullable: false),
                     Notes = table.Column<string>(type: "TEXT", nullable: true),
                     AssignedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
@@ -35,8 +34,7 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                 name: "EnvironmentReadings",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
                     Latitude = table.Column<decimal>(type: "TEXT", precision: 10, scale: 7, nullable: false),
                     Longitude = table.Column<decimal>(type: "TEXT", precision: 10, scale: 7, nullable: false),
                     PM25 = table.Column<decimal>(type: "TEXT", precision: 10, scale: 2, nullable: false),
@@ -62,8 +60,7 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                 name: "Users",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
                     Email = table.Column<string>(type: "TEXT", nullable: false),
                     Role = table.Column<int>(type: "INTEGER", nullable: false),
                     FirstName = table.Column<string>(type: "TEXT", nullable: false),
@@ -89,9 +86,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                 name: "Patients",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    UserId = table.Column<long>(type: "INTEGER", nullable: false),
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    UserId = table.Column<Guid>(type: "TEXT", nullable: false),
                     BloodType = table.Column<string>(type: "TEXT", nullable: true),
                     Allergies = table.Column<string>(type: "TEXT", nullable: true),
                     MedicalHistoryNotes = table.Column<string>(type: "TEXT", nullable: true),
@@ -116,9 +112,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                 name: "UserOAuths",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    UserId = table.Column<long>(type: "INTEGER", nullable: false),
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    UserId = table.Column<Guid>(type: "TEXT", nullable: false),
                     Provider = table.Column<int>(type: "INTEGER", nullable: false),
                     ProviderUserId = table.Column<string>(type: "TEXT", nullable: false),
                     Email = table.Column<string>(type: "TEXT", nullable: true),
@@ -146,9 +141,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                 name: "Medications",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    PatientId = table.Column<long>(type: "INTEGER", nullable: false),
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    PatientId = table.Column<Guid>(type: "TEXT", nullable: false),
                     Name = table.Column<string>(type: "TEXT", nullable: false),
                     Dosage = table.Column<string>(type: "TEXT", nullable: false),
                     Frequency = table.Column<string>(type: "TEXT", nullable: true),
@@ -156,7 +150,7 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                     RxCui = table.Column<string>(type: "TEXT", nullable: true),
                     Instructions = table.Column<string>(type: "TEXT", nullable: true),
                     Reason = table.Column<string>(type: "TEXT", nullable: true),
-                    PrescribedByUserId = table.Column<long>(type: "INTEGER", nullable: true),
+                    PrescribedByUserId = table.Column<Guid>(type: "TEXT", nullable: true),
                     StartDate = table.Column<DateTime>(type: "TEXT", nullable: true),
                     EndDate = table.Column<DateTime>(type: "TEXT", nullable: true),
                     Status = table.Column<int>(type: "INTEGER", nullable: false),
@@ -180,13 +174,14 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                 name: "SleepSessions",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    PatientId = table.Column<long>(type: "INTEGER", nullable: false),
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    PatientId = table.Column<Guid>(type: "TEXT", nullable: false),
                     StartTime = table.Column<DateTime>(type: "TEXT", nullable: false),
                     EndTime = table.Column<DateTime>(type: "TEXT", nullable: false),
                     DurationMinutes = table.Column<int>(type: "INTEGER", nullable: false),
                     QualityScore = table.Column<decimal>(type: "TEXT", precision: 5, scale: 2, nullable: false),
+                    IsDirty = table.Column<bool>(type: "INTEGER", nullable: false),
+                    SyncedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
                 },
@@ -205,9 +200,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                 name: "VitalSigns",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    PatientId = table.Column<long>(type: "INTEGER", nullable: false),
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    PatientId = table.Column<Guid>(type: "TEXT", nullable: false),
                     Type = table.Column<int>(type: "INTEGER", nullable: false),
                     Value = table.Column<decimal>(type: "TEXT", precision: 18, scale: 4, nullable: false),
                     Unit = table.Column<string>(type: "TEXT", nullable: false),

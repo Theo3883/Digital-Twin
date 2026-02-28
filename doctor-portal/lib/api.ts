@@ -1,7 +1,7 @@
 import { env } from "./env";
 
 /** Typed API client that calls the .NET Web API backend. */
-class ApiClient {
+export class ApiClient {
   private baseUrl: string;
   private token: string | null = null;
 
@@ -66,11 +66,11 @@ class ApiClient {
     return this.request<PatientSummary[]>("/api/patients");
   }
 
-  async getPatientDetail(id: number) {
+  async getPatientDetail(id: string) {
     return this.request<PatientDetail>(`/api/patients/${id}`);
   }
 
-  async getPatientVitals(id: number, params?: VitalsParams) {
+  async getPatientVitals(id: string, params?: VitalsParams) {
     const qs = new URLSearchParams();
     if (params?.type) qs.set("type", params.type);
     if (params?.from) qs.set("from", params.from);
@@ -81,7 +81,7 @@ class ApiClient {
     );
   }
 
-  async getPatientSleep(id: number, params?: { from?: string; to?: string }) {
+  async getPatientSleep(id: string, params?: { from?: string; to?: string }) {
     const qs = new URLSearchParams();
     if (params?.from) qs.set("from", params.from);
     if (params?.to) qs.set("to", params.to);
@@ -98,7 +98,7 @@ class ApiClient {
     });
   }
 
-  async unassignPatient(id: number) {
+  async unassignPatient(id: string) {
     return this.request<void>(`/api/patients/${id}/unassign`, {
       method: "DELETE",
     });
@@ -116,7 +116,7 @@ export interface LoginResponse {
 }
 
 export interface PatientSummary {
-  patientId: number;
+  patientId: string;
   email: string;
   fullName: string;
   bloodType: string | null;
@@ -125,8 +125,8 @@ export interface PatientSummary {
 }
 
 export interface PatientDetail {
-  patientId: number;
-  userId: number;
+  patientId: string;
+  userId: string;
   email: string;
   fullName: string;
   photoUrl: string | null;

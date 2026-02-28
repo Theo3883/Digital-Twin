@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DigitalTwin.Infrastructure.Migrations.Cloud
 {
     [DbContext(typeof(CloudDbContext))]
-    [Migration("20260228074530_AddSleepSessionSyncColumns")]
-    partial class AddSleepSessionSyncColumns
+    [Migration("20260228134406_InitialCloud")]
+    partial class InitialCloud
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -27,17 +27,15 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
 
             modelBuilder.Entity("DigitalTwin.Infrastructure.Entities.DoctorPatientAssignmentEntity", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("AssignedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<long>("AssignedByDoctorId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("AssignedByDoctorId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -45,8 +43,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<long>("DoctorId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Notes")
                         .HasColumnType("text");
@@ -55,8 +53,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<long>("PatientId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -68,11 +66,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
 
             modelBuilder.Entity("DigitalTwin.Infrastructure.Entities.EnvironmentReadingEntity", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                        .HasColumnType("uuid");
 
                     b.Property<int>("AirQualityLevel")
                         .HasColumnType("integer");
@@ -137,11 +133,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
 
             modelBuilder.Entity("DigitalTwin.Infrastructure.Entities.MedicationEntity", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -169,11 +163,11 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<long>("PatientId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
 
-                    b.Property<long?>("PrescribedByUserId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid?>("PrescribedByUserId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Reason")
                         .HasColumnType("text");
@@ -202,11 +196,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
 
             modelBuilder.Entity("DigitalTwin.Infrastructure.Entities.PatientEntity", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Allergies")
                         .HasColumnType("text");
@@ -232,8 +224,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<long>("UserId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -245,11 +237,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
 
             modelBuilder.Entity("DigitalTwin.Infrastructure.Entities.SleepSessionEntity", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -266,8 +256,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                     b.Property<bool>("IsDirty")
                         .HasColumnType("boolean");
 
-                    b.Property<long>("PatientId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
 
                     b.Property<decimal>("QualityScore")
                         .HasPrecision(5, 2)
@@ -288,11 +278,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
 
             modelBuilder.Entity("DigitalTwin.Infrastructure.Entities.UserEntity", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Address")
                         .HasColumnType("text");
@@ -352,11 +340,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
 
             modelBuilder.Entity("DigitalTwin.Infrastructure.Entities.UserOAuthEntity", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                        .HasColumnType("uuid");
 
                     b.Property<string>("AccessToken")
                         .HasColumnType("text");
@@ -392,8 +378,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<long>("UserId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -404,11 +390,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
 
             modelBuilder.Entity("DigitalTwin.Infrastructure.Entities.VitalSignEntity", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -419,8 +403,8 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                     b.Property<bool>("IsDirty")
                         .HasColumnType("boolean");
 
-                    b.Property<long>("PatientId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Source")
                         .HasColumnType("text");

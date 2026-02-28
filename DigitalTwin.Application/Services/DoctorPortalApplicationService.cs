@@ -87,7 +87,7 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
 
     // ── Patient detail ───────────────────────────────────────────────────────────
 
-    public async Task<DoctorPatientDetailDto?> GetPatientDetailAsync(string doctorEmail, long patientId)
+    public async Task<DoctorPatientDetailDto?> GetPatientDetailAsync(string doctorEmail, Guid patientId)
     {
         if (!await IsAuthorizedForPatientAsync(doctorEmail, patientId))
             return null;
@@ -115,7 +115,7 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
     // ── Vitals ───────────────────────────────────────────────────────────────────
 
     public async Task<IEnumerable<VitalSignDto>> GetPatientVitalsAsync(
-        string doctorEmail, long patientId,
+        string doctorEmail, Guid patientId,
         string? type = null, DateTime? from = null, DateTime? to = null)
     {
         if (!await IsAuthorizedForPatientAsync(doctorEmail, patientId))
@@ -132,7 +132,7 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
     // ── Sleep ────────────────────────────────────────────────────────────────────
 
     public async Task<IEnumerable<SleepSessionDto>> GetPatientSleepAsync(
-        string doctorEmail, long patientId,
+        string doctorEmail, Guid patientId,
         DateTime? from = null, DateTime? to = null)
     {
         if (!await IsAuthorizedForPatientAsync(doctorEmail, patientId))
@@ -207,7 +207,7 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
         };
     }
 
-    public async Task<bool> UnassignPatientAsync(string doctorEmail, long patientId)
+    public async Task<bool> UnassignPatientAsync(string doctorEmail, Guid patientId)
     {
         var doctor = await _users.GetByEmailAsync(doctorEmail);
         if (doctor is null) return false;
@@ -223,7 +223,7 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
 
     // ── Authorization helper ─────────────────────────────────────────────────────
 
-    private async Task<bool> IsAuthorizedForPatientAsync(string doctorEmail, long patientId)
+    private async Task<bool> IsAuthorizedForPatientAsync(string doctorEmail, Guid patientId)
     {
         var doctor = await _users.GetByEmailAsync(doctorEmail);
         if (doctor is null) return false;

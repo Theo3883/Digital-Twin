@@ -2,11 +2,11 @@ namespace DigitalTwin.Infrastructure.Entities;
 
 public class DoctorPatientAssignmentEntity
 {
-    public long Id { get; set; }
-    public long DoctorId { get; set; }
-    public long PatientId { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid DoctorId { get; set; }
+    public Guid PatientId { get; set; }
     public string PatientEmail { get; set; } = string.Empty;
-    public long AssignedByDoctorId { get; set; }
+    public Guid AssignedByDoctorId { get; set; }
     public string? Notes { get; set; }
     public DateTime AssignedAt { get; set; } = DateTime.UtcNow;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

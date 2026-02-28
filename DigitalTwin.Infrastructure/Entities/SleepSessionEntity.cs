@@ -2,8 +2,8 @@ namespace DigitalTwin.Infrastructure.Entities;
 
 public class SleepSessionEntity
 {
-    public long Id { get; set; }
-    public long PatientId { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid PatientId { get; set; }
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
     public int DurationMinutes { get; set; }

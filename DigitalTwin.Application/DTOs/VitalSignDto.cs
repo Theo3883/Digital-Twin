@@ -9,6 +9,8 @@ public class VitalSignDto
     public string Unit { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; }
 
-    /// <summary>+1 rising, -1 falling, 0 stable</summary>
+    /// <summary>
+    /// +1 rising, -1 falling, 0 stable
+    /// </summary>
     public int Trend { get; set; }
 }

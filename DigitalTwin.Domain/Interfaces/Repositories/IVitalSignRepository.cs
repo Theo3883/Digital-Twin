@@ -6,7 +6,7 @@ namespace DigitalTwin.Domain.Interfaces.Repositories;
 public interface IVitalSignRepository
 {
     Task<IEnumerable<VitalSign>> GetByPatientAsync(
-        long patientId,
+        Guid patientId,
         VitalSignType? type = null,
         DateTime? from = null,
         DateTime? to = null);
@@ -15,11 +15,11 @@ public interface IVitalSignRepository
 
     Task AddRangeAsync(IEnumerable<VitalSign> vitalSigns);
 
-    Task<bool> ExistsAsync(long patientId, VitalSignType type, DateTime timestamp);
+    Task<bool> ExistsAsync(Guid patientId, VitalSignType type, DateTime timestamp);
 
     Task<IEnumerable<VitalSign>> GetDirtyAsync();
 
-    Task MarkSyncedAsync(long patientId, DateTime beforeTimestamp);
+    Task MarkSyncedAsync(Guid patientId, DateTime beforeTimestamp);
 
     Task PurgeSyncedOlderThanAsync(DateTime cutoffUtc);
 }

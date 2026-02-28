@@ -19,7 +19,7 @@ public class UserRepository : IUserRepository
         _markDirtyOnInsert = markDirtyOnInsert;
     }
 
-    public async Task<User?> GetByIdAsync(long id)
+    public async Task<User?> GetByIdAsync(Guid id)
     {
         await using var db = _factory();
         var entity = await db.Users.FindAsync(id);
@@ -117,7 +117,7 @@ public class UserRepository : IUserRepository
 
     private static UserEntity ToEntity(User model) => new()
     {
-        Id = model.Id,
+        Id = model.Id == Guid.Empty ? Guid.NewGuid() : model.Id,
         Email = model.Email,
         Role = (int)model.Role,
         FirstName = model.FirstName,
