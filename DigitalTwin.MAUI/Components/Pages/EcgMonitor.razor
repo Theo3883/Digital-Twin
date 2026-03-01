@@ -1,0 +1,269 @@
+@page "/ecg"
+@implements IAsyncDisposable
+@inject IEcgApplicationService EcgService
+@inject ISnackbar Snackbar
+
+<RequireAuth>
+<div class="page-enter" style="display: flex; flex-direction: column; gap: 16px;">
+
+    @* Critical Alert Banner *@
+    <CriticalAlertBanner Visible="_criticalAlert is not null"
+                         Message="@(_criticalAlert?.Message ?? string.Empty)"
+                         RuleName="@(_criticalAlert?.RuleName ?? string.Empty)"
+                         OnDismiss="DismissAlert" />
+
+    @* Connection Card *@
+    <MudCard Class="glass-card" Elevation="0">
+        <MudCardContent>
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 220px;">
+                    <MudTextField @bind-Value="_deviceUrl"
+                                  Label="ESP32 Device URL"
+                                  Placeholder="ws://192.168.1.42:8080"
+                                  Variant="Variant.Outlined"
+                                  Disabled="_isConnected"
+                                  Style="flex: 1;" />
+                </div>
+                <MudButton Variant="Variant.Filled"
+                           Color="@(_isConnected ? Color.Error : Color.Primary)"
+                           OnClick="ToggleConnectionAsync"
+                           Disabled="_isConnecting"
+                           StartIcon="@ConnectionIcon"
+                           Style="text-transform: none; min-width: 120px;">
+                    @ConnectionLabel
+                </MudButton>
+                @if (_isConnected)
+                {
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <div class="pulse-glow" style="width: 8px; height: 8px; border-radius: 50%;
+                                                        background: var(--green-positive);"></div>
+                        <MudText Typo="Typo.caption" Style="color: var(--green-positive);">Live</MudText>
+                    </div>
+                }
+            </div>
+        </MudCardContent>
+    </MudCard>
+
+    @* ECG Waveform *@
+    <MudCard Class="glass-card" Elevation="0">
+        <MudCardContent>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <MudText Typo="Typo.subtitle2"
+                         Style="color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;">
+                    ECG — Lead II
+                </MudText>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="glass-chip" style="font-size: 11px; color: var(--teal-primary);">
+                        500 Hz
+                    </span>
+                    <span class="glass-chip" style="font-size: 11px; color: var(--text-sec);">
+                        5 s window
+                    </span>
+                </div>
+            </div>
+
+            <EcgCanvasView Samples="@_sampleBuffer.ToArray()" />
+
+            @if (!_isConnected)
+            {
+                <div style="display: flex; align-items: center; justify-content: center;
+                            margin-top: 12px; gap: 8px; color: var(--text-tert);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>
+                    </svg>
+                    <MudText Typo="Typo.caption" Style="color: var(--text-tert);">
+                        Connect to ESP32 to view live ECG
+                    </MudText>
+                </div>
+            }
+        </MudCardContent>
+    </MudCard>
+
+    @* Vital Signs *@
+    <MudGrid Spacing="3">
+        <MudItem xs="6">
+            <MetricCard Title="Heart Rate"
+                        Icon="❤️"
+                        Value="@_heartRate"
+                        Unit="bpm"
+                        Decimals="0"
+                        Trend="@MetricCard.TrendDirection.Stable"
+                        SparklineData="@_hrHistory"
+                        LastUpdated="@_lastUpdated"
+                        AccentColor="#FF2D55" />
+        </MudItem>
+        <MudItem xs="6">
+            <MetricCard Title="SpO2"
+                        Icon="🫁"
+                        Value="@_spO2"
+                        Unit="%"
+                        Decimals="1"
+                        Trend="@MetricCard.TrendDirection.Stable"
+                        SparklineData="@_spO2History"
+                        LastUpdated="@_lastUpdated"
+                        AccentColor="#60a5fa" />
+        </MudItem>
+    </MudGrid>
+
+    @* Triage Status *@
+    <MudCard Class="glass-card" Elevation="0">
+        <MudCardContent>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 10px; height: 10px; border-radius: 50%;
+                            background: @TriageStatusColor;
+                            @(_isConnected ? "animation: radial-pulse 2s ease-in-out infinite;" : "")">
+                </div>
+                <MudText Typo="Typo.body2" Style="color: var(--text-main);">
+                    Triage: <strong style="color: @TriageStatusColor;">@TriageStatusLabel</strong>
+                </MudText>
+                <div style="margin-left: auto;">
+                    <MudText Typo="Typo.caption" Style="color: var(--text-tert);">
+                        @(_frameCount > 0 ? $"{_frameCount} frames received" : "No data")
+                    </MudText>
+                </div>
+            </div>
+        </MudCardContent>
+    </MudCard>
+
+</div>
+</RequireAuth>
+
+@code {
+    // Rolling 5-second buffer at 500 Hz = 2500 samples max
+    private const int MaxSamples = 2500;
+
+    private readonly Queue<double> _sampleBuffer = new();
+    private readonly List<double> _hrHistory = [];
+    private readonly List<double> _spO2History = [];
+
+    private string _deviceUrl = string.Empty;
+    private bool _isConnected;
+    private bool _isConnecting;
+    private double _heartRate;
+    private double _spO2;
+    private DateTime _lastUpdated;
+    private int _frameCount;
+    private CriticalAlertEvent? _criticalAlert;
+
+    private IDisposable? _ecgSubscription;
+    private IDisposable? _alertSubscription;
+
+    private string ConnectionIcon => _isConnected
+        ? Icons.Material.Filled.LinkOff
+        : Icons.Material.Filled.Link;
+
+    private string ConnectionLabel => _isConnecting ? "Connecting…" : (_isConnected ? "Disconnect" : "Connect");
+
+    private string TriageStatusColor => _criticalAlert is not null ? "var(--red-critical)" : "var(--green-positive)";
+    private string TriageStatusLabel => _criticalAlert is not null ? "Critical" : "Normal";
+
+    protected override void OnInitialized()
+    {
+        _alertSubscription = EcgService.CriticalAlerts
+            .Subscribe(alert =>
+            {
+                _criticalAlert = alert;
+                InvokeAsync(StateHasChanged);
+            });
+    }
+
+    private async Task ToggleConnectionAsync()
+    {
+        if (_isConnected)
+        {
+            await DisconnectAsync();
+        }
+        else
+        {
+            await ConnectAsync();
+        }
+    }
+
+    private async Task ConnectAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_deviceUrl))
+        {
+            Snackbar.Add("Enter the ESP32 device URL (e.g. ws://192.168.1.42:8080)", Severity.Warning);
+            return;
+        }
+
+        _isConnecting = true;
+        StateHasChanged();
+
+        try
+        {
+            await EcgService.ConnectAsync(_deviceUrl);
+
+            _isConnected = true;
+            _ecgSubscription = EcgService.GetEcgStream()
+                .Subscribe(frame =>
+                {
+                    foreach (var sample in frame.Samples)
+                    {
+                        _sampleBuffer.Enqueue(sample);
+                        if (_sampleBuffer.Count > MaxSamples)
+                            _sampleBuffer.Dequeue();
+                    }
+
+                    _heartRate = frame.HeartRate;
+                    _spO2 = frame.SpO2;
+                    _lastUpdated = frame.Timestamp;
+                    _frameCount++;
+
+                    AddToHistory(_hrHistory, _heartRate);
+                    AddToHistory(_spO2History, _spO2);
+
+                    InvokeAsync(StateHasChanged);
+                });
+
+            Snackbar.Add("Connected to ESP32", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Connection failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isConnecting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task DisconnectAsync()
+    {
+        _ecgSubscription?.Dispose();
+        _ecgSubscription = null;
+
+        await EcgService.DisconnectAsync();
+
+        _isConnected = false;
+        _sampleBuffer.Clear();
+        _frameCount = 0;
+        StateHasChanged();
+    }
+
+    private void DismissAlert()
+    {
+        _criticalAlert = null;
+    }
+
+    private static void AddToHistory(List<double> history, double value)
+    {
+        history.Add(value);
+        if (history.Count > 20)
+            history.RemoveAt(0);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _ecgSubscription?.Dispose();
+        _alertSubscription?.Dispose();
+
+        if (_isConnected)
+        {
+            try { await EcgService.DisconnectAsync(); }
+            catch { /* best-effort */ }
+        }
+    }
+}

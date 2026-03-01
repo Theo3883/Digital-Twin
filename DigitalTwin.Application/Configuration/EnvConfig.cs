@@ -22,7 +22,8 @@ public class EnvConfig
             OpenWeatherMapApiKey = Get("OPENWEATHERMAP_API_KEY"),
             GoogleAirQualityApiKey = Get("GOOGLE_AIR_QUALITY_API_KEY"),
             Latitude = double.TryParse(Get("LATITUDE"), System.Globalization.CultureInfo.InvariantCulture, out var lat) ? lat : 48.8566,
-            Longitude = double.TryParse(Get("LONGITUDE"), System.Globalization.CultureInfo.InvariantCulture, out var lon) ? lon : 2.3522
+            Longitude = double.TryParse(Get("LONGITUDE"), System.Globalization.CultureInfo.InvariantCulture, out var lon) ? lon : 2.3522,
+            EcgDeviceUrl = Get("ECG_DEVICE_URL")
         };
     }
 
@@ -48,6 +49,13 @@ public class EnvConfig
 
     public double Latitude { get; set; } = 48.8566;
     public double Longitude { get; set; } = 2.3522;
+
+    /// <summary>
+    /// WebSocket URL of the ESP32 ECG device on the local network.
+    /// Example: ws://192.168.1.42:8080
+    /// If null, the EcgMonitor page will prompt the user to enter the address.
+    /// </summary>
+    public string? EcgDeviceUrl { get; set; }
 
     /// <summary>
     /// Returns a PostgreSQL connection string, or <see langword="null"/> if

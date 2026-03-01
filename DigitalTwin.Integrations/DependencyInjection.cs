@@ -3,6 +3,7 @@ using DigitalTwin.Application.Interfaces;
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Interfaces.Providers;
 using DigitalTwin.Integrations.Auth;
+using DigitalTwin.Integrations.Ecg;
 using DigitalTwin.Integrations.Environment;
 using DigitalTwin.Integrations.Medication;
 using DigitalTwin.Integrations.Mocks;
@@ -72,6 +73,10 @@ public static class DependencyInjection
         services.AddScoped<ICoachingProvider, MockCoachingProvider>();
 
         services.AddHttpClient<IMedicationInteractionProvider, RxNavProvider>();
+
+        // ECG: direct connection to ESP32 on local network.
+        // EcgDeviceUrl is set via ECG_DEVICE_URL env var or entered by the user at runtime.
+        services.AddSingleton<IEcgStreamProvider, EcgStreamClient>();
 
         return services;
     }

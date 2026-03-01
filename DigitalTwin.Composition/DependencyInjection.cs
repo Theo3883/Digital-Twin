@@ -5,6 +5,7 @@ using DigitalTwin.Application.Sync.Drainers;
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Interfaces.Repositories;
 using DigitalTwin.Domain.Services;
+using DigitalTwin.Domain.Services.Triage;
 using DigitalTwin.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -103,6 +104,7 @@ public static class DependencyInjection
         services.AddSingleton<IHealthDataSyncService, HealthDataSyncService>();
         services.AddScoped<IMedicationApplicationService, MedicationApplicationService>();
         services.AddScoped<IDoctorPortalApplicationService, DoctorPortalApplicationService>();
+        services.AddScoped<IEcgApplicationService, EcgApplicationService>();
 
         // ── Table drainers (local → cloud sync) ─────────────────────────────
         services.AddScoped<ITableDrainer>(sp => new UserDrainer(
@@ -164,6 +166,13 @@ public static class DependencyInjection
         services.AddScoped<IVitalSignService, VitalSignService>();
         services.AddScoped<IEnvironmentAssessmentService, EnvironmentAssessmentService>();
         services.AddScoped<IMedicationInteractionService, MedicationInteractionService>();
+
+        // ECG triage: register rules as IEcgTriageRule and the engine that consumes them
+        services.AddScoped<IEcgTriageRule, SignalQualityRule>();
+        services.AddScoped<IEcgTriageRule, SpO2Rule>();
+        services.AddScoped<IEcgTriageRule, HeartRateActivityRule>();
+        services.AddScoped<EcgTriageEngine>();
+
         return services;
     }
 
