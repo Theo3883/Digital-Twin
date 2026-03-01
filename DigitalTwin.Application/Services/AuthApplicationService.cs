@@ -39,7 +39,8 @@ public class AuthApplicationService : IAuthApplicationService
 
         if (result.IsExistingUser)
         {
-            _logger.LogDebug("[Auth] Returning user. UserId={UserId}", result.User!.Id);
+            if (_logger.IsEnabled(LogLevel.Debug))
+                _logger.LogDebug("[Auth] Returning user. UserId={UserId}", result.User!.Id);
             await TriggerCloudSync();
             var authResult = await BuildAuthResultAsync(result.User!);
             _cachedUser = authResult;
@@ -76,13 +77,15 @@ public class AuthApplicationService : IAuthApplicationService
             profile.FirstName, profile.LastName, profile.Phone,
             profile.Address, profile.City, profile.Country, profile.DateOfBirth);
 
-        _logger.LogDebug("[Auth] User created. UserId={UserId}", user.Id);
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("[Auth] User created. UserId={UserId}", user.Id);
 
         await TriggerCloudSync();
 
         var authResult = await BuildAuthResultAsync(user);
         _cachedUser = authResult;
-        _logger.LogDebug("[Auth] Registration complete. DisplayName={Name}", authResult.DisplayName);
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("[Auth] Registration complete. DisplayName={Name}", authResult.DisplayName);
         return authResult;
     }
 
@@ -97,7 +100,8 @@ public class AuthApplicationService : IAuthApplicationService
         await _patientService.CreateOrUpdateProfileAsync(
             current.UserId, profile.BloodType, profile.Allergies, profile.MedicalHistoryNotes);
 
-        _logger.LogDebug("[Auth] Patient profile saved for UserId={UserId}.", current.UserId);
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("[Auth] Patient profile saved for UserId={UserId}.", current.UserId);
 
         await TriggerCloudSync();
 
@@ -173,11 +177,13 @@ public class AuthApplicationService : IAuthApplicationService
 
     private async Task TriggerCloudSync()
     {
-        _logger.LogDebug("[Auth] Triggering cloud sync for auth entities...");
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("[Auth] Triggering cloud sync for auth entities...");
         try
         {
             await _syncService.PushToCloudAsync();
-            _logger.LogDebug("[Auth] Cloud sync complete.");
+            if (_logger.IsEnabled(LogLevel.Debug))
+                _logger.LogDebug("[Auth] Cloud sync complete.");
         }
         catch (Exception ex)
         {

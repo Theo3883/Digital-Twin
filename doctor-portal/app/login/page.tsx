@@ -67,7 +67,7 @@ function LoginContent() {
         registrationRequired: false,
       });
       // Redirect to dashboard.
-      window.location.href = "/";
+      globalThis.window.location.href = "/";
     } catch (e: any) {
       const msg = e?.message ?? "";
       if (msg.includes("401")) {

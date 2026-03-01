@@ -177,8 +177,11 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
         // Check for duplicate
         if (await _assignments.IsAssignedAsync(doctor.Id, patient.Id))
         {
-            _logger.LogInformation("[DoctorPortal] Patient {PatientId} already assigned to doctor {DoctorId}.",
-                patient.Id, doctor.Id);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("[DoctorPortal] Patient {PatientId} already assigned to doctor {DoctorId}.",
+                    patient.Id, doctor.Id);
+            }
             return null;
         }
 
@@ -193,8 +196,9 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
 
         await _assignments.AddAsync(assignment);
 
-        _logger.LogDebug("[DoctorPortal] Patient {PatientId} assigned to doctor {DoctorId}.",
-            patient.Id, doctor.Id);
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("[DoctorPortal] Patient {PatientId} assigned to doctor {DoctorId}.",
+                patient.Id, doctor.Id);
 
         return new DoctorPatientSummaryDto
         {
@@ -216,8 +220,9 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
             return false;
 
         await _assignments.RemoveAsync(doctor.Id, patientId);
-        _logger.LogDebug("[DoctorPortal] Patient {PatientId} unassigned from doctor {DoctorId}.",
-            patientId, doctor.Id);
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("[DoctorPortal] Patient {PatientId} unassigned from doctor {DoctorId}.",
+                patientId, doctor.Id);
         return true;
     }
 

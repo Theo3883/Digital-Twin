@@ -97,19 +97,21 @@ export default function PatientsPage() {
             </DialogHeader>
             <div className="space-y-4 pt-2">
               <div>
-                <label className="text-sm font-medium">Patient Email</label>
+                <label htmlFor="assign-email" className="text-sm font-medium">Patient Email</label>
                 <Input
+                  id="assign-email"
                   placeholder="patient@example.com"
                   value={assignEmail}
                   onChange={(e) => setAssignEmail(e.target.value)}
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">
+                <label htmlFor="assign-notes" className="text-sm font-medium">
                   Notes{" "}
                   <span className="text-muted-foreground">(optional)</span>
                 </label>
                 <Input
+                  id="assign-notes"
                   placeholder="e.g. Referred by Dr. Smith"
                   value={assignNotes}
                   onChange={(e) => setAssignNotes(e.target.value)}
@@ -143,7 +145,7 @@ export default function PatientsPage() {
         <Card>
           <CardHeader>
             <CardTitle>
-              {patients.length} Patient{patients.length !== 1 ? "s" : ""}
+              {patients.length} Patient{patients.length === 1 ? "" : "s"}
             </CardTitle>
           </CardHeader>
           <CardContent>

@@ -12,12 +12,11 @@ namespace DigitalTwin.Integrations.Auth;
 /// </summary>
 public class GoogleOAuthTokenProvider : IOAuthTokenProvider
 {
-    private const string GoogleTokenInfoEndpoint = "https://oauth2.googleapis.com/tokeninfo";
-
     private readonly string _clientId;
     private readonly ILogger<GoogleOAuthTokenProvider> _logger;
 
 #if IOS || MACCATALYST
+    private const string GoogleTokenInfoEndpoint = "https://oauth2.googleapis.com/tokeninfo";
     private const string GoogleTokenEndpoint = "https://oauth2.googleapis.com/token";
     private const string GoogleAuthEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
     private readonly string _redirectUri;
@@ -54,7 +53,8 @@ public class GoogleOAuthTokenProvider : IOAuthTokenProvider
         var authResult = await WebAuthenticator.Default.AuthenticateAsync(
             new Uri(authUrl), new Uri(_redirectUri));
 
-        _logger.LogDebug("[OAuth] Browser callback received. PropertyCount={Count}", authResult.Properties.Count);
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("[OAuth] Browser callback received. PropertyCount={Count}", authResult.Properties.Count);
 
         var code = authResult.Properties.GetValueOrDefault("code");
         if (string.IsNullOrEmpty(code))
@@ -89,9 +89,10 @@ public class GoogleOAuthTokenProvider : IOAuthTokenProvider
             throw new InvalidOperationException("Failed to parse Google token response.");
         }
 
-        _logger.LogDebug("[OAuth] Token exchange success. HasAccess={HasAccess}, HasRefresh={HasRefresh}, HasId={HasId}, ExpiresIn={Exp}",
-            tokenData.AccessToken is not null, tokenData.RefreshToken is not null,
-            tokenData.IdToken is not null, tokenData.ExpiresIn);
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("[OAuth] Token exchange success. HasAccess={HasAccess}, HasRefresh={HasRefresh}, HasId={HasId}, ExpiresIn={Exp}",
+                tokenData.AccessToken is not null, tokenData.RefreshToken is not null,
+                tokenData.IdToken is not null, tokenData.ExpiresIn);
 
         var claims = await VerifyIdTokenAsync(tokenData.IdToken, http);
         _logger.LogDebug("[OAuth] id_token signature verified by Google.");
@@ -110,6 +111,8 @@ public class GoogleOAuthTokenProvider : IOAuthTokenProvider
                 : DateTime.UtcNow.AddHours(1)
         };
 #else
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("[OAuth] GetTokensAsync called for client {ClientId}; platform not supported.", _clientId);
         await Task.CompletedTask;
         throw new PlatformNotSupportedException("OAuth is only supported on iOS and macCatalyst.");
 #endif

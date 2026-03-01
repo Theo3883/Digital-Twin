@@ -38,7 +38,7 @@ h1:focus {
 .blazor-error-boundary {
     background: var(--red-critical, #FF2D55);
     padding: 1rem;
-    color: white;
+    color: #000000;
     border-radius: var(--radius-inner, 24px);
 }
 

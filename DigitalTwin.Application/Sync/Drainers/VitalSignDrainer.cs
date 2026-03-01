@@ -42,14 +42,16 @@ public sealed class VitalSignDrainer : ITableDrainer
     {
         if (_cloud is null || _cloudPatient is null)
         {
-            _logger.LogDebug("[{Table}] Cloud repository not configured — skipping.", TableName);
+            if (_logger.IsEnabled(LogLevel.Debug))
+                _logger.LogDebug("[{Table}] Cloud repository not configured — skipping.", TableName);
             return 0;
         }
 
         var dirty = (await _local.GetDirtyAsync()).ToList();
         if (dirty.Count == 0) return 0;
 
-        _logger.LogDebug("[{Table}] Draining {Count} dirty rows to cloud.", TableName, dirty.Count);
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("[{Table}] Draining {Count} dirty rows to cloud.", TableName, dirty.Count);
 
         // Map local PatientId → cloud PatientId. Local and cloud use different ID spaces.
         var mapped = await MapToCloudPatientIdsAsync(dirty, ct);

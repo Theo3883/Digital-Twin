@@ -31,8 +31,7 @@ import {
   YAxis,
   CartesianGrid,
 } from "recharts";
-import { TrendingUp } from "lucide-react";
-import { ArrowLeft, Heart, Moon } from "lucide-react";
+import { ArrowLeft, Heart, Moon, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 
 const vitalTypes = [
@@ -55,6 +54,12 @@ const chartConfig: ChartConfig = {
   StandHours: { label: "Stand Hours", color: "var(--chart-2)" },
   sleep: { label: "Duration (min)", color: "var(--chart-3)" },
 } satisfies ChartConfig;
+
+function getQualityVariant(score: number): "default" | "secondary" | "destructive" {
+  if (score >= 80) return "default";
+  if (score >= 50) return "secondary";
+  return "destructive";
+}
 
 export default function PatientDetailPage() {
   const params = useParams();
@@ -117,7 +122,7 @@ export default function PatientDetailPage() {
     );
   }
 
-  const vitalChartData = vitals
+  const vitalChartData = [...vitals]
     .sort(
       (a, b) =>
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
@@ -127,7 +132,7 @@ export default function PatientDetailPage() {
       value: v.value,
     }));
 
-  const sleepChartData = sleep
+  const sleepChartData = [...sleep]
     .sort(
       (a, b) =>
         new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
@@ -339,8 +344,8 @@ export default function PatientDetailPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {sleep.map((s, i) => (
-                        <TableRow key={i}>
+                      {sleep.map((s) => (
+                        <TableRow key={s.startTime}>
                           <TableCell>
                             {format(new Date(s.startTime), "MMM d, yyyy")}
                           </TableCell>
@@ -355,15 +360,7 @@ export default function PatientDetailPage() {
                             {s.durationMinutes % 60}m
                           </TableCell>
                           <TableCell>
-                            <Badge
-                              variant={
-                                s.qualityScore >= 80
-                                  ? "default"
-                                  : s.qualityScore >= 50
-                                  ? "secondary"
-                                  : "destructive"
-                              }
-                            >
+                            <Badge variant={getQualityVariant(s.qualityScore)}>
                               {s.qualityScore.toFixed(0)}%
                             </Badge>
                           </TableCell>
@@ -387,7 +384,7 @@ export default function PatientDetailPage() {
   );
 }
 
-function InfoCard({ label, value }: { label: string; value: string }) {
+function InfoCard({ label, value }: Readonly<{ label: string; value: string }>) {
   return (
     <Card>
       <CardContent className="pt-6">

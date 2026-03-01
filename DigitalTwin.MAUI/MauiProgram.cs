@@ -54,7 +54,6 @@ public static class MauiProgram
     {
         using var scope = app.Services.CreateScope();
         var services = scope.ServiceProvider;
-        var logger = services.GetService<ILoggerFactory>()?.CreateLogger("DatabaseMigrations");
 
         // With AddDbContextFactory, DbContext is no longer in DI as a service —
         // use the factory to create a short-lived instance just for migrations.
@@ -97,43 +96,44 @@ public static class MauiProgram
             return;
         }
 
-        var candidateFiles = new List<string>
+        SearchAndApplyGoogleOAuthFromPlist(hasClientId, hasRedirectUri);
+    }
+
+    private static void SearchAndApplyGoogleOAuthFromPlist(bool hasClientId, bool hasRedirectUri)
+    {
+        var searchPatterns = new[]
         {
             Path.Combine(Directory.GetCurrentDirectory(), "client_*.plist"),
             Path.Combine(AppContext.BaseDirectory, "client_*.plist"),
             Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "client_*.plist")
         };
 
-        foreach (var pattern in candidateFiles)
+        _ = searchPatterns.FirstOrDefault(p => TryApplyFromDirectory(p, hasClientId, hasRedirectUri));
+    }
+
+    private static bool TryApplyFromDirectory(string pattern, bool hasClientId, bool hasRedirectUri)
+    {
+        var directory = Path.GetDirectoryName(pattern);
+        var filePattern = Path.GetFileName(pattern);
+
+        if (string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(filePattern) || !Directory.Exists(directory))
+            return false;
+
+        foreach (var file in Directory.GetFiles(directory, filePattern, SearchOption.TopDirectoryOnly))
         {
-            var directory = Path.GetDirectoryName(pattern);
-            var filePattern = Path.GetFileName(pattern);
-
-            if (string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(filePattern) || !Directory.Exists(directory))
-            {
+            if (!TryLoadGoogleOAuthFromPlist(file, out var clientId, out var reversedClientId))
                 continue;
-            }
 
-            foreach (var file in Directory.GetFiles(directory, filePattern, SearchOption.TopDirectoryOnly))
-            {
-                if (!TryLoadGoogleOAuthFromPlist(file, out var clientId, out var reversedClientId))
-                {
-                    continue;
-                }
+            if (!hasClientId && !string.IsNullOrWhiteSpace(clientId))
+                Environment.SetEnvironmentVariable("GOOGLE_OAUTH_CLIENT_ID", clientId);
 
-                if (!hasClientId && !string.IsNullOrWhiteSpace(clientId))
-                {
-                    Environment.SetEnvironmentVariable("GOOGLE_OAUTH_CLIENT_ID", clientId);
-                }
+            if (!hasRedirectUri && !string.IsNullOrWhiteSpace(reversedClientId))
+                Environment.SetEnvironmentVariable("GOOGLE_OAUTH_REDIRECT_URI", $"{reversedClientId}:/oauthredirect");
 
-                if (!hasRedirectUri && !string.IsNullOrWhiteSpace(reversedClientId))
-                {
-                    Environment.SetEnvironmentVariable("GOOGLE_OAUTH_REDIRECT_URI", $"{reversedClientId}:/oauthredirect");
-                }
-
-                return;
-            }
+            return true;
         }
+
+        return false;
     }
 
     private static bool TryLoadGoogleOAuthFromPlist(string path, out string? clientId, out string? reversedClientId)

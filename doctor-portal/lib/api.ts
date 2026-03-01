@@ -2,7 +2,7 @@ import { env } from "./env";
 
 /** Typed API client that calls the .NET Web API backend. */
 export class ApiClient {
-  private baseUrl: string;
+  private readonly baseUrl: string;
   private token: string | null = null;
 
   constructor() {
@@ -76,9 +76,9 @@ export class ApiClient {
     if (params?.from) qs.set("from", params.from);
     if (params?.to) qs.set("to", params.to);
     const query = qs.toString();
-    return this.request<VitalSign[]>(
-      `/api/patients/${id}/vitals${query ? `?${query}` : ""}`
-    );
+    const vitalsPath = `/api/patients/${id}/vitals`;
+    const vitalsUrl = query ? `${vitalsPath}?${query}` : vitalsPath;
+    return this.request<VitalSign[]>(vitalsUrl);
   }
 
   async getPatientSleep(id: string, params?: { from?: string; to?: string }) {
@@ -86,9 +86,9 @@ export class ApiClient {
     if (params?.from) qs.set("from", params.from);
     if (params?.to) qs.set("to", params.to);
     const query = qs.toString();
-    return this.request<SleepSession[]>(
-      `/api/patients/${id}/sleep${query ? `?${query}` : ""}`
-    );
+    const sleepPath = `/api/patients/${id}/sleep`;
+    const sleepUrl = query ? `${sleepPath}?${query}` : sleepPath;
+    return this.request<SleepSession[]>(sleepUrl);
   }
 
   async assignPatient(email: string, notes?: string) {

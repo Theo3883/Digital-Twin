@@ -61,7 +61,8 @@ public class HealthDataSyncService : IHealthDataSyncService
 
         // Always start the drain timer so User/UserOAuth/Patient records sync to cloud.
         _drainTimer = new Timer(_ => Task.Run(PushToCloudAsync), null, DrainInterval, DrainInterval);
-        _logger.LogDebug("[Sync] Drain timer started (every {Sec}s).", DrainInterval.TotalSeconds);
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("[Sync] Drain timer started (every {Sec}s).", DrainInterval.TotalSeconds);
 
         // Try to start vitals collection if a patient profile exists.
         using var bootstrap = _scopeFactory.CreateScope();
@@ -154,7 +155,8 @@ public class HealthDataSyncService : IHealthDataSyncService
         _flushTimer = new Timer(_ => Task.Run(FlushAsync), null, FlushInterval, FlushInterval);
         _sleepTimer = new Timer(_ => Task.Run(CollectSleepAsync), null, TimeSpan.FromSeconds(5), SleepCollectInterval);
         _vitalsActive = true;
-        _logger.LogDebug("[Sync] Vitals collection started for PatientId={PatientId}.", _patientId);
+        if (_logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("[Sync] Vitals collection started for PatientId={PatientId}.", _patientId);
     }
 
     private void OnVitalReceived(VitalSign vital)
@@ -222,7 +224,8 @@ public class HealthDataSyncService : IHealthDataSyncService
                             Timestamp = v.Timestamp
                         }).ToList();
                         await cloud.AddRangeAsync(cloudBatch);
-                        _logger.LogDebug("[Sync] {Count} vitals written directly to cloud.", batch.Count);
+                        if (_logger.IsEnabled(LogLevel.Debug))
+                            _logger.LogDebug("[Sync] {Count} vitals written directly to cloud.", batch.Count);
                         return;
                     }
                 }
@@ -238,7 +241,8 @@ public class HealthDataSyncService : IHealthDataSyncService
             using var scope = _scopeFactory.CreateScope();
             var local = scope.ServiceProvider.GetRequiredService<IVitalSignRepository>();
             await local.AddRangeAsync(batch);
-            _logger.LogDebug("[Sync] {Count} vitals cached locally (dirty=true).", batch.Count);
+            if (_logger.IsEnabled(LogLevel.Debug))
+                _logger.LogDebug("[Sync] {Count} vitals cached locally (dirty=true).", batch.Count);
         }
         catch (Exception ex)
         {
@@ -286,7 +290,7 @@ public class HealthDataSyncService : IHealthDataSyncService
                 inserted++;
             }
 
-            if (inserted > 0)
+            if (inserted > 0 && _logger.IsEnabled(LogLevel.Debug))
                 _logger.LogDebug("[Sync] {Count} sleep sessions collected and persisted locally.", inserted);
         }
         catch (Exception ex)
@@ -308,7 +312,7 @@ public class HealthDataSyncService : IHealthDataSyncService
             try
             {
                 var count = await drainer.DrainAsync(ct);
-                if (count > 0)
+                if (count > 0 && _logger.IsEnabled(LogLevel.Debug))
                     _logger.LogDebug("[Sync] {Table}: {Count} records drained.", drainer.TableName, count);
             }
             catch (Exception ex) when (IsTransientCloudFailure(ex))

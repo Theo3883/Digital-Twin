@@ -14,7 +14,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, account, trigger, session }) {
       // Handle client-side session.update() calls (e.g. after registration).
       if (trigger === "update") {
-        const incoming = session as any;
+        const incoming = session as { apiToken?: string; apiTokenExpires?: string };
         console.log("[NextAuth jwt] update trigger | incoming apiToken present:", !!incoming?.apiToken);
         if (incoming?.apiToken) {
           token.apiToken = incoming.apiToken;

@@ -3,6 +3,7 @@ using DigitalTwin.Domain.Enums;
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Interfaces.Providers;
 using DigitalTwin.Domain.Models;
+using DigitalTwin.Integrations.Medication.DTOs;
 
 namespace DigitalTwin.Integrations.Medication;
 
@@ -62,37 +63,5 @@ public class RxNavProvider : IMedicationInteractionProvider
             "n/a" => InteractionSeverity.Medium,
             _ => InteractionSeverity.Low
         };
-    }
-
-    private sealed class RxNavInteractionResponse
-    {
-        public List<FullInteractionTypeGroup>? FullInteractionTypeGroup { get; init; }
-    }
-
-    private sealed class FullInteractionTypeGroup
-    {
-        public List<FullInteractionType>? FullInteractionType { get; init; }
-    }
-
-    private sealed class FullInteractionType
-    {
-        public List<InteractionPair>? InteractionPair { get; init; }
-    }
-
-    private sealed class InteractionPair
-    {
-        public string? Severity { get; init; }
-        public string? Description { get; init; }
-        public List<InteractionConcept>? InteractionConcept { get; init; }
-    }
-
-    private sealed class InteractionConcept
-    {
-        public MinConceptItem? MinConceptItem { get; init; }
-    }
-
-    private sealed class MinConceptItem
-    {
-        public string? Rxcui { get; init; }
     }
 }

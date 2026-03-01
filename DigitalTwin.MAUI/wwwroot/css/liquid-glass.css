@@ -240,6 +240,7 @@
 
 .mud-button-root {
   border-radius: var(--radius-button) !important;
+  transition: all 0.3s var(--spring) !important;
 }
 
 .mud-input,
@@ -330,11 +331,6 @@
 
 .mud-table .mud-table-body .mud-table-row:hover {
   background: var(--glass-bg-1) !important;
-}
-
-/* MudBlazor Buttons — spring transition */
-.mud-button-root {
-  transition: all 0.3s var(--spring) !important;
 }
 
 .mud-button-root:active {

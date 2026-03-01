@@ -1,4 +1,4 @@
-﻿using BackgroundTasks;
+using BackgroundTasks;
 using DigitalTwin.Application.Interfaces;
 using Foundation;
 using UIKit;
@@ -15,7 +15,7 @@ public class AppDelegate : MauiUIApplicationDelegate
 
     protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
 
-    public override bool FinishedLaunching(UIApplication application, NSDictionary launchOptions)
+    public override bool FinishedLaunching(UIApplication application, NSDictionary? launchOptions)
     {
         var result = base.FinishedLaunching(application, launchOptions);
 
@@ -28,12 +28,12 @@ public class AppDelegate : MauiUIApplicationDelegate
         return result;
     }
 
-    public override bool OpenUrl(UIApplication app, NSUrl url, NSDictionary options)
+    public override bool OpenUrl(UIApplication application, NSUrl url, NSDictionary options)
     {
-        if (Microsoft.Maui.ApplicationModel.Platform.OpenUrl(app, url, options))
+        if (Microsoft.Maui.ApplicationModel.Platform.OpenUrl(application, url, options))
             return true;
 
-        return base.OpenUrl(app, url, options);
+        return base.OpenUrl(application, url, options);
     }
 
     /// <summary>
@@ -67,7 +67,7 @@ public class AppDelegate : MauiUIApplicationDelegate
         }
     }
 
-    private void HandleBackgroundSync(BGAppRefreshTask task)
+    private static void HandleBackgroundSync(BGAppRefreshTask task)
     {
         // Schedule the next occurrence before starting this one.
         ScheduleBackgroundSync();
@@ -79,7 +79,7 @@ public class AppDelegate : MauiUIApplicationDelegate
         {
             try
             {
-                var syncService = Services.GetService<IHealthDataSyncService>();
+                var syncService = IPlatformApplication.Current?.Services.GetService<IHealthDataSyncService>();
                 if (syncService is not null)
                     await syncService.PushToCloudAsync();
 
@@ -88,6 +88,10 @@ public class AppDelegate : MauiUIApplicationDelegate
             catch
             {
                 task.SetTaskCompleted(false);
+            }
+            finally
+            {
+                cts.Dispose();
             }
         }, cts.Token);
     }

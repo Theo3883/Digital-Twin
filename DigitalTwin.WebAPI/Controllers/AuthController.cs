@@ -67,7 +67,7 @@ public class AuthController : ControllerBase
         }
         catch (InvalidJwtException ex)
         {
-            _logger.LogWarning("[Auth] Invalid Google token: {Msg}", ex.Message);
+            _logger.LogWarning(ex, "[Auth] Invalid Google token: {Msg}", ex.Message);
             return Unauthorized(new { error = "Invalid Google token." });
         }
 
@@ -128,7 +128,7 @@ public class AuthController : ControllerBase
         }
         catch (InvalidJwtException ex)
         {
-            _logger.LogWarning("[Auth] Invalid Google token on register: {Msg}", ex.Message);
+            _logger.LogWarning(ex, "[Auth] Invalid Google token on register: {Msg}", ex.Message);
             return Unauthorized(new { error = "Invalid Google token." });
         }
 
@@ -158,7 +158,8 @@ public class AuthController : ControllerBase
         };
 
         await _users.AddAsync(doctor);
-        _logger.LogInformation("[Auth] Registered new doctor: {Email} (Id={Id})", doctor.Email, doctor.Id);
+        if (_logger.IsEnabled(LogLevel.Information))
+            _logger.LogInformation("[Auth] Registered new doctor: {Email} (Id={Id})", doctor.Email, doctor.Id);
 
         var jwt = GenerateJwt(doctor);
         return Ok(new LoginResponse(jwt, DateTime.UtcNow.AddHours(8), doctor.Email,

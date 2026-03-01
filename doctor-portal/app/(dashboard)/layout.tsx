@@ -3,9 +3,9 @@ import { Sidebar } from "@/components/sidebar";
 
 export default function DashboardLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <Providers>
       <div className="flex h-screen">

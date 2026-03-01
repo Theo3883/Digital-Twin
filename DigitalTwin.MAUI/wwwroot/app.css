@@ -50,6 +50,10 @@
   --tw-contain-layout:  ;
   --tw-contain-paint:  ;
   --tw-contain-style:  ;
+  box-sizing: border-box;
+  border-width: 0;
+  border-style: solid;
+  border-color: #e5e7eb;
 }
 
 ::backdrop {
@@ -110,24 +114,6 @@
 ! tailwindcss v3.4.19 | MIT License | https://tailwindcss.com
 */
 
-/*
-1. Prevent padding and border from affecting element width. (https://github.com/mozdevs/cssremedy/issues/4)
-2. Allow adding a border to an element by just adding a border-width. (https://github.com/tailwindcss/tailwindcss/pull/116)
-*/
-
-*,
-::before,
-::after {
-  box-sizing: border-box;
-  /* 1 */
-  border-width: 0;
-  /* 2 */
-  border-style: solid;
-  /* 2 */
-  border-color: #e5e7eb;
-  /* 2 */
-}
-
 ::before,
 ::after {
   --tw-content: '';
@@ -174,6 +160,9 @@ body {
   /* 1 */
   line-height: inherit;
   /* 2 */
+  background-color: var(--bg-deep, #0A0E1A);
+  color: var(--text-main, rgba(255, 255, 255, 0.92));
+  overflow-x: hidden;
 }
 
 /*
@@ -554,11 +543,6 @@ video {
   display: none;
 }
 
-body {
-  background-color: var(--bg-deep, #0A0E1A);
-  color: var(--text-main, rgba(255, 255, 255, 0.92));
-}
-
 .table {
   display: table;
 }
@@ -664,5 +648,4 @@ html, body {
 
 /* 11. Prevent horizontal scroll on all devices */
 * { box-sizing: border-box; }
-body { overflow-x: hidden; }
 

@@ -4,6 +4,10 @@ namespace DigitalTwin.Components.Theme;
 
 public static class MedicalTheme
 {
+    private const string AppleSystemFont = "-apple-system";
+    private const string HelveticaNeueFont = "Helvetica Neue";
+    private const string SansSerifFont = "sans-serif";
+
     public static MudTheme Instance { get; } = new()
     {
         PaletteLight = new PaletteLight()
@@ -27,26 +31,26 @@ public static class MedicalTheme
         {
             Default = new DefaultTypography()
             {
-                FontFamily = ["-apple-system", "SF Pro Text", "Helvetica Neue", "sans-serif"]
+                FontFamily = [AppleSystemFont, "SF Pro Text", HelveticaNeueFont, SansSerifFont]
             },
         H3 = new H3Typography()
         {
-            FontFamily = ["-apple-system", "SF Pro Rounded", "Helvetica Neue", "sans-serif"],
+            FontFamily = [AppleSystemFont, "SF Pro Rounded", HelveticaNeueFont, SansSerifFont],
             FontWeight = "300"
         },
         H4 = new H4Typography()
         {
-            FontFamily = ["-apple-system", "SF Pro Display", "Helvetica Neue", "sans-serif"],
+            FontFamily = [AppleSystemFont, "SF Pro Display", HelveticaNeueFont, SansSerifFont],
             FontWeight = "700"
         },
         H5 = new H5Typography()
         {
-            FontFamily = ["-apple-system", "SF Pro Display", "Helvetica Neue", "sans-serif"],
+            FontFamily = [AppleSystemFont, "SF Pro Display", HelveticaNeueFont, SansSerifFont],
             FontWeight = "700"
         },
         H6 = new H6Typography()
         {
-            FontFamily = ["-apple-system", "SF Pro Display", "Helvetica Neue", "sans-serif"],
+            FontFamily = [AppleSystemFont, "SF Pro Display", HelveticaNeueFont, SansSerifFont],
             FontWeight = "600"
         }
         },
