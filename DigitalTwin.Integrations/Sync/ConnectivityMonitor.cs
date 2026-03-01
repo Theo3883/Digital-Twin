@@ -1,3 +1,4 @@
+#if IOS || MACCATALYST
 using DigitalTwin.Application.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -8,7 +9,6 @@ namespace DigitalTwin.Integrations.Sync;
 /// comes back online. Registered as a singleton and eagerly resolved at startup.
 /// Only compiled for platform targets that expose <c>Connectivity.Current</c>.
 /// </summary>
-#if IOS || MACCATALYST
 public sealed class ConnectivityMonitor : IDisposable
 {
     private readonly IServiceScopeFactory _scopeFactory;

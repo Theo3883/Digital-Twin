@@ -49,7 +49,7 @@ public sealed class VitalSignDrainer : ITableDrainer
         var dirty = (await _local.GetDirtyAsync()).ToList();
         if (dirty.Count == 0) return 0;
 
-        _logger.LogInformation("[{Table}] Draining {Count} dirty rows to cloud.", TableName, dirty.Count);
+        _logger.LogDebug("[{Table}] Draining {Count} dirty rows to cloud.", TableName, dirty.Count);
 
         // Map local PatientId → cloud PatientId. Local and cloud use different ID spaces.
         var mapped = await MapToCloudPatientIdsAsync(dirty, ct);

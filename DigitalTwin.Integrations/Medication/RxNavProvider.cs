@@ -31,31 +31,20 @@ public class RxNavProvider : IMedicationInteractionProvider
             if (response?.FullInteractionTypeGroup is null)
                 return [];
 
-            var results = new List<MedicationInteraction>();
-
-            foreach (var group in response.FullInteractionTypeGroup)
-            {
-                if (group.FullInteractionType is null) continue;
-
-                foreach (var interactionType in group.FullInteractionType)
+            var results = response.FullInteractionTypeGroup
+                .Where(g => g.FullInteractionType is not null)
+                .SelectMany(g => g.FullInteractionType!)
+                .Where(it => it.InteractionPair is not null)
+                .SelectMany(it => it.InteractionPair!)
+                .Where(pair => pair.InteractionConcept is not null && pair.InteractionConcept.Count >= 2)
+                .Select(pair => new MedicationInteraction
                 {
-                    if (interactionType.InteractionPair is null) continue;
-
-                    foreach (var pair in interactionType.InteractionPair)
-                    {
-                        var concepts = pair.InteractionConcept;
-                        if (concepts is null || concepts.Count < 2) continue;
-
-                        results.Add(new MedicationInteraction
-                        {
-                            DrugARxCui = concepts[0].MinConceptItem?.Rxcui ?? string.Empty,
-                            DrugBRxCui = concepts[1].MinConceptItem?.Rxcui ?? string.Empty,
-                            Severity = ParseSeverity(pair.Severity),
-                            Description = pair.Description ?? string.Empty
-                        });
-                    }
-                }
-            }
+                    DrugARxCui = pair.InteractionConcept![0].MinConceptItem?.Rxcui ?? string.Empty,
+                    DrugBRxCui = pair.InteractionConcept[1].MinConceptItem?.Rxcui ?? string.Empty,
+                    Severity = ParseSeverity(pair.Severity),
+                    Description = pair.Description ?? string.Empty
+                })
+                .ToList();
 
             return results;
         }
@@ -75,36 +64,35 @@ public class RxNavProvider : IMedicationInteractionProvider
         };
     }
 
-    private class RxNavInteractionResponse
+    private sealed class RxNavInteractionResponse
     {
-        public List<FullInteractionTypeGroup>? FullInteractionTypeGroup { get; set; }
+        public List<FullInteractionTypeGroup>? FullInteractionTypeGroup { get; init; }
     }
 
-    private class FullInteractionTypeGroup
+    private sealed class FullInteractionTypeGroup
     {
-        public List<FullInteractionType>? FullInteractionType { get; set; }
+        public List<FullInteractionType>? FullInteractionType { get; init; }
     }
 
-    private class FullInteractionType
+    private sealed class FullInteractionType
     {
-        public List<InteractionPair>? InteractionPair { get; set; }
+        public List<InteractionPair>? InteractionPair { get; init; }
     }
 
-    private class InteractionPair
+    private sealed class InteractionPair
     {
-        public string? Severity { get; set; }
-        public string? Description { get; set; }
-        public List<InteractionConcept>? InteractionConcept { get; set; }
+        public string? Severity { get; init; }
+        public string? Description { get; init; }
+        public List<InteractionConcept>? InteractionConcept { get; init; }
     }
 
-    private class InteractionConcept
+    private sealed class InteractionConcept
     {
-        public MinConceptItem? MinConceptItem { get; set; }
+        public MinConceptItem? MinConceptItem { get; init; }
     }
 
-    private class MinConceptItem
+    private sealed class MinConceptItem
     {
-        public string? Rxcui { get; set; }
-        public string? Name { get; set; }
+        public string? Rxcui { get; init; }
     }
 }

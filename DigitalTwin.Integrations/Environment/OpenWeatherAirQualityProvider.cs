@@ -42,13 +42,13 @@ public class OpenWeatherAirQualityProvider
         }
     }
 
-    private class AirPollutionResponse
+    private sealed class AirPollutionResponse
     {
         [JsonPropertyName("list")]
         public List<AirEntry>? List { get; set; }
     }
 
-    private class AirEntry
+    private sealed class AirEntry
     {
         [JsonPropertyName("main")]
         public AqiMain? Main { get; set; }
@@ -57,13 +57,13 @@ public class OpenWeatherAirQualityProvider
         public Pollutants? Components { get; set; }
     }
 
-    private class AqiMain
+    private sealed class AqiMain
     {
         [JsonPropertyName("aqi")]
         public int Aqi { get; set; }
     }
 
-    private class Pollutants
+    private sealed class Pollutants
     {
         [JsonPropertyName("pm2_5")]
         public double Pm2_5 { get; set; }

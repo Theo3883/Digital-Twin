@@ -17,6 +17,7 @@ namespace DigitalTwin.Composition;
 /// </summary>
 public static class DependencyInjection
 {
+    private const string Cloud = "Cloud";
     // ═══════════════════════════════════════════════════════════════════════════
     //  Web API  (cloud-only, no device providers)
     // ═══════════════════════════════════════════════════════════════════════════
@@ -35,19 +36,19 @@ public static class DependencyInjection
 
         // Alias cloud-keyed repos → unkeyed so domain/app services resolve unchanged.
         services.AddScoped<IUserRepository>(sp =>
-            sp.GetRequiredKeyedService<IUserRepository>("Cloud"));
+            sp.GetRequiredKeyedService<IUserRepository>(Cloud));
         services.AddScoped<IPatientRepository>(sp =>
-            sp.GetRequiredKeyedService<IPatientRepository>("Cloud"));
+            sp.GetRequiredKeyedService<IPatientRepository>(Cloud));
         services.AddScoped<IUserOAuthRepository>(sp =>
-            sp.GetRequiredKeyedService<IUserOAuthRepository>("Cloud"));
+            sp.GetRequiredKeyedService<IUserOAuthRepository>(Cloud));
         services.AddScoped<IVitalSignRepository>(sp =>
-            sp.GetRequiredKeyedService<IVitalSignRepository>("Cloud"));
+            sp.GetRequiredKeyedService<IVitalSignRepository>(Cloud));
         services.AddScoped<ISleepSessionRepository>(sp =>
-            sp.GetRequiredKeyedService<ISleepSessionRepository>("Cloud"));
+            sp.GetRequiredKeyedService<ISleepSessionRepository>(Cloud));
         services.AddScoped<IEnvironmentReadingRepository>(sp =>
-            sp.GetRequiredKeyedService<IEnvironmentReadingRepository>("Cloud"));
+            sp.GetRequiredKeyedService<IEnvironmentReadingRepository>(Cloud));
         services.AddScoped<IDoctorPatientAssignmentRepository>(sp =>
-            sp.GetRequiredKeyedService<IDoctorPatientAssignmentRepository>("Cloud"));
+            sp.GetRequiredKeyedService<IDoctorPatientAssignmentRepository>(Cloud));
 
         // ── Domain services (only those required by the API) ─────────────────
         services.AddCoreDomainServices();
@@ -106,40 +107,40 @@ public static class DependencyInjection
         // ── Table drainers (local → cloud sync) ─────────────────────────────
         services.AddScoped<ITableDrainer>(sp => new UserDrainer(
             sp.GetRequiredService<IUserRepository>(),
-            sp.GetKeyedService<IUserRepository>("Cloud"),
+            sp.GetKeyedService<IUserRepository>(Cloud),
             sp.GetRequiredService<ILogger<UserDrainer>>()));
 
         services.AddScoped<ITableDrainer>(sp => new PatientDrainer(
             sp.GetRequiredService<IPatientRepository>(),
-            sp.GetKeyedService<IPatientRepository>("Cloud"),
+            sp.GetKeyedService<IPatientRepository>(Cloud),
             sp.GetRequiredService<IUserRepository>(),
-            sp.GetKeyedService<IUserRepository>("Cloud"),
+            sp.GetKeyedService<IUserRepository>(Cloud),
             sp.GetRequiredService<ILogger<PatientDrainer>>()));
 
         services.AddScoped<ITableDrainer>(sp => new UserOAuthDrainer(
             sp.GetRequiredService<IUserOAuthRepository>(),
-            sp.GetKeyedService<IUserOAuthRepository>("Cloud"),
+            sp.GetKeyedService<IUserOAuthRepository>(Cloud),
             sp.GetRequiredService<IUserRepository>(),
-            sp.GetKeyedService<IUserRepository>("Cloud"),
+            sp.GetKeyedService<IUserRepository>(Cloud),
             sp.GetRequiredService<ILogger<UserOAuthDrainer>>()));
 
         services.AddScoped<ITableDrainer>(sp => new VitalSignDrainer(
             sp.GetRequiredService<IVitalSignRepository>(),
-            sp.GetKeyedService<IVitalSignRepository>("Cloud"),
+            sp.GetKeyedService<IVitalSignRepository>(Cloud),
             sp.GetRequiredService<IPatientRepository>(),
-            sp.GetKeyedService<IPatientRepository>("Cloud"),
+            sp.GetKeyedService<IPatientRepository>(Cloud),
             sp.GetRequiredService<ILogger<VitalSignDrainer>>()));
 
         services.AddScoped<ITableDrainer>(sp => new EnvironmentReadingDrainer(
             sp.GetRequiredService<IEnvironmentReadingRepository>(),
-            sp.GetKeyedService<IEnvironmentReadingRepository>("Cloud"),
+            sp.GetKeyedService<IEnvironmentReadingRepository>(Cloud),
             sp.GetRequiredService<ILogger<EnvironmentReadingDrainer>>()));
 
         services.AddScoped<ITableDrainer>(sp => new SleepSessionDrainer(
             sp.GetRequiredService<ISleepSessionRepository>(),
-            sp.GetKeyedService<ISleepSessionRepository>("Cloud"),
+            sp.GetKeyedService<ISleepSessionRepository>(Cloud),
             sp.GetRequiredService<IPatientRepository>(),
-            sp.GetKeyedService<IPatientRepository>("Cloud"),
+            sp.GetKeyedService<IPatientRepository>(Cloud),
             sp.GetRequiredService<ILogger<SleepSessionDrainer>>()));
 
         // ── Validators ───────────────────────────────────────────────────────

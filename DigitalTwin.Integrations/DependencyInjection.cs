@@ -6,7 +6,9 @@ using DigitalTwin.Integrations.Auth;
 using DigitalTwin.Integrations.Environment;
 using DigitalTwin.Integrations.Medication;
 using DigitalTwin.Integrations.Mocks;
+#if IOS || MACCATALYST
 using DigitalTwin.Integrations.Sync;
+#endif
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 #if IOS || MACCATALYST

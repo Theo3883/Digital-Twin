@@ -97,7 +97,7 @@ public class AuthService : IAuthService
         _pendingTokens = null;
 
         var user = await _userService.CreateUserAsync(
-            tokens, firstName, lastName, phone, address, city, country, dateOfBirth);
+            new CreateUserRequest(tokens, firstName, lastName, phone, address, city, country, dateOfBirth));
 
         await _tokenStorage.StoreAsync(UserIdKey, user.Id.ToString());
 

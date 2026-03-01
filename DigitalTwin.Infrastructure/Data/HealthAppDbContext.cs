@@ -37,15 +37,18 @@ public class HealthAppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Configure all DateTime properties to use UTC
+        ApplyDateTimeConverters(modelBuilder);
+        ConfigureEntities(modelBuilder);
+    }
+
+    private static void ApplyDateTimeConverters(ModelBuilder modelBuilder)
+    {
         var dateTimeConverter = new ValueConverter<DateTime, DateTime>(
             v => v.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(v, DateTimeKind.Utc) : v.ToUniversalTime(),
             v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
 
         var nullableDateTimeConverter = new ValueConverter<DateTime?, DateTime?>(
-            v => v.HasValue
-                ? (v.Value.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v.Value.ToUniversalTime())
-                : v,
+            v => v.HasValue ? NormalizeToUtc(v.Value) : v,
             v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
@@ -53,16 +56,22 @@ public class HealthAppDbContext : DbContext
             foreach (var property in entityType.GetProperties())
             {
                 if (property.ClrType == typeof(DateTime))
-                {
                     property.SetValueConverter(dateTimeConverter);
-                }
                 else if (property.ClrType == typeof(DateTime?))
-                {
                     property.SetValueConverter(nullableDateTimeConverter);
-                }
             }
         }
+    }
 
+    private static DateTime NormalizeToUtc(DateTime value)
+    {
+        return value.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(value, DateTimeKind.Utc)
+            : value.ToUniversalTime();
+    }
+
+    private void ConfigureEntities(ModelBuilder modelBuilder)
+    {
         modelBuilder.Entity<UserEntity>(e =>
         {
             e.HasKey(u => u.Id);
@@ -120,9 +129,8 @@ public class HealthAppDbContext : DbContext
             e.Property(r => r.Temperature).HasPrecision(5, 2);
             e.Property(r => r.Humidity).HasPrecision(5, 2);
             // SQLite stores booleans as integers (0/1); PostgreSQL uses native booleans.
-            var isDirtyFilter = Database.ProviderName?.Contains("Npgsql") == true
-                ? "\"IsDirty\" = true"
-                : "\"IsDirty\" = 1";
+            var isNpgsql = Database.ProviderName?.Contains("Npgsql") == true;
+            var isDirtyFilter = isNpgsql ? "\"IsDirty\" = true" : "\"IsDirty\" = 1";
             e.HasIndex(r => r.IsDirty).HasFilter(isDirtyFilter);
             e.HasQueryFilter(r => r.DeletedAt == null);
         });

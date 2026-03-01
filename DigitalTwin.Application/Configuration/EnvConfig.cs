@@ -6,15 +6,17 @@ namespace DigitalTwin.Application.Configuration;
 /// </summary>
 public class EnvConfig
 {
+    private const string DefaultDbName = "healthapp";
+
     public static EnvConfig FromEnvironment()
     {
         return new EnvConfig
         {
             PostgresHost = Get("POSTGRES_HOST") ?? "localhost",
             PostgresPort = int.TryParse(Get("POSTGRES_PORT"), out var port) ? port : 5432,
-            PostgresUser = Get("POSTGRES_USER") ?? "healthapp",
+            PostgresUser = Get("POSTGRES_USER") ?? DefaultDbName,
             PostgresPassword = Get("POSTGRES_PASSWORD"),   // null if not set — no insecure default
-            PostgresDb = Get("POSTGRES_DB") ?? "healthapp",
+            PostgresDb = Get("POSTGRES_DB") ?? DefaultDbName,
             GoogleOAuthClientId = Get("GOOGLE_OAUTH_CLIENT_ID"),
             GoogleOAuthRedirectUri = Get("GOOGLE_OAUTH_REDIRECT_URI"),
             OpenWeatherMapApiKey = Get("OPENWEATHERMAP_API_KEY"),
@@ -28,7 +30,7 @@ public class EnvConfig
 
     public string PostgresHost { get; set; } = "localhost";
     public int PostgresPort { get; set; } = 5432;
-    public string PostgresUser { get; set; } = "healthapp";
+    public string PostgresUser { get; set; } = DefaultDbName;
 
     /// <summary>
     /// No default — must be set via POSTGRES_PASSWORD environment variable.
@@ -36,7 +38,7 @@ public class EnvConfig
     /// </summary>
     public string? PostgresPassword { get; set; }
 
-    public string PostgresDb { get; set; } = "healthapp";
+    public string PostgresDb { get; set; } = DefaultDbName;
 
     public string? GoogleOAuthClientId { get; set; }
     public string? GoogleOAuthRedirectUri { get; set; }

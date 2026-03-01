@@ -13,7 +13,7 @@ public partial class DigitalTwinMannequin : ComponentBase
     [Parameter]
     public double StepsValue { get; set; } = 0;
 
-    protected string BodyColor => "rgba(255, 255, 255, 0.35)";
+    protected static string BodyColor => "rgba(255, 255, 255, 0.35)";
 
     protected string PulseDuration => $"{60.0 / Math.Max(HeartRateValue, 40):F2}s";
 
@@ -52,5 +52,5 @@ public partial class DigitalTwinMannequin : ComponentBase
         _ => "Low"
     };
 
-    protected string ContainerStyle => "display: flex; flex-direction: column; align-items: center; padding: 20px; border-radius: var(--radius-card); backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%); background: rgba(255, 255, 255, 0.14); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), inset 1px 0 0 rgba(255, 255, 255, 0.12);";
+    protected static string ContainerStyle => "display: flex; flex-direction: column; align-items: center; padding: 20px; border-radius: var(--radius-card); backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%); background: rgba(255, 255, 255, 0.14); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), inset 1px 0 0 rgba(255, 255, 255, 0.12);";
 }

@@ -1,3 +1,4 @@
+#if IOS || MACCATALYST
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Interfaces.Providers;
 
@@ -9,7 +10,6 @@ namespace DigitalTwin.Integrations.Auth;
 /// Compiled only for mobile platform targets; <see cref="InMemoryTokenStorage"/>
 /// is used on non-platform builds.
 /// </summary>
-#if IOS || MACCATALYST
 public class SecureTokenStorage : ISecureTokenStorage
 {
     public async Task StoreAsync(string key, string value)

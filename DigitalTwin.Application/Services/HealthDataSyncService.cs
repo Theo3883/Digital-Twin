@@ -60,8 +60,8 @@ public class HealthDataSyncService : IHealthDataSyncService
         StopSync();
 
         // Always start the drain timer so User/UserOAuth/Patient records sync to cloud.
-        _drainTimer = new Timer(_ => _ = Task.Run(PushToCloudAsync), null, DrainInterval, DrainInterval);
-        _logger.LogInformation("[Sync] Drain timer started (every {Sec}s).", DrainInterval.TotalSeconds);
+        _drainTimer = new Timer(_ => Task.Run(PushToCloudAsync), null, DrainInterval, DrainInterval);
+        _logger.LogDebug("[Sync] Drain timer started (every {Sec}s).", DrainInterval.TotalSeconds);
 
         // Try to start vitals collection if a patient profile exists.
         using var bootstrap = _scopeFactory.CreateScope();
@@ -151,10 +151,10 @@ public class HealthDataSyncService : IHealthDataSyncService
         session.Add(sub);
         _session = session;
 
-        _flushTimer = new Timer(_ => _ = Task.Run(FlushAsync), null, FlushInterval, FlushInterval);
-        _sleepTimer = new Timer(_ => _ = Task.Run(CollectSleepAsync), null, TimeSpan.FromSeconds(5), SleepCollectInterval);
+        _flushTimer = new Timer(_ => Task.Run(FlushAsync), null, FlushInterval, FlushInterval);
+        _sleepTimer = new Timer(_ => Task.Run(CollectSleepAsync), null, TimeSpan.FromSeconds(5), SleepCollectInterval);
         _vitalsActive = true;
-        _logger.LogInformation("[Sync] Vitals collection started for PatientId={PatientId}.", _patientId);
+        _logger.LogDebug("[Sync] Vitals collection started for PatientId={PatientId}.", _patientId);
     }
 
     private void OnVitalReceived(VitalSign vital)
@@ -169,7 +169,7 @@ public class HealthDataSyncService : IHealthDataSyncService
         }
 
         _queue.Enqueue(vital);
-        if (_queue.Count >= FlushThreshold) _ = Task.Run(FlushAsync);
+        if (_queue.Count >= FlushThreshold) Task.Run(FlushAsync);
     }
 
     private async Task FlushAsync()
@@ -222,7 +222,7 @@ public class HealthDataSyncService : IHealthDataSyncService
                             Timestamp = v.Timestamp
                         }).ToList();
                         await cloud.AddRangeAsync(cloudBatch);
-                        _logger.LogInformation("[Sync] {Count} vitals written directly to cloud.", batch.Count);
+                        _logger.LogDebug("[Sync] {Count} vitals written directly to cloud.", batch.Count);
                         return;
                     }
                 }
@@ -238,7 +238,7 @@ public class HealthDataSyncService : IHealthDataSyncService
             using var scope = _scopeFactory.CreateScope();
             var local = scope.ServiceProvider.GetRequiredService<IVitalSignRepository>();
             await local.AddRangeAsync(batch);
-            _logger.LogInformation("[Sync] {Count} vitals cached locally (dirty=true).", batch.Count);
+            _logger.LogDebug("[Sync] {Count} vitals cached locally (dirty=true).", batch.Count);
         }
         catch (Exception ex)
         {
@@ -287,7 +287,7 @@ public class HealthDataSyncService : IHealthDataSyncService
             }
 
             if (inserted > 0)
-                _logger.LogInformation("[Sync] {Count} sleep sessions collected and persisted locally.", inserted);
+                _logger.LogDebug("[Sync] {Count} sleep sessions collected and persisted locally.", inserted);
         }
         catch (Exception ex)
         {
@@ -309,11 +309,11 @@ public class HealthDataSyncService : IHealthDataSyncService
             {
                 var count = await drainer.DrainAsync(ct);
                 if (count > 0)
-                    _logger.LogInformation("[Sync] {Table}: {Count} records drained.", drainer.TableName, count);
+                    _logger.LogDebug("[Sync] {Table}: {Count} records drained.", drainer.TableName, count);
             }
             catch (Exception ex) when (IsTransientCloudFailure(ex))
             {
-                _logger.LogWarning("[Sync] {Table}: cloud unavailable ({Message}) — skipping, will retry next cycle.", drainer.TableName, ex.InnerException?.Message ?? ex.Message);
+                _logger.LogWarning(ex, "[Sync] {Table}: cloud unavailable — skipping, will retry next cycle.", drainer.TableName);
             }
             catch (Exception ex)
             {

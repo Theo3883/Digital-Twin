@@ -193,7 +193,7 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
 
         await _assignments.AddAsync(assignment);
 
-        _logger.LogInformation("[DoctorPortal] Patient {PatientId} assigned to doctor {DoctorId}.",
+        _logger.LogDebug("[DoctorPortal] Patient {PatientId} assigned to doctor {DoctorId}.",
             patient.Id, doctor.Id);
 
         return new DoctorPatientSummaryDto
@@ -216,7 +216,7 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
             return false;
 
         await _assignments.RemoveAsync(doctor.Id, patientId);
-        _logger.LogInformation("[DoctorPortal] Patient {PatientId} unassigned from doctor {DoctorId}.",
+        _logger.LogDebug("[DoctorPortal] Patient {PatientId} unassigned from doctor {DoctorId}.",
             patientId, doctor.Id);
         return true;
     }

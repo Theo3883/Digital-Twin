@@ -42,7 +42,7 @@ public sealed class UserDrainer : ITableDrainer
         var dirty = (await _local.GetDirtyAsync()).ToList();
         if (dirty.Count == 0) return 0;
 
-        _logger.LogInformation("[{Table}] Draining {Count} dirty rows to cloud.", TableName, dirty.Count);
+        _logger.LogDebug("[{Table}] Draining {Count} dirty rows to cloud.", TableName, dirty.Count);
 
         foreach (var user in dirty)
         {

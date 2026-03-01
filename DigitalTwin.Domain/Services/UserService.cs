@@ -23,23 +23,20 @@ public class UserService : IUserService
     /// <summary>
     /// Creates a new User + UserOAuth from OAuth token data and profile fields.
     /// </summary>
-    public async Task<User> CreateUserAsync(
-        OAuthTokenResult tokens,
-        string firstName, string lastName, string? phone,
-        string? address, string? city, string? country, DateTime? dateOfBirth)
+    public async Task<User> CreateUserAsync(CreateUserRequest request)
     {
         var user = new User
         {
-            Email       = tokens.Email,
+            Email       = request.Tokens.Email,
             Role        = UserRole.Patient,
-            FirstName   = firstName,
-            LastName    = lastName,
-            PhotoUrl    = tokens.PhotoUrl,
-            Phone       = phone,
-            Address     = address,
-            City        = city,
-            Country     = country,
-            DateOfBirth = dateOfBirth
+            FirstName   = request.FirstName,
+            LastName    = request.LastName,
+            PhotoUrl    = request.Tokens.PhotoUrl,
+            Phone       = request.Phone,
+            Address     = request.Address,
+            City        = request.City,
+            Country     = request.Country,
+            DateOfBirth = request.DateOfBirth
         };
         await _userRepo.AddAsync(user);
 
@@ -47,11 +44,11 @@ public class UserService : IUserService
         {
             UserId         = user.Id,
             Provider       = OAuthProvider.Google,
-            ProviderUserId = tokens.ProviderUserId,
-            Email          = tokens.Email,
-            AccessToken    = tokens.AccessToken,
-            RefreshToken   = tokens.RefreshToken,
-            ExpiresAt      = tokens.ExpiresAt
+            ProviderUserId = request.Tokens.ProviderUserId,
+            Email          = request.Tokens.Email,
+            AccessToken    = request.Tokens.AccessToken,
+            RefreshToken   = request.Tokens.RefreshToken,
+            ExpiresAt      = request.Tokens.ExpiresAt
         };
         await _oauthRepo.AddAsync(oauth);
 

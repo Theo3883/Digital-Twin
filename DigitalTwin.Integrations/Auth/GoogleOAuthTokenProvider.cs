@@ -12,14 +12,17 @@ namespace DigitalTwin.Integrations.Auth;
 /// </summary>
 public class GoogleOAuthTokenProvider : IOAuthTokenProvider
 {
-    private const string GoogleTokenEndpoint = "https://oauth2.googleapis.com/token";
     private const string GoogleTokenInfoEndpoint = "https://oauth2.googleapis.com/tokeninfo";
-    private const string GoogleAuthEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
 
     private readonly string _clientId;
+    private readonly ILogger<GoogleOAuthTokenProvider> _logger;
+
+#if IOS || MACCATALYST
+    private const string GoogleTokenEndpoint = "https://oauth2.googleapis.com/token";
+    private const string GoogleAuthEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
     private readonly string _redirectUri;
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ILogger<GoogleOAuthTokenProvider> _logger;
+#endif
 
     public GoogleOAuthTokenProvider(
         string clientId,
@@ -28,9 +31,11 @@ public class GoogleOAuthTokenProvider : IOAuthTokenProvider
         ILogger<GoogleOAuthTokenProvider> logger)
     {
         _clientId = clientId ?? throw new ArgumentNullException(nameof(clientId));
+        _logger = logger;
+#if IOS || MACCATALYST
         _redirectUri = redirectUri ?? throw new ArgumentNullException(nameof(redirectUri));
         _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
-        _logger = logger;
+#endif
     }
 
     public async Task<OAuthTokenResult> GetTokensAsync()
@@ -46,7 +51,6 @@ public class GoogleOAuthTokenProvider : IOAuthTokenProvider
             "&access_type=offline" +
             "&prompt=consent";
 
-        _logger.LogInformation("[OAuth] Opening browser for authorization...");
         var authResult = await WebAuthenticator.Default.AuthenticateAsync(
             new Uri(authUrl), new Uri(_redirectUri));
 
@@ -59,7 +63,7 @@ public class GoogleOAuthTokenProvider : IOAuthTokenProvider
             throw new InvalidOperationException("Google OAuth did not return an authorization code.");
         }
 
-        _logger.LogInformation("[OAuth] Authorization code received. Exchanging for tokens...");
+        _logger.LogDebug("[OAuth] Authorization code received. Exchanging for tokens...");
 
         using var http = _httpClientFactory.CreateClient("GoogleOAuth");
         var tokenResponse = await http.PostAsync(GoogleTokenEndpoint,
@@ -85,7 +89,7 @@ public class GoogleOAuthTokenProvider : IOAuthTokenProvider
             throw new InvalidOperationException("Failed to parse Google token response.");
         }
 
-        _logger.LogInformation("[OAuth] Token exchange success. HasAccess={HasAccess}, HasRefresh={HasRefresh}, HasId={HasId}, ExpiresIn={Exp}",
+        _logger.LogDebug("[OAuth] Token exchange success. HasAccess={HasAccess}, HasRefresh={HasRefresh}, HasId={HasId}, ExpiresIn={Exp}",
             tokenData.AccessToken is not null, tokenData.RefreshToken is not null,
             tokenData.IdToken is not null, tokenData.ExpiresIn);
 
@@ -115,6 +119,7 @@ public class GoogleOAuthTokenProvider : IOAuthTokenProvider
     /// Verifies the id_token by calling Google's tokeninfo endpoint, which validates
     /// the RS256 signature, expiry, and audience server-side (OWASP A02).
     /// </summary>
+#if IOS || MACCATALYST
     private async Task<GoogleIdTokenClaims> VerifyIdTokenAsync(string? idToken, HttpClient http)
     {
         if (string.IsNullOrEmpty(idToken))
@@ -144,5 +149,6 @@ public class GoogleOAuthTokenProvider : IOAuthTokenProvider
 
         return claims;
     }
+#endif
 }
 

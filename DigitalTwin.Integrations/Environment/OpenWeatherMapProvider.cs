@@ -38,13 +38,13 @@ public class OpenWeatherMapProvider
         }
     }
 
-    private class OpenWeatherResponse
+    private sealed class OpenWeatherResponse
     {
         [JsonPropertyName("main")]
         public MainData? Main { get; set; }
     }
 
-    private class MainData
+    private sealed class MainData
     {
         [JsonPropertyName("temp")]
         public double Temp { get; set; }

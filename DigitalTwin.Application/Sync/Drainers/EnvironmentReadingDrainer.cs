@@ -41,7 +41,7 @@ public sealed class EnvironmentReadingDrainer : ITableDrainer
         var dirty = (await _local.GetDirtyAsync()).ToList();
         if (dirty.Count == 0) return 0;
 
-        _logger.LogInformation("[{Table}] Draining {Count} dirty rows to cloud.", TableName, dirty.Count);
+        _logger.LogDebug("[{Table}] Draining {Count} dirty rows to cloud.", TableName, dirty.Count);
 
         // Batch upload — throws on failure → records stay dirty → retry next cycle.
         foreach (var chunk in dirty.Chunk(ChunkSize))

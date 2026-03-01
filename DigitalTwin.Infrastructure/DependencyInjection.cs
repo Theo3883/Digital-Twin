@@ -9,6 +9,7 @@ namespace DigitalTwin.Infrastructure;
 
 public static class DependencyInjection
 {
+    private const string Cloud = "Cloud";
     public static IServiceCollection AddInfrastructureLocal(
         this IServiceCollection services,
         string? connectionString = null)
@@ -67,37 +68,37 @@ public static class DependencyInjection
     {
         services.AddDbContextFactory<CloudDbContext>(options => options.UseNpgsql(connectionString));
 
-        services.AddKeyedScoped<IVitalSignRepository>("Cloud", (sp, _) =>
+        services.AddKeyedScoped<IVitalSignRepository>(Cloud, (sp, _) =>
         {
             var f = sp.GetRequiredService<IDbContextFactory<CloudDbContext>>();
             return new VitalSignRepository(() => f.CreateDbContext(), markDirtyOnInsert: false);
         });
-        services.AddKeyedScoped<IUserRepository>("Cloud", (sp, _) =>
+        services.AddKeyedScoped<IUserRepository>(Cloud, (sp, _) =>
         {
             var f = sp.GetRequiredService<IDbContextFactory<CloudDbContext>>();
             return new UserRepository(() => f.CreateDbContext(), markDirtyOnInsert: false);
         });
-        services.AddKeyedScoped<IUserOAuthRepository>("Cloud", (sp, _) =>
+        services.AddKeyedScoped<IUserOAuthRepository>(Cloud, (sp, _) =>
         {
             var f = sp.GetRequiredService<IDbContextFactory<CloudDbContext>>();
             return new UserOAuthRepository(() => f.CreateDbContext(), markDirtyOnInsert: false);
         });
-        services.AddKeyedScoped<IPatientRepository>("Cloud", (sp, _) =>
+        services.AddKeyedScoped<IPatientRepository>(Cloud, (sp, _) =>
         {
             var f = sp.GetRequiredService<IDbContextFactory<CloudDbContext>>();
             return new PatientRepository(() => f.CreateDbContext(), markDirtyOnInsert: false);
         });
-        services.AddKeyedScoped<IEnvironmentReadingRepository>("Cloud", (sp, _) =>
+        services.AddKeyedScoped<IEnvironmentReadingRepository>(Cloud, (sp, _) =>
         {
             var f = sp.GetRequiredService<IDbContextFactory<CloudDbContext>>();
             return new EnvironmentReadingRepository(() => f.CreateDbContext(), markDirtyOnInsert: false);
         });
-        services.AddKeyedScoped<ISleepSessionRepository>("Cloud", (sp, _) =>
+        services.AddKeyedScoped<ISleepSessionRepository>(Cloud, (sp, _) =>
         {
             var f = sp.GetRequiredService<IDbContextFactory<CloudDbContext>>();
             return new SleepSessionRepository(() => f.CreateDbContext(), markDirtyOnInsert: false);
         });
-        services.AddKeyedScoped<IDoctorPatientAssignmentRepository>("Cloud", (sp, _) =>
+        services.AddKeyedScoped<IDoctorPatientAssignmentRepository>(Cloud, (sp, _) =>
         {
             var f = sp.GetRequiredService<IDbContextFactory<CloudDbContext>>();
             return new DoctorPatientAssignmentRepository(() => f.CreateDbContext());

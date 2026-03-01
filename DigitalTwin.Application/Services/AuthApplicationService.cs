@@ -39,7 +39,7 @@ public class AuthApplicationService : IAuthApplicationService
 
         if (result.IsExistingUser)
         {
-            _logger.LogInformation("[Auth] Returning user. UserId={UserId}", result.User!.Id);
+            _logger.LogDebug("[Auth] Returning user. UserId={UserId}", result.User!.Id);
             await TriggerCloudSync();
             var authResult = await BuildAuthResultAsync(result.User!);
             _cachedUser = authResult;
@@ -55,7 +55,7 @@ public class AuthApplicationService : IAuthApplicationService
             };
         }
 
-        _logger.LogInformation("[Auth] New user detected. Awaiting profile form.");
+        _logger.LogDebug("[Auth] New user detected. Awaiting profile form.");
 
         return new GoogleAuthCheckResult
         {
@@ -76,13 +76,13 @@ public class AuthApplicationService : IAuthApplicationService
             profile.FirstName, profile.LastName, profile.Phone,
             profile.Address, profile.City, profile.Country, profile.DateOfBirth);
 
-        _logger.LogInformation("[Auth] User created. UserId={UserId}", user.Id);
+        _logger.LogDebug("[Auth] User created. UserId={UserId}", user.Id);
 
         await TriggerCloudSync();
 
         var authResult = await BuildAuthResultAsync(user);
         _cachedUser = authResult;
-        _logger.LogInformation("[Auth] Registration complete. DisplayName={Name}", authResult.DisplayName);
+        _logger.LogDebug("[Auth] Registration complete. DisplayName={Name}", authResult.DisplayName);
         return authResult;
     }
 
@@ -97,7 +97,7 @@ public class AuthApplicationService : IAuthApplicationService
         await _patientService.CreateOrUpdateProfileAsync(
             current.UserId, profile.BloodType, profile.Allergies, profile.MedicalHistoryNotes);
 
-        _logger.LogInformation("[Auth] Patient profile saved for UserId={UserId}.", current.UserId);
+        _logger.LogDebug("[Auth] Patient profile saved for UserId={UserId}.", current.UserId);
 
         await TriggerCloudSync();
 
@@ -173,11 +173,11 @@ public class AuthApplicationService : IAuthApplicationService
 
     private async Task TriggerCloudSync()
     {
-        _logger.LogInformation("[Auth] Triggering cloud sync for auth entities...");
+        _logger.LogDebug("[Auth] Triggering cloud sync for auth entities...");
         try
         {
             await _syncService.PushToCloudAsync();
-            _logger.LogInformation("[Auth] Cloud sync complete.");
+            _logger.LogDebug("[Auth] Cloud sync complete.");
         }
         catch (Exception ex)
         {
