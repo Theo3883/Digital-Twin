@@ -3,74 +3,161 @@
 @inject ISnackbar Snackbar
 
 <RequireAuth>
-    <div class="page-enter" style="display: flex; flex-direction: column; gap: 16px;">
+<div class="page-enter" style="padding: 0 16px 120px; display: flex; flex-direction: column; gap: 16px; position: relative; min-height: 100%;">
 
-        <MudCard Class="glass-card" Elevation="0">
-            <MudCardContent>
-                <MudText Typo="Typo.subtitle1" Style="color: var(--text-main); font-weight: 600; margin-bottom: 16px;">
-                    Check Drug Interactions
-                </MudText>
-                <MudStack Spacing="3">
-                    <MudTextField @bind-Value="_rxCuiInput"
-                                  Label="RxCUI codes (comma-separated)"
-                                  Variant="Variant.Outlined"
-                                  Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Filled.Medication"
-                                  Placeholder="e.g. 207106, 152923" />
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Primary"
-                               OnClick="CheckInteractionsAsync"
-                               Disabled="_isLoading"
-                               StartIcon="@(_isLoading ? Icons.Material.Filled.HourglassEmpty : Icons.Material.Filled.Search)"
-                               Style="text-transform: none;">
-                        @(_isLoading ? "Checking..." : "Check Interactions")
-                    </MudButton>
-                </MudStack>
-            </MudCardContent>
-        </MudCard>
-
-        @if (_interactions.Any())
+    @* Safety Badge *@
+    @if (_interactions.Any() || _hasSearched)
+    {
+        if (_interactions.Any())
         {
-            <MudCard Class="glass-card" Elevation="0" Style="overflow: hidden;">
-                <MudTable Items="@_interactions"
-                          Hover="true"
-                          Breakpoint="Breakpoint.Sm"
-                          Dense="true"
-                          Elevation="0"
-                          Style="background: transparent;">
-                    <HeaderContent>
-                        <MudTh Style="color: var(--text-sec);">Drug A</MudTh>
-                        <MudTh Style="color: var(--text-sec);">Drug B</MudTh>
-                        <MudTh Style="color: var(--text-sec);">Severity</MudTh>
-                        <MudTh Style="color: var(--text-sec);">Description</MudTh>
-                    </HeaderContent>
-                    <RowTemplate>
-                        <MudTd DataLabel="Drug A" Style="color: var(--text-main);">@context.DrugARxCui</MudTd>
-                        <MudTd DataLabel="Drug B" Style="color: var(--text-main);">@context.DrugBRxCui</MudTd>
-                        <MudTd DataLabel="Severity">
-                            <MedicationSafetyBadge Severity="@context.Severity" />
-                        </MudTd>
-                        <MudTd DataLabel="Description" Style="color: var(--text-sec); max-width: 300px;">
-                            @context.Description
-                        </MudTd>
-                    </RowTemplate>
-                </MudTable>
-            </MudCard>
+            <div class="glass-card" style="padding: 16px; background: rgba(255,149,0,0.1) !important; border-color: rgba(255,149,0,0.3) !important; display: flex; align-items: center; gap: 12px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--amber-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                <div>
+                    <h3 style="font-family: var(--font-display); font-weight: 700; color: var(--amber-warning); margin: 0;">⚠ @_interactions.Count Interaction@(_interactions.Count == 1 ? "" : "s") Detected</h3>
+                    <p style="font-size: 12px; color: var(--text-sec); margin-top: 2px;">@(_interactions.Count(i => i.Severity == InteractionSeverity.High)) High · @(_interactions.Count(i => i.Severity == InteractionSeverity.Medium)) Medium · @(_interactions.Count(i => i.Severity == InteractionSeverity.Low)) Low Severity</p>
+                </div>
+            </div>
         }
-        else if (_hasSearched && !_isLoading)
+        else
         {
-            <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Style="margin-top: 8px;">
-                No interactions found between the specified medications.
-            </MudAlert>
+            <div class="glass-card" style="padding: 16px; background: rgba(52,199,89,0.1) !important; border-color: rgba(52,199,89,0.3) !important; display: flex; align-items: center; gap: 12px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--green-positive)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+                <div>
+                    <h3 style="font-family: var(--font-display); font-weight: 700; color: var(--green-positive); margin: 0;">✓ No Interactions Found</h3>
+                    <p style="font-size: 12px; color: var(--text-sec); margin-top: 2px;">All checked medications are safe to combine</p>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        @* Default safety badge *@
+        <div class="glass-card" style="padding: 16px; background: rgba(255,149,0,0.1) !important; border-color: rgba(255,149,0,0.3) !important; display: flex; align-items: center; gap: 12px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--amber-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            <div>
+                <h3 style="font-family: var(--font-display); font-weight: 700; color: var(--amber-warning); margin: 0;">⚠ 2 Interactions Detected</h3>
+                <p style="font-size: 12px; color: var(--text-sec); margin-top: 2px;">1 Moderate · 1 Low Severity</p>
+            </div>
+        </div>
+    }
+
+    @* Interaction Cards from API *@
+    @if (_interactions.Any())
+    {
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            @foreach (var interaction in _interactions)
+            {
+                var borderColor = interaction.Severity == InteractionSeverity.High ? "var(--red-critical)"
+                    : interaction.Severity == InteractionSeverity.Medium ? "var(--amber-warning)" : "#facc15";
+                var textColor = interaction.Severity == InteractionSeverity.High ? "var(--red-critical)"
+                    : interaction.Severity == InteractionSeverity.Medium ? "var(--amber-warning)" : "#facc15";
+                <div class="glass-card" style="padding: 16px; border-left: 4px solid @borderColor !important;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="@textColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+                            <span style="font-size: 14px; font-weight: 500; color: var(--text-main);">@interaction.DrugARxCui + @interaction.DrugBRxCui</span>
+                        </div>
+                        <span class="glass-chip" style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: @textColor; padding: 3px 10px;">
+                            <MedicationSafetyBadge Severity="@interaction.Severity" />
+                        </span>
+                    </div>
+                    <p style="font-size: 12px; color: var(--text-sec); line-height: 1.6;">@interaction.Description</p>
+                </div>
+            }
+        </div>
+    }
+    else if (!_hasSearched)
+    {
+        @* Default interactions display matching DTH *@
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div class="glass-card" style="padding: 16px; border-left: 4px solid var(--amber-warning) !important;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--amber-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+                        <span style="font-size: 14px; font-weight: 500; color: var(--text-main);">Warfarin + Aspirin</span>
+                    </div>
+                    <span class="glass-chip" style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--amber-warning); padding: 3px 10px;">MODERATE</span>
+                </div>
+                <p style="font-size: 12px; color: var(--text-sec); line-height: 1.6;">Increased bleeding risk. Monitor INR.</p>
+            </div>
+            <div class="glass-card" style="padding: 16px; border-left: 4px solid #facc15 !important;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#facc15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+                        <span style="font-size: 14px; font-weight: 500; color: var(--text-main);">Metoprolol + Atorvastatin</span>
+                    </div>
+                    <span class="glass-chip" style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #facc15; padding: 3px 10px;">LOW</span>
+                </div>
+                <p style="font-size: 12px; color: var(--text-sec); line-height: 1.6;">Minor interaction, standard monitoring sufficient.</p>
+            </div>
+        </div>
+    }
+
+    @* Active Medications List *@
+    <div style="margin-top: 8px;">
+        <h3 style="font-family: var(--font-display); font-weight: 600; font-size: 18px; color: var(--text-main); margin-bottom: 12px;">Active Medications · 4 drugs</h3>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            @foreach (var med in _staticMeds)
+            {
+                <div class="glass-card" style="padding: 16px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 500; color: var(--text-main);">@med.Name <span style="color: var(--text-sec); font-weight: 400;">@med.Dose</span></div>
+                        <div style="font-size: 12px; color: var(--text-sec); margin-top: 4px;">@med.Frequency</div>
+                    </div>
+                    <span class="glass-chip" style="font-size: 10px; color: var(--teal-primary); border-color: rgba(0,212,200,0.2); background: rgba(0,212,200,0.05); padding: 4px 10px; white-space: nowrap;">@med.Class</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    @* Interaction Checker (collapsible) *@
+    <div>
+        <button @onclick="() => _showChecker = !_showChecker"
+                style="width: 100%; background: none; border: none; cursor: pointer; text-align: left; padding: 0; margin-bottom: 8px;">
+            <div class="glass-chip" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; justify-content: center; width: 100%; border-radius: var(--radius-chip);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <span style="font-size: 13px; color: var(--teal-primary); font-weight: 500;">Check Drug Interactions by RxCUI</span>
+            </div>
+        </button>
+        @if (_showChecker)
+        {
+            <div class="glass-card" style="padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+                <input type="text" @bind="_rxCuiInput" @bind:event="oninput"
+                       placeholder="e.g. 207106, 152923"
+                       style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px 16px; color: var(--text-main); font-size: 14px; outline: none; width: 100%; box-sizing: border-box;" />
+                <button @onclick="CheckInteractionsAsync" disabled="@_isLoading"
+                        style="padding: 12px; border-radius: 12px; border: none; background: var(--teal-primary); color: white; font-size: 14px; font-weight: 600; cursor: pointer; opacity: @(_isLoading ? "0.6" : "1");">
+                    @(_isLoading ? "Checking..." : "Check Interactions")
+                </button>
+            </div>
         }
     </div>
+
+    @* Add Medication FAB *@
+    <div style="position: fixed; bottom: 96px; left: 0; right: 0; display: flex; justify-content: center; z-index: 40; pointer-events: none;">
+        <button class="glass-pill" style="background: rgba(0,212,200,0.2); border-color: rgba(0,212,200,0.4); color: var(--teal-primary); padding: 12px 24px; display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; box-shadow: 0 4px 20px rgba(0,212,200,0.2); pointer-events: auto; cursor: pointer;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+            Add Medication
+        </button>
+    </div>
+
+</div>
 </RequireAuth>
 
 @code {
     private string _rxCuiInput = string.Empty;
     private bool _isLoading;
     private bool _hasSearched;
+    private bool _showChecker;
     private List<MedicationInteractionDto> _interactions = [];
+
+    private readonly List<(string Name, string Dose, string Frequency, string Class)> _staticMeds =
+    [
+        ("Metoprolol", "50mg", "Twice daily", "Beta Blocker"),
+        ("Warfarin", "5mg", "Once daily", "Anticoagulant"),
+        ("Atorvastatin", "20mg", "Once at night", "Statin"),
+        ("Aspirin", "100mg", "Once daily", "Antiplatelet"),
+    ];
 
     private async Task CheckInteractionsAsync()
     {

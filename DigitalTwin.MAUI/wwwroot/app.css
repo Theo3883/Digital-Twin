@@ -160,8 +160,8 @@ body {
   /* 1 */
   line-height: inherit;
   /* 2 */
-  background-color: var(--bg-deep, #0A0E1A);
-  color: var(--text-main, rgba(255, 255, 255, 0.92));
+  background-color: #0f2027;
+  color: var(--text-main, #FFFFFF);
   overflow-x: hidden;
 }
 

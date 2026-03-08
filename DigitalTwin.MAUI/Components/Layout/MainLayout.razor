@@ -12,60 +12,40 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<div class="aurora-bg" style="min-height: 100dvh; color: var(--text-main);">
+<!-- Wallpaper background (digital-twin-health) -->
+<div style="min-height: 100dvh; color: var(--text-main); position: relative; background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop'); background-size: cover; background-position: center; background-attachment: fixed;">
 
-    @if (_showTabBar)
-    {
-        <div class="glass-top-bar">
-            <span class="page-title">@_pageTitle</span>
-            @if (_currentUser is not null)
-            {
-                <div style="cursor: pointer;" @onclick="GoToProfile">
-                    <MudAvatar Size="Size.Small" Style="border: 2px solid rgba(0, 212, 200, 0.4);">
-                        @if (!string.IsNullOrEmpty(_currentUser.PhotoUrl))
-                        {
-                            <MudImage Src="@_currentUser.PhotoUrl" Alt="@_currentUser.DisplayName" />
-                        }
-                        else
-                        {
-                            @_currentUser.DisplayName.FirstOrDefault()
-                        }
-                    </MudAvatar>
-                </div>
-            }
-        </div>
-    }
+    <!-- Dark overlay bg-black/40 (digital-twin-health) -->
+    <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.4); pointer-events: none; z-index: 0;"></div>
 
-    <div class="page-content" style="@(_showTabBar ? "padding-bottom: 96px;" : "")">
+    <!-- Dynamic Island (digital-twin-health) -->
+    <div style="position: fixed; top: 8px; left: 50%; transform: translateX(-50%); width: 120px; height: 35px; background: black; border-radius: 9999px; z-index: 200; pointer-events: none;"></div>
+
+    <div class="page-content" style="position: relative; z-index: 10; @(_showTabBar ? "padding-bottom: 128px; padding-top: 52px;" : "")">
         @Body
     </div>
 
     @if (_showTabBar)
     {
-        <nav class="glass-tab-bar">
+        <nav class="glass-tab-bar" style="--tab-active-index: @_activeTabIndex;">
+            <div class="tab-indicator"></div>
             <a class="tab-item @(IsActive("/", true) ? "active" : "")" @onclick='() => NavigateTo("/")'>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-                <span class="tab-label">Home</span>
             </a>
             <a class="tab-item @(IsActive("/ecg") ? "active" : "")" @onclick='() => NavigateTo("/ecg")'>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>
-                <span class="tab-label">ECG</span>
-            </a>
-            <a class="tab-item @(IsActive("/environment") ? "active" : "")" @onclick='() => NavigateTo("/environment")'>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.9C15.5 4.9 17 3.5 17 3.5s1.5 2 2.5 5c.3 1 .5 2 .5 3a7 7 0 0 1-7 7"/><path d="M11.2 13.5A3 3 0 0 0 8 16.5a3 3 0 0 0 3 3"/></svg>
-                <span class="tab-label">Environment</span>
-            </a>
-            <a class="tab-item @(IsActive("/medications") ? "active" : "")" @onclick='() => NavigateTo("/medications")'>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
-                <span class="tab-label">Meds</span>
             </a>
             <a class="tab-item @(IsActive("/assistant") ? "active" : "")" @onclick='() => NavigateTo("/assistant")'>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
-                <span class="tab-label">Assistant</span>
+            </a>
+            <a class="tab-item @(IsActive("/environment") ? "active" : "")" @onclick='() => NavigateTo("/environment")'>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.9C15.5 4.9 17 3.5 17 3.5s1.5 2 2.5 5c.3 1 .5 2 .5 3a7 7 0 0 1-7 7"/><path d="M11.2 13.5A3 3 0 0 0 8 16.5a3 3 0 0 0 3 3"/></svg>
+            </a>
+            <a class="tab-item @(IsActive("/medications") ? "active" : "")" @onclick='() => NavigateTo("/medications")'>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
             </a>
             <a class="tab-item @(IsActive("/profile") ? "active" : "")" @onclick='() => NavigateTo("/profile")'>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
-                <span class="tab-label">Profile</span>
             </a>
         </nav>
     }
@@ -121,6 +101,17 @@
             _ => "Digital Twin"
         };
     }
+
+    private int _activeTabIndex => new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/') switch
+    {
+        "" or "/" => 0,
+        "/ecg" => 1,
+        "/assistant" => 2,
+        "/environment" => 3,
+        "/medications" => 4,
+        "/profile" => 5,
+        _ => 0
+    };
 
     private bool IsActive(string href, bool exact = false)
     {

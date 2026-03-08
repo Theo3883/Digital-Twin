@@ -4,50 +4,173 @@
 @inject NavigationManager Navigation
 
 <RequireAuth>
-    <div class="page-enter" style="display: flex; flex-direction: column; gap: 16px; max-width: 600px; margin: 0 auto;">
+<div class="page-enter" style="padding: 0 16px 32px; display: flex; flex-direction: column; gap: 16px;">
 
-        @if (_currentUser is not null)
+    @if (_currentUser is not null)
+    {
+        @* Profile Header *@
+        <div class="glass-card" style="padding: 20px; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; overflow: hidden;">
+            @* Completion Ring *@
+            <div style="position: absolute; top: 16px; right: 16px; width: 48px; height: 48px;">
+                <svg viewBox="0 0 36 36" style="width: 100%; height: 100%; transform: rotate(-90deg);">
+                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="3"/>
+                    <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--teal-primary)" stroke-width="3" stroke-dasharray="@(_completionPct), 100"/>
+                </svg>
+                <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: var(--teal-primary);">@_completionPct%</div>
+            </div>
+
+            @* Avatar *@
+            <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--teal-primary), #2563eb); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; color: white; margin-bottom: 12px; box-shadow: 0 0 30px rgba(0,212,200,0.3);">
+                @if (!string.IsNullOrEmpty(_currentUser.PhotoUrl))
+                {
+                    <img src="@_currentUser.PhotoUrl" alt="@_currentUser.DisplayName" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" />
+                }
+                else
+                {
+                    @_initials
+                }
+            </div>
+
+            <h2 style="font-family: var(--font-display); font-size: 24px; font-weight: 600; letter-spacing: -0.5px; color: var(--text-main); margin: 0;">@_currentUser.DisplayName</h2>
+            <p style="font-size: 14px; color: var(--text-sec); margin-top: 4px;">@(_patient?.BloodType is not null ? $"Blood type: {_patient.BloodType}" : _currentUser.Email)</p>
+            <div class="glass-chip" style="padding: 4px 12px; font-size: 12px; color: var(--text-tert); margin-top: 12px;">
+                Patient ID: @(_currentUser.UserId.ToString()[..8].ToUpper())
+            </div>
+        </div>
+
+        @* Profile Form or Card *@
+        @if (_showForm)
         {
-            <ProfileHeader DisplayName="@_currentUser.DisplayName"
-                           Email="@_currentUser.Email"
-                           PhotoUrl="@_currentUser.PhotoUrl"
-                           UserId="@_currentUser.UserId"
-                           HasPatientProfile="@_currentUser.HasPatientProfile" />
+            <PatientProfileForm IsEditing="@(_patient is not null)"
+                                IsSaving="@_isSaving"
+                                ErrorMessage="@_formError"
+                                InitialBloodType="@_patient?.BloodType"
+                                InitialAllergies="@_patient?.Allergies"
+                                InitialMedicalHistory="@_patient?.MedicalHistoryNotes"
+                                OnSave="SaveProfileAsync"
+                                OnCancel="CancelForm" />
+        }
 
-            @if (!_showForm)
+        @* Profile Completion *@
+        <div class="glass-card" style="padding: 16px;">
+            <h3 style="font-size: 14px; font-weight: 600; color: var(--text-main); margin-bottom: 12px;">Profile Completion</h3>
+            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 14px;">
+                @foreach (var item in _checklistItems)
+                {
+                    <div style="display: flex; align-items: center; gap: 8px; color: @(item.IsChecked ? "rgba(255,255,255,0.9)" : "var(--text-sec)");">
+                        <span style="color: @(item.IsChecked ? "var(--teal-primary)" : "rgba(255,255,255,0.2)");">@(item.IsChecked ? "✓" : "○")</span>
+                        @item.Label
+                    </div>
+                }
+            </div>
+            @if (!_showForm && _patient is null)
             {
-                <PatientProfileCard Patient="@_patient"
-                                    OnCreateClicked="ShowCreateForm"
-                                    OnEditClicked="ShowEditForm" />
+                <button @onclick="ShowCreateForm" style="margin-top: 16px; width: 100%; padding: 10px; border-radius: 12px; border: 1px solid rgba(0,212,200,0.4); background: rgba(0,212,200,0.1); color: var(--teal-primary); font-size: 14px; font-weight: 500; cursor: pointer;">
+                    + Complete Medical Profile
+                </button>
+            }
+            else if (!_showForm && _patient is not null)
+            {
+                <button @onclick="ShowEditForm" style="margin-top: 16px; width: 100%; padding: 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: var(--text-sec); font-size: 14px; cursor: pointer;">
+                    Edit Medical Profile
+                </button>
+            }
+        </div>
+
+        @* Vital Statistics Grid *@
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="glass-card" style="padding: 12px;">
+                <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 4px;">Weight</div>
+                <div style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">78 <span style="font-size: 12px; color: var(--text-sec);">kg</span></div>
+            </div>
+            <div class="glass-card" style="padding: 12px;">
+                <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 4px;">Blood Type</div>
+                <div style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">@(_patient?.BloodType ?? "—")</div>
+            </div>
+            <div class="glass-card" style="padding: 12px;">
+                <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 4px;">Resting HR</div>
+                <div style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">68 <span style="font-size: 12px; color: var(--text-sec);">BPM</span></div>
+            </div>
+            <div class="glass-card" style="padding: 12px;">
+                <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 4px;">Blood Pressure</div>
+                <div style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">118/76 <span style="font-size: 10px; color: var(--text-sec);">mmHg</span></div>
+            </div>
+            <div class="glass-card" style="padding: 12px;">
+                <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 4px;">BMI</div>
+                <div style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">23.8 <span style="font-size: 10px; color: var(--green-positive);">Normal</span></div>
+            </div>
+            <div class="glass-card" style="padding: 12px;">
+                <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 4px;">Cholesterol</div>
+                <div style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">4.2 <span style="font-size: 10px; color: var(--text-sec);">mmol/L</span></div>
+            </div>
+        </div>
+
+        @* Assigned Doctors *@
+        <div class="glass-card" style="padding: 16px;">
+            <h3 style="font-size: 14px; font-weight: 600; color: var(--text-main); margin-bottom: 16px;">Assigned Doctors</h3>
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 500; color: var(--text-main); position: relative; flex-shrink: 0;">
+                        EI
+                        <div style="position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; background: var(--green-positive); border-radius: 50%; border: 2px solid var(--bg-deep);"></div>
+                    </div>
+                    <div>
+                        <div style="font-size: 14px; font-weight: 500; color: var(--text-main);">Dr. Elena Ionescu</div>
+                        <div style="font-size: 12px; color: var(--text-sec);">Cardiologist · Spitalul Universitar</div>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 500; color: var(--text-main); flex-shrink: 0;">MP</div>
+                    <div>
+                        <div style="font-size: 14px; font-weight: 500; color: var(--text-main);">Dr. Mihai Popa</div>
+                        <div style="font-size: 12px; color: var(--text-sec);">General Practitioner</div>
+                    </div>
+                </div>
+                <button style="width: 100%; padding: 8px; border-radius: var(--radius-chip); border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: var(--teal-primary); font-size: 12px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                    Connect New Doctor
+                </button>
+            </div>
+        </div>
+
+        @* Medical History Timeline *@
+        <div class="glass-card" style="padding: 16px;">
+            <h3 style="font-size: 14px; font-weight: 600; color: var(--text-main); margin-bottom: 16px;">Medical History</h3>
+            @if (!string.IsNullOrEmpty(_patient?.MedicalHistoryNotes))
+            {
+                <p style="font-size: 14px; color: var(--text-sec); line-height: 1.6;">@_patient.MedicalHistoryNotes</p>
             }
             else
             {
-                <PatientProfileForm IsEditing="@(_patient is not null)"
-                                    IsSaving="@_isSaving"
-                                    ErrorMessage="@_formError"
-                                    InitialBloodType="@_patient?.BloodType"
-                                    InitialAllergies="@_patient?.Allergies"
-                                    InitialMedicalHistory="@_patient?.MedicalHistoryNotes"
-                                    OnSave="SaveProfileAsync"
-                                    OnCancel="CancelForm" />
+                <div style="position: relative; border-left: 1px solid rgba(255,255,255,0.1); margin-left: 8px; display: flex; flex-direction: column; gap: 24px; padding-bottom: 8px;">
+                    <div style="position: relative; padding-left: 16px;">
+                        <div style="position: absolute; left: -6px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--teal-primary); box-shadow: 0 0 10px rgba(0,212,200,0.5);"></div>
+                        <div style="font-size: 12px; color: var(--teal-primary); font-weight: 500; margin-bottom: 4px;">Mar 2024</div>
+                        <div style="font-size: 14px; color: rgba(255,255,255,0.9);">Paroxysmal SVT episode</div>
+                        <div style="font-size: 12px; color: var(--text-sec);">ED visit, cardioverted</div>
+                    </div>
+                    <div style="position: relative; padding-left: 16px;">
+                        <div style="position: absolute; left: -6px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);"></div>
+                        <div style="font-size: 12px; color: var(--text-sec); font-weight: 500; margin-bottom: 4px;">Oct 2023</div>
+                        <div style="font-size: 14px; color: rgba(255,255,255,0.9);">Started Metoprolol 50mg</div>
+                    </div>
+                    <div style="position: relative; padding-left: 16px;">
+                        <div style="position: absolute; left: -6px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);"></div>
+                        <div style="font-size: 12px; color: var(--text-sec); font-weight: 500; margin-bottom: 4px;">Jun 2022</div>
+                        <div style="font-size: 14px; color: rgba(255,255,255,0.9);">Echocardiogram — EF 62%</div>
+                    </div>
+                </div>
             }
+        </div>
 
-            <ProfileCompletionChecklist Items="@_checklistItems" />
+        @* Sign Out *@
+        <button @onclick="SignOutAsync"
+                style="width: 100%; padding: 14px; border-radius: 16px; border: 1px solid rgba(255,59,48,0.3); background: rgba(255,59,48,0.1); color: var(--red-critical); font-size: 15px; font-weight: 600; cursor: pointer;">
+            Log out
+        </button>
+    }
 
-            @* ── Sign Out ──────────────────────────────────────────────── *@
-            <MudCard Class="glass-card" Elevation="0">
-                <MudCardContent>
-                    <MudButton Variant="Variant.Outlined"
-                               Color="Color.Error"
-                               FullWidth="true"
-                               OnClick="SignOutAsync"
-                               Style="text-transform: none; font-weight: 600;">
-                        Log out
-                    </MudButton>
-                </MudCardContent>
-            </MudCard>
-        }
-    </div>
+</div>
 </RequireAuth>
 
 @code {
@@ -57,6 +180,15 @@
     private bool _isSaving;
     private string? _formError;
     private List<ProfileCompletionChecklist.ChecklistItem> _checklistItems = new();
+
+    private string _initials => string.IsNullOrEmpty(_currentUser?.DisplayName)
+        ? "AM"
+        : string.Concat(_currentUser.DisplayName
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Take(2).Select(w => w[0])).ToUpperInvariant();
+
+    private int _completionPct => _checklistItems.Count == 0 ? 0
+        : (int)Math.Round(_checklistItems.Count(i => i.IsChecked) * 100.0 / _checklistItems.Count);
 
     protected override async Task OnInitializedAsync()
     {

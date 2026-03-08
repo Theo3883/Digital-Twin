@@ -13,15 +13,15 @@ public static class MedicalTheme
         PaletteLight = new PaletteLight()
         {
             Primary = "#009688",
-            Secondary = "#FF2D55",
+            Secondary = "#FF3B30",
             AppbarBackground = "#009688"
         },
         PaletteDark = new PaletteDark()
         {
             Primary = "#00D4C8",
-            Secondary = "#FF2D55",
+            Secondary = "#FF3B30",
             Surface = "#0F1525",
-            Background = "#0A0E1A",
+            Background = "#0f2027",
             AppbarBackground = "rgba(10, 14, 26, 0.7)",
             DrawerBackground = "rgba(10, 15, 26, 0.95)",
             TextPrimary = "rgba(255,255,255,0.92)",

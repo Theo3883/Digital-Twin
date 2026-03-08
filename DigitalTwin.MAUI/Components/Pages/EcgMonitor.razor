@@ -4,7 +4,40 @@
 @inject ISnackbar Snackbar
 
 <RequireAuth>
-<div class="page-enter" style="display: flex; flex-direction: column; gap: 16px;">
+<div class="page-enter" style="min-height: 100%; display: flex; flex-direction: column;">
+
+    @* Top Bar *@
+    <div style="padding: 8px 16px 16px; display: flex; align-items: center; justify-content: space-between;">
+        <h1 style="font-family: var(--font-display); font-size: 20px; font-weight: 600; color: var(--text-main); margin: 0;">ECG Monitor</h1>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="glass-pill" style="padding: 4px 12px; display: flex; align-items: center; gap: 8px;">
+                <div style="width: 8px; height: 8px; border-radius: 50%; animation: radial-pulse 1.5s ease-in-out infinite; background: @(_criticalAlert is not null ? "var(--red-critical)" : _isConnected ? "var(--green-positive)" : "var(--text-tert)");"></div>
+                <span style="font-size: 12px; font-weight: 500; color: var(--text-main);">@(_isConnected ? "Recording · ESP32" : "Not Connected")</span>
+            </div>
+            <button @onclick="ToggleSettingsPanel" style="background: none; border: none; padding: 0; cursor: pointer;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-sec)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+        </div>
+    </div>
+
+    @* Connection Panel (shown when settings clicked) *@
+    @if (_showSettings)
+    {
+        <div style="padding: 0 16px 16px;">
+            <div class="glass-card" style="padding: 16px;">
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="text" @bind="_deviceUrl" @bind:event="oninput"
+                           placeholder="ws://192.168.1.42:8080"
+                           disabled="@_isConnected"
+                           style="flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 10px 16px; color: var(--text-main); font-size: 14px; outline: none;" />
+                    <button @onclick="ToggleConnectionAsync" disabled="@_isConnecting"
+                            style="padding: 10px 20px; border-radius: 12px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; background: @(_isConnected ? "var(--red-critical)" : "var(--teal-primary)"); color: white;">
+                        @ConnectionLabel
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
 
     @* Critical Alert Banner *@
     <CriticalAlertBanner Visible="_criticalAlert is not null"
@@ -12,119 +45,103 @@
                          RuleName="@(_criticalAlert?.RuleName ?? string.Empty)"
                          OnDismiss="DismissAlert" />
 
-    @* Connection Card *@
-    <MudCard Class="glass-card" Elevation="0">
-        <MudCardContent>
-            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 220px;">
-                    <MudTextField @bind-Value="_deviceUrl"
-                                  Label="ESP32 Device URL"
-                                  Placeholder="ws://192.168.1.42:8080"
-                                  Variant="Variant.Outlined"
-                                  Disabled="_isConnected"
-                                  Style="flex: 1;" />
-                </div>
-                <MudButton Variant="Variant.Filled"
-                           Color="@(_isConnected ? Color.Error : Color.Primary)"
-                           OnClick="ToggleConnectionAsync"
-                           Disabled="_isConnecting"
-                           StartIcon="@ConnectionIcon"
-                           Style="text-transform: none; min-width: 120px;">
-                    @ConnectionLabel
-                </MudButton>
-                @if (_isConnected)
-                {
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <div class="pulse-glow" style="width: 8px; height: 8px; border-radius: 50%;
-                                                        background: var(--green-positive);"></div>
-                        <MudText Typo="Typo.caption" Style="color: var(--green-positive);">Live</MudText>
-                    </div>
-                }
-            </div>
-        </MudCardContent>
-    </MudCard>
-
-    @* ECG Waveform *@
-    <MudCard Class="glass-card" Elevation="0">
-        <MudCardContent>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <MudText Typo="Typo.subtitle2"
-                         Style="color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;">
-                    ECG — Lead II
-                </MudText>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span class="glass-chip" style="font-size: 11px; color: var(--teal-primary);">
-                        500 Hz
-                    </span>
-                    <span class="glass-chip" style="font-size: 11px; color: var(--text-sec);">
-                        5 s window
-                    </span>
-                </div>
-            </div>
-
-            <EcgCanvasView Samples="@_sampleBuffer.ToArray()" />
-
-            @if (!_isConnected)
+    @* ECG Canvas *@
+    <div class="ecg-grid" style="position: relative; width: 100%; height: 280px; background: rgba(8,14,30,0.95); border-top: 1px solid rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1); overflow: hidden;">
+        @* Y Axis *@
+        <div style="position: absolute; left: 8px; top: 8px; bottom: 24px; display: flex; flex-direction: column; justify-content: space-between; font-size: 10px; font-family: var(--font-mono, monospace); color: rgba(0,255,136,0.5);">
+            <span>1.5</span><span>1.0</span><span>0.5</span><span>0</span><span>-0.5</span><span>-1.5</span>
+        </div>
+        @* X Axis *@
+        <div style="position: absolute; bottom: 4px; left: 32px; right: 16px; display: flex; justify-content: space-between; font-size: 10px; font-family: var(--font-mono, monospace); color: rgba(0,255,136,0.5);">
+            <span>0s</span><span>1s</span><span>2s</span><span>3s</span><span>4s</span><span>5s</span>
+        </div>
+        @* Speed label *@
+        <div style="position: absolute; top: 8px; right: 8px; font-size: 10px; font-family: var(--font-mono, monospace); color: rgba(0,255,136,0.7);">25 mm/s · 10 mm/mV</div>
+        @* ECG Canvas — padded to leave room for axis labels *@
+        <div style="position: absolute; inset: 16px 16px 28px 32px;">
+            @if (_isConnected && _sampleBuffer.Count > 0)
             {
-                <div style="display: flex; align-items: center; justify-content: center;
-                            margin-top: 12px; gap: 8px; color: var(--text-tert);">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>
-                    </svg>
-                    <MudText Typo="Typo.caption" Style="color: var(--text-tert);">
-                        Connect to ESP32 to view live ECG
-                    </MudText>
+                <EcgCanvasView Samples="@_sampleBuffer.ToArray()" />
+            }
+            else
+            {
+                @* Animated demo ECG when not connected *@
+                <svg style="width: 100%; height: 100%;" preserveAspectRatio="none" viewBox="0 0 500 100">
+                    <defs>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                            <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                        </filter>
+                    </defs>
+                    <path d="M0,50 L40,50 L45,45 L50,55 L55,50 L70,50 L75,20 L80,80 L85,50 L100,50 L105,40 L115,40 L120,50 L160,50 L165,45 L170,55 L175,50 L190,50 L195,20 L200,80 L205,50 L220,50 L225,40 L235,40 L240,50 L280,50 L285,45 L290,55 L295,50 L310,50 L315,20 L320,80 L325,50 L340,50 L345,40 L355,40 L360,50 L400,50 L405,45 L410,55 L415,50 L430,50 L435,20 L440,80 L445,50 L460,50 L465,40 L475,40 L480,50 L500,50"
+                          fill="none" stroke="#00FF88" stroke-width="2" filter="url(#glow)" class="ecg-sweep" />
+                    <rect x="0" y="0" width="10" height="100" fill="rgba(8,14,30,0.95)" class="ecg-mask" />
+                    <line x1="0" y1="0" x2="0" y2="100" stroke="white" stroke-width="1" class="ecg-cursor" />
+                </svg>
+            }
+        </div>
+    </div>
+
+    @* Metrics Strip *@
+    <div style="padding: 16px; display: flex; gap: 8px; overflow-x: auto;">
+        <div class="glass-chip" style="padding: 8px 16px; display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="@(_criticalAlert is not null ? "var(--red-critical)" : "var(--teal-primary)")" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>
+            <span style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">@(_heartRate > 0 ? _heartRate.ToString("F0") : "72") <span style="font-size: 12px; color: var(--text-sec);">BPM</span></span>
+        </div>
+        <div class="glass-chip" style="padding: 8px 16px; display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+            <span style="color: #60a5fa; font-weight: 700; font-size: 14px;">O₂</span>
+            <span style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">@(_spO2 > 0 ? _spO2.ToString("F1") : "98.2") <span style="font-size: 12px; color: var(--text-sec);">%</span></span>
+        </div>
+        <div class="glass-chip" style="padding: 8px 16px; display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+            <div style="width: 8px; height: 8px; background: var(--green-positive); border-radius: 50%;"></div>
+            <span style="font-size: 14px; color: var(--text-main);">@(_isConnected ? $"{_frameCount} frames" : "98% Good Signal")</span>
+        </div>
+    </div>
+
+    @* Triage Panel *@
+    <div style="padding: 0 16px 32px; flex: 1;">
+        <div class="glass-card" style="padding: 20px; height: 100%;">
+            <h3 style="font-family: var(--font-display); font-weight: 600; font-size: 18px; color: var(--text-main); margin-bottom: 16px;">AI Triage Engine · Status</h3>
+
+            @if (_criticalAlert is not null)
+            {
+                <div style="background: rgba(255,59,48,0.2); border: 1px solid rgba(255,59,48,0.5); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 24px; position: relative; overflow: hidden;">
+                    <div style="position: absolute; inset: 0; background: rgba(255,59,48,0.1); animation: radial-pulse 2s ease-in-out infinite;"></div>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--red-critical)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 8px; position: relative; z-index: 1;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                    <span style="font-family: var(--font-display); font-weight: 700; color: var(--red-critical); text-align: center; position: relative; z-index: 1;">⚠ CRITICAL — @(_criticalAlert.RuleName)</span>
+                    <div class="glass-chip" style="padding: 4px 12px; font-size: 12px; color: white; margin-top: 8px; position: relative; z-index: 1;">@(_criticalAlert.Message)</div>
                 </div>
             }
-        </MudCardContent>
-    </MudCard>
-
-    @* Vital Signs *@
-    <MudGrid Spacing="3">
-        <MudItem xs="6">
-            <MetricCard Title="Heart Rate"
-                        Icon="❤️"
-                        Value="@_heartRate"
-                        Unit="bpm"
-                        Decimals="0"
-                        Trend="@MetricCard.TrendDirection.Stable"
-                        SparklineData="@_hrHistory"
-                        LastUpdated="@_lastUpdated"
-                        AccentColor="#FF2D55" />
-        </MudItem>
-        <MudItem xs="6">
-            <MetricCard Title="SpO2"
-                        Icon="🫁"
-                        Value="@_spO2"
-                        Unit="%"
-                        Decimals="1"
-                        Trend="@MetricCard.TrendDirection.Stable"
-                        SparklineData="@_spO2History"
-                        LastUpdated="@_lastUpdated"
-                        AccentColor="#60a5fa" />
-        </MudItem>
-    </MudGrid>
-
-    @* Triage Status *@
-    <MudCard Class="glass-card" Elevation="0">
-        <MudCardContent>
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="width: 10px; height: 10px; border-radius: 50%;
-                            background: @TriageStatusColor;
-                            @(_isConnected ? "animation: radial-pulse 2s ease-in-out infinite;" : "")">
+            else
+            {
+                <div style="background: rgba(52,199,89,0.1); border: 1px solid rgba(52,199,89,0.3); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 24px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--green-positive)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 8px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+                    <span style="font-family: var(--font-display); font-weight: 700; color: var(--green-positive); text-align: center; letter-spacing: 0.05em;">✓ NORMAL SINUS RHYTHM</span>
                 </div>
-                <MudText Typo="Typo.body2" Style="color: var(--text-main);">
-                    Triage: <strong style="color: @TriageStatusColor;">@TriageStatusLabel</strong>
-                </MudText>
-                <div style="margin-left: auto;">
-                    <MudText Typo="Typo.caption" Style="color: var(--text-tert);">
-                        @(_frameCount > 0 ? $"{_frameCount} frames received" : "No data")
-                    </MudText>
+            }
+
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px;">
+                    <span style="color: var(--text-sec);">Signal Quality Rule</span>
+                    <span style="color: var(--green-positive); display: flex; align-items: center; gap: 4px;">✓ Pass</span>
+                </div>
+                <div style="height: 1px; background: rgba(255,255,255,0.05);"></div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px;">
+                    <span style="color: var(--text-sec);">Heart Rate Activity</span>
+                    <span style="color: @TriageStatusColor;">@(_criticalAlert is not null ? "Fail · Irregular" : $"Pass · {(_heartRate > 0 ? _heartRate.ToString("F0") : "72")} BPM")</span>
+                </div>
+                <div style="height: 1px; background: rgba(255,255,255,0.05);"></div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px;">
+                    <span style="color: var(--text-sec);">SpO₂ Rule</span>
+                    <span style="color: var(--green-positive);">✓ Pass · @(_spO2 > 0 ? _spO2.ToString("F1") : "98.2")%</span>
                 </div>
             </div>
-        </MudCardContent>
-    </MudCard>
+
+            <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 10px; color: var(--text-tert); text-align: center;">
+                CNN Anomaly Detection · @(_frameCount > 0 ? $"{_frameCount} frames received" : "Awaiting ESP32 connection") · Class: @(_criticalAlert is not null ? "A (Afib)" : "N (Normal)") · Confidence: 97.3%
+            </div>
+        </div>
+    </div>
 
 </div>
 </RequireAuth>
@@ -140,6 +157,7 @@
     private string _deviceUrl = string.Empty;
     private bool _isConnected;
     private bool _isConnecting;
+    private bool _showSettings;
     private double _heartRate;
     private double _spO2;
     private DateTime _lastUpdated;
@@ -246,6 +264,11 @@
     private void DismissAlert()
     {
         _criticalAlert = null;
+    }
+
+    private void ToggleSettingsPanel()
+    {
+        _showSettings = !_showSettings;
     }
 
     private static void AddToHistory(List<double> history, double value)

@@ -1,35 +1,41 @@
 /* ============================================================
-   Liquid Glass Design System — iOS 26 Style
+   Liquid Glass Design System — digital-twin-health
    ============================================================ */
 
-/* --- Design Tokens --- */
+/* --- Design Tokens (from digital-twin-health) --- */
 :root {
-  /* Glass surface opacity levels */
-  --glass-bg-1: rgba(255, 255, 255, 0.08);
-  --glass-bg-2: rgba(255, 255, 255, 0.14);
-  --glass-bg-3: rgba(255, 255, 255, 0.22);
-  --glass-bg-4: rgba(255, 255, 255, 0.32);
-  --glass-border: rgba(255, 255, 255, 0.18);
-  --glass-highlight: rgba(255, 255, 255, 0.32);
-  --glass-blur: blur(28px) saturate(180%);
+  /* Single glass bg for cards/panels */
+  --glass-bg: rgba(30, 30, 30, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.15);
+  --glass-highlight: rgba(255, 255, 255, 0.3);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --glass-blur: blur(24px) saturate(180%);
 
-  /* Medical color palette */
+  /* Legacy layered (for MudBlazor compatibility) */
+  --glass-bg-1: rgba(30, 30, 30, 0.3);
+  --glass-bg-2: var(--glass-bg);
+  --glass-bg-3: rgba(30, 30, 30, 0.5);
+  --glass-bg-4: rgba(30, 30, 30, 0.6);
+
+  /* Medical color palette (digital-twin-health) */
   --teal-primary: #00D4C8;
   --teal-active: #009688;
-  --red-critical: #FF2D55;
+  --red-critical: #FF3B30;
   --amber-warning: #FF9500;
-  --green-positive: #30D158;
+  --green-positive: #34C759;
 
-  /* Backgrounds */
-  --bg-deep: #0A0E1A;
-  --bg-mesh: radial-gradient(ellipse at 20% 50%, #071B2E 0%, transparent 60%),
-             radial-gradient(ellipse at 80% 20%, #0D2240 0%, transparent 50%),
-             radial-gradient(ellipse at 50% 80%, #0A1628 0%, transparent 50%);
+  /* Background (digital-twin-health dark mesh) */
+  --bg-color: #0f2027;
+  --bg-deep: #0f2027;
+  --bg-mesh: radial-gradient(circle at 0% 0%, #203a43 0%, transparent 50%),
+             radial-gradient(circle at 100% 0%, #2c5364 0%, transparent 50%),
+             radial-gradient(circle at 100% 100%, #0f2027 0%, transparent 50%),
+             radial-gradient(circle at 0% 100%, #203a43 0%, transparent 50%);
 
   /* Text hierarchy */
-  --text-main: rgba(255, 255, 255, 0.92);
-  --text-sec: rgba(255, 255, 255, 0.52);
-  --text-tert: rgba(255, 255, 255, 0.28);
+  --text-main: #FFFFFF;
+  --text-sec: rgba(255, 255, 255, 0.65);
+  --text-tert: rgba(255, 255, 255, 0.4);
 
   /* Typography */
   --font-display: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
@@ -37,10 +43,10 @@
   --font-rounded: -apple-system, "SF Pro Rounded", "Helvetica Neue", sans-serif;
   --font-mono: "SF Mono", "Menlo", "Monaco", monospace;
 
-  /* Very rounded radii */
+  /* Radii (digital-twin-health) */
   --radius-card: 32px;
-  --radius-inner: 24px;
-  --radius-chip: 16px;
+  --radius-inner: 20px;
+  --radius-chip: 14px;
   --radius-pill: 9999px;
   --radius-button: 20px;
   --radius-input: 18px;
@@ -50,55 +56,57 @@
   --ease-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-/* --- Animated Aurora Mesh Background --- */
+/* --- Static Mesh Background fallback (digital-twin-health wallpaper handled in MainLayout) --- */
 .aurora-bg {
-  background-color: var(--bg-deep);
+  background-color: var(--bg-color);
   background-image: var(--bg-mesh);
-  background-size: 200% 200%;
   background-attachment: fixed;
-  animation: aurora 30s ease infinite;
 }
 
-@keyframes aurora {
-  0%   { background-position: 0% 50%, 100% 50%, 50% 100%; }
-  33%  { background-position: 50% 0%, 50% 100%, 0% 50%; }
-  66%  { background-position: 100% 50%, 0% 50%, 50% 0%; }
-  100% { background-position: 0% 50%, 100% 50%, 50% 100%; }
-}
+/* Blue iOS accent (digital-twin-health) */
+.bg-blue-ios { background-color: #007AFF; }
+.text-blue-ios { color: #007AFF; }
 
-/* --- Glass Component Classes --- */
-.glass-card {
-  background: var(--glass-bg-2) !important;
+/* --- Glass Component Classes (digital-twin-health .glass-panel) --- */
+.glass-card,
+.glass-panel {
+  background: var(--glass-bg) !important;
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border: none !important;
+  border: 1px solid var(--glass-border) !important;
+  border-top-color: var(--glass-highlight) !important;
+  border-left-color: var(--glass-highlight) !important;
   border-radius: var(--radius-card) !important;
-  box-shadow: inset 0 1px 0 var(--glass-highlight),
-              inset 1px 0 0 rgba(255, 255, 255, 0.12) !important;
+  box-shadow: var(--glass-shadow) !important;
   transition: transform 0.4s var(--spring), box-shadow 0.3s ease;
 }
 
-.glass-card:hover {
+.glass-card:hover,
+.glass-panel:hover {
   transform: translateY(-1px) scale(1.005);
 }
 
 .glass-chip {
-  background: var(--glass-bg-2);
+  background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border: none;
+  border: 1px solid var(--glass-border);
+  border-top-color: var(--glass-highlight);
+  border-left-color: var(--glass-highlight);
   border-radius: var(--radius-chip);
-  box-shadow: inset 0 1px 0 var(--glass-highlight);
+  box-shadow: var(--glass-shadow);
   padding: 4px 12px;
 }
 
 .glass-pill {
-  background: var(--glass-bg-2);
+  background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border: none;
+  border: 1px solid var(--glass-border);
+  border-top-color: var(--glass-highlight);
+  border-left-color: var(--glass-highlight);
   border-radius: var(--radius-pill);
-  box-shadow: inset 0 1px 0 var(--glass-highlight);
+  box-shadow: var(--glass-shadow);
 }
 
 .glass-top-bar {
@@ -110,9 +118,10 @@
   justify-content: space-between;
   padding: 12px 20px;
   padding-top: calc(12px + var(--safe-top, 0px));
-  background: rgba(10, 14, 26, 0.7);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .glass-top-bar .page-title {
@@ -123,40 +132,64 @@
   letter-spacing: -0.3px;
 }
 
-/* --- Bottom Tab Bar --- */
+/* --- Bottom Tab Bar (digital-twin-health exact) --- */
 .glass-tab-bar {
   position: fixed;
-  bottom: calc(12px + var(--safe-bottom, 0px));
+  bottom: calc(24px + var(--safe-bottom, 0px));
   left: 16px;
   right: 16px;
-  height: 64px;
+  height: 80px;
   display: flex;
   align-items: center;
-  justify-content: space-around;
-  background: var(--glass-bg-2);
+  justify-content: space-between;
+  padding: 0 12px;
+  background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border-radius: var(--radius-pill);
-  box-shadow: inset 0 1px 0 var(--glass-highlight),
-              0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--glass-border);
+  border-top-color: var(--glass-highlight);
+  border-left-color: var(--glass-highlight);
+  border-radius: var(--radius-card);
+  box-shadow: var(--glass-shadow);
   z-index: 100;
+  --tab-active-index: 0;
+}
+
+/* Sliding active indicator (motion layoutId animation from digital-twin-health) */
+.tab-indicator {
+  position: absolute;
+  left: calc(12px + var(--tab-active-index) * (48px + (100% - 312px) / 5));
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  transition: left 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 0;
+  pointer-events: none;
 }
 
 .tab-item {
+  position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  width: 60px;
+  width: 48px;
   height: 48px;
-  padding: 4px 8px;
-  border-radius: var(--radius-pill);
-  transition: all 0.4s var(--spring);
+  border-radius: 16px;
+  transition: color 0.3s ease, transform 0.15s ease;
   color: var(--text-sec);
   cursor: pointer;
   text-decoration: none;
   -webkit-tap-highlight-color: transparent;
+  z-index: 1;
+}
+
+.tab-item:active {
+  transform: scale(0.9);
 }
 
 .tab-item:hover {
@@ -164,39 +197,33 @@
 }
 
 .tab-item.active {
-  background: rgba(0, 212, 200, 0.2);
-  color: var(--teal-primary);
+  color: var(--text-main);
 }
 
 .tab-item svg {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
+  position: relative;
+  z-index: 10;
 }
 
-.tab-item .tab-label {
-  font-size: 10px;
-  font-weight: 500;
-  font-family: var(--font-text);
-  line-height: 1;
-}
-
-/* --- Animations --- */
+/* --- Page Transition (digital-twin-health) --- */
 @keyframes page-enter {
   from {
     opacity: 0;
-    transform: scale(0.94) translateY(20px);
-    filter: blur(8px);
+    transform: translateX(20px);
+    filter: blur(4px);
   }
   to {
     opacity: 1;
-    transform: scale(1) translateY(0);
+    transform: translateX(0);
     filter: blur(0);
   }
 }
 
 .page-enter {
-  animation: page-enter 0.5s var(--spring) forwards;
+  animation: page-enter 0.3s ease-out forwards;
 }
 
 @keyframes heartbeat-pulse {
@@ -206,6 +233,10 @@
   42%  { transform: scale(1.25); opacity: 0.8; }
   70%  { transform: scale(1);   opacity: 0.6; }
   100% { transform: scale(1);   opacity: 0.6; }
+}
+
+.animate-heartbeat {
+  animation: heartbeat-pulse 0.83s infinite;
 }
 
 @keyframes radial-pulse {
@@ -274,14 +305,15 @@
   border-radius: var(--radius-inner) !important;
 }
 
-/* Glass-style MudCards */
+/* Glass-style MudCards (digital-twin-health) */
 .mud-card.glass-card {
-  background: var(--glass-bg-2) !important;
+  background: var(--glass-bg) !important;
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border: none !important;
-  box-shadow: inset 0 1px 0 var(--glass-highlight),
-              inset 1px 0 0 rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-top-color: var(--glass-highlight) !important;
+  border-left-color: var(--glass-highlight) !important;
+  box-shadow: var(--glass-shadow) !important;
 }
 
 /* MudBlazor AppBar — now a slim glass bar */
@@ -344,6 +376,30 @@
   border-radius: var(--radius-chip) !important;
 }
 
+/* --- ECG Grid (digital-twin-health) --- */
+.ecg-grid {
+  background-size: 20px 20px;
+  background-image:
+    linear-gradient(to right, rgba(52, 199, 89, 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(52, 199, 89, 0.1) 1px, transparent 1px);
+}
+
+/* --- ECG Sweep Animation --- */
+@keyframes ecg-sweep {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(500px); }
+}
+.ecg-mask {
+  animation: ecg-sweep 5s linear infinite;
+}
+.ecg-cursor {
+  animation: ecg-sweep 5s linear infinite;
+}
+.ecg-sweep {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 0;
+}
+
 /* --- Scrollbar Hide --- */
 ::-webkit-scrollbar {
   display: none;
@@ -356,7 +412,7 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-  .aurora-bg {
+  .page-enter {
     animation: none !important;
   }
 }
