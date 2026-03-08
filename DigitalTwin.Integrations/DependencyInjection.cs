@@ -2,6 +2,7 @@ using DigitalTwin.Application.Configuration;
 using DigitalTwin.Application.Interfaces;
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Interfaces.Providers;
+using DigitalTwin.Integrations.AI;
 using DigitalTwin.Integrations.Auth;
 using DigitalTwin.Integrations.Ecg;
 using DigitalTwin.Integrations.Environment;
@@ -12,6 +13,7 @@ using DigitalTwin.Integrations.Sync;
 #endif
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 #if IOS || MACCATALYST
 using DigitalTwin.Integrations.HealthKit;
 #endif
@@ -70,7 +72,31 @@ public static class DependencyInjection
             config.Latitude,
             config.Longitude));
 
-        services.AddScoped<ICoachingProvider, MockCoachingProvider>();
+        // ── Gemini AI: chatbot + coaching ────────────────────────────────────
+        services.Configure<GeminiPromptOptions>(_ => { }); // Register with defaults
+
+        services.AddHttpClient("GeminiApi", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(60);
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+        });
+
+        if (config.UseGeminiAi)
+        {
+            services.AddSingleton<IGeminiApiClient>(sp => new GeminiApiClient(
+                sp.GetRequiredService<IHttpClientFactory>(),
+                sp.GetRequiredService<IOptions<GeminiPromptOptions>>(),
+                sp.GetRequiredService<ILogger<GeminiApiClient>>(),
+                config.GeminiApiKey!));
+
+            services.AddScoped<IChatBotProvider, GeminiChatBotProvider>();
+            services.AddScoped<ICoachingProvider, GeminiCoachingProvider>();
+        }
+        else
+        {
+            services.AddScoped<IChatBotProvider, MockChatBotProvider>();
+            services.AddScoped<ICoachingProvider, MockCoachingProvider>();
+        }
 
         services.AddHttpClient<IMedicationInteractionProvider, RxNavProvider>();
 
@@ -81,4 +107,3 @@ public static class DependencyInjection
         return services;
     }
 }
-

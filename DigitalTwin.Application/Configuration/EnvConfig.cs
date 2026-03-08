@@ -23,7 +23,8 @@ public class EnvConfig
             GoogleAirQualityApiKey = Get("GOOGLE_AIR_QUALITY_API_KEY"),
             Latitude = double.TryParse(Get("LATITUDE"), System.Globalization.CultureInfo.InvariantCulture, out var lat) ? lat : 48.8566,
             Longitude = double.TryParse(Get("LONGITUDE"), System.Globalization.CultureInfo.InvariantCulture, out var lon) ? lon : 2.3522,
-            EcgDeviceUrl = Get("ECG_DEVICE_URL")
+            EcgDeviceUrl = Get("ECG_DEVICE_URL"),
+            GeminiApiKey = Get("GEMINI_API_KEY")
         };
     }
 
@@ -58,6 +59,12 @@ public class EnvConfig
     public string? EcgDeviceUrl { get; set; }
 
     /// <summary>
+    /// Gemini Pro API key for AI chatbot and coaching features.
+    /// If null, mock providers are used instead.
+    /// </summary>
+    public string? GeminiApiKey { get; set; }
+
+    /// <summary>
     /// Returns a PostgreSQL connection string, or <see langword="null"/> if
     /// <see cref="PostgresPassword"/> has not been configured.
     /// A null value causes <c>AddDigitalTwin</c> to skip cloud DB registration entirely.
@@ -70,4 +77,5 @@ public class EnvConfig
     public bool UseRealEnvironment => !string.IsNullOrWhiteSpace(OpenWeatherMapApiKey);
     public bool UseRealAirQuality => !string.IsNullOrWhiteSpace(GoogleAirQualityApiKey);
     public bool UseRealEnvironmentApis => UseRealEnvironment || UseRealAirQuality;
+    public bool UseGeminiAi => !string.IsNullOrWhiteSpace(GeminiApiKey);
 }

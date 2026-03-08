@@ -1,0 +1,314 @@
+@* Reusable chat window component — message list + input *@
+
+<div class="chatbot-container">
+    <div class="chatbot-messages" @ref="_messagesContainer">
+        @if (Messages.Count == 0 && !IsLoading)
+        {
+            <div class="chatbot-welcome">
+                <div class="welcome-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width: 48px; height: 48px; color: var(--teal-accent);">
+                        <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>
+                    </svg>
+                </div>
+                <MudText Typo="Typo.h6" Style="color: var(--text-main); font-weight: 600; margin-top: 12px;">
+                    CardioCompanion
+                </MudText>
+                <MudText Typo="Typo.body2" Style="color: var(--text-sec); text-align: center; max-width: 280px; margin-top: 8px;">
+                    Ask me anything about your heart health, vitals, medications, exercise, or sleep.
+                </MudText>
+            </div>
+        }
+
+        @foreach (var msg in Messages)
+        {
+            <div class="chat-bubble @(msg.IsUser ? "user-bubble" : "bot-bubble")">
+                @if (!msg.IsUser)
+                {
+                    <div class="bot-avatar">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                             style="width: 16px; height: 16px;">
+                            <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>
+                        </svg>
+                    </div>
+                }
+                <div class="bubble-content">
+                    @((MarkupString)FormatMessage(msg.Content))
+                </div>
+                <span class="bubble-time">@msg.Timestamp.ToLocalTime().ToString("HH:mm")</span>
+            </div>
+        }
+
+        @if (IsLoading)
+        {
+            <div class="chat-bubble bot-bubble">
+                <div class="bot-avatar">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                         style="width: 16px; height: 16px;">
+                        <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>
+                    </svg>
+                </div>
+                <div class="typing-indicator">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="chatbot-input-area">
+        <input type="text" class="chat-input" placeholder="Ask about your heart health..."
+               @bind="_inputText" @bind:event="oninput"
+               @onkeydown="HandleKeyDown"
+               disabled="@IsLoading" />
+        <button class="send-btn" @onclick="SendMessage" disabled="@(IsLoading || string.IsNullOrWhiteSpace(_inputText))">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 style="width: 20px; height: 20px;">
+                <path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>
+            </svg>
+        </button>
+    </div>
+</div>
+
+<style>
+    .chatbot-container {
+        display: flex;
+        flex-direction: column;
+        height: calc(100dvh - 160px);
+        max-height: calc(100dvh - 160px);
+    }
+
+    .chatbot-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .chatbot-welcome {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+        opacity: 0.8;
+    }
+
+    .welcome-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: rgba(0, 212, 200, 0.1);
+        border: 1px solid rgba(0, 212, 200, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .chat-bubble {
+        display: flex;
+        flex-direction: column;
+        max-width: 85%;
+        animation: fadeInUp 0.3s ease;
+    }
+
+    .user-bubble {
+        align-self: flex-end;
+    }
+
+    .bot-bubble {
+        align-self: flex-start;
+    }
+
+    .bot-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: rgba(0, 212, 200, 0.15);
+        border: 1px solid rgba(0, 212, 200, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 4px;
+        color: var(--teal-accent, #00d4c8);
+    }
+
+    .bubble-content {
+        padding: 12px 16px;
+        border-radius: 16px;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .user-bubble .bubble-content {
+        background: linear-gradient(135deg, rgba(0, 212, 200, 0.25), rgba(0, 212, 200, 0.15));
+        border: 1px solid rgba(0, 212, 200, 0.3);
+        color: var(--text-main, #f0f0f5);
+        border-bottom-right-radius: 4px;
+    }
+
+    .bot-bubble .bubble-content {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: var(--text-main, #f0f0f5);
+        border-top-left-radius: 4px;
+    }
+
+    .bubble-time {
+        font-size: 11px;
+        color: var(--text-sec, #a0a0b0);
+        margin-top: 4px;
+        padding: 0 4px;
+    }
+
+    .user-bubble .bubble-time {
+        text-align: right;
+    }
+
+    .chatbot-input-area {
+        display: flex;
+        gap: 8px;
+        padding: 12px 16px;
+        background: rgba(255, 255, 255, 0.04);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+    }
+
+    .chat-input {
+        flex: 1;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        padding: 12px 20px;
+        color: var(--text-main, #f0f0f5);
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.2s ease;
+    }
+
+    .chat-input:focus {
+        border-color: rgba(0, 212, 200, 0.5);
+    }
+
+    .chat-input::placeholder {
+        color: var(--text-sec, #a0a0b0);
+    }
+
+    .chat-input:disabled {
+        opacity: 0.5;
+    }
+
+    .send-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #00d4c8, #009688);
+        border: none;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: opacity 0.2s ease, transform 0.15s ease;
+        flex-shrink: 0;
+    }
+
+    .send-btn:hover:not(:disabled) {
+        transform: scale(1.05);
+    }
+
+    .send-btn:active:not(:disabled) {
+        transform: scale(0.95);
+    }
+
+    .send-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    .typing-indicator {
+        display: flex;
+        gap: 4px;
+        padding: 4px 0;
+    }
+
+    .typing-indicator span {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--text-sec, #a0a0b0);
+        animation: typingBounce 1.4s infinite ease-in-out;
+    }
+
+    .typing-indicator span:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+
+    .typing-indicator span:nth-child(3) {
+        animation-delay: 0.4s;
+    }
+
+    @@keyframes typingBounce {
+        0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+        40% { transform: scale(1); opacity: 1; }
+    }
+
+    @@keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Markdown-like formatting in bot responses */
+    .bubble-content strong {
+        font-weight: 600;
+        color: var(--teal-accent, #00d4c8);
+    }
+
+    .bubble-content em {
+        font-style: italic;
+        opacity: 0.85;
+    }
+</style>
+
+@code {
+    [Parameter] public List<ChatMessageDto> Messages { get; set; } = [];
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public EventCallback<string> OnSendMessage { get; set; }
+
+    private string _inputText = string.Empty;
+    private ElementReference _messagesContainer;
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(_inputText) || IsLoading) return;
+
+        var message = _inputText.Trim();
+        _inputText = string.Empty;
+
+        await OnSendMessage.InvokeAsync(message);
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            await SendMessage();
+        }
+    }
+
+    private static string FormatMessage(string content)
+    {
+        // Simple markdown-like formatting for bold and italic.
+        var html = System.Web.HttpUtility.HtmlEncode(content);
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"\*\*(.+?)\*\*", "<strong>$1</strong>");
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"\*(.+?)\*", "<em>$1</em>");
+        html = html.Replace("\n", "<br />");
+        return html;
+    }
+}

@@ -4,6 +4,7 @@ using DigitalTwin.Application.Services;
 using DigitalTwin.Application.Sync.Drainers;
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Interfaces.Repositories;
+using DigitalTwin.Domain.Interfaces.Services;
 using DigitalTwin.Domain.Services;
 using DigitalTwin.Domain.Services.Triage;
 using DigitalTwin.Infrastructure;
@@ -96,6 +97,7 @@ public static class DependencyInjection
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IPatientService, PatientService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IPatientContextService, PatientContextService>();
 
         // ── Application services ─────────────────────────────────────────────
         services.AddScoped<IVitalsApplicationService, VitalsApplicationService>();
@@ -105,6 +107,8 @@ public static class DependencyInjection
         services.AddScoped<IMedicationApplicationService, MedicationApplicationService>();
         services.AddScoped<IDoctorPortalApplicationService, DoctorPortalApplicationService>();
         services.AddScoped<IEcgApplicationService, EcgApplicationService>();
+        services.AddScoped<IChatBotApplicationService, ChatBotApplicationService>();
+        services.AddScoped<ICoachingApplicationService, CoachingApplicationService>();
 
         // ── Table drainers (local → cloud sync) ─────────────────────────────
         services.AddScoped<ITableDrainer>(sp => new UserDrainer(

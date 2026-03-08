@@ -1,0 +1,50 @@
+@page "/assistant"
+@inject IChatBotApplicationService ChatBotService
+
+<RequireAuth>
+<div class="page-enter">
+    <ChatBotWindow
+        Messages="@_messages"
+        IsLoading="@_isLoading"
+        OnSendMessage="HandleSendMessage" />
+</div>
+</RequireAuth>
+
+@code {
+    private readonly List<ChatMessageDto> _messages = [];
+    private bool _isLoading;
+
+    private async Task HandleSendMessage(string userMessage)
+    {
+        // Add user message to the list immediately.
+        _messages.Add(new ChatMessageDto
+        {
+            Content   = userMessage,
+            IsUser    = true,
+            Timestamp = DateTime.UtcNow
+        });
+
+        _isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await ChatBotService.SendMessageAsync(userMessage);
+            _messages.Add(response);
+        }
+        catch
+        {
+            _messages.Add(new ChatMessageDto
+            {
+                Content   = "I'm sorry, something went wrong. Please try again.",
+                IsUser    = false,
+                Timestamp = DateTime.UtcNow
+            });
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+}
