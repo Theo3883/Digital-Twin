@@ -2,10 +2,10 @@
 @inject IChatBotApplicationService ChatBotService
 
 <RequireAuth>
-<div class="page-enter" style="display: flex; flex-direction: column; height: 100%;">
+<div class="page-enter chat-page">
 
     @* Top Bar — DTH AssistantScreen *@
-    <div style="padding: 16px 20px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 30;">
+    <div style="padding: 16px 20px; display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
         <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #60a5fa, #a855f7); display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.2);">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
         </div>
@@ -18,10 +18,12 @@
         </div>
     </div>
 
-    <ChatBotWindow
-        Messages="@_messages"
-        IsLoading="@_isLoading"
-        OnSendMessage="HandleSendMessage" />
+    <div style="flex: 1; min-height: 0; overflow: hidden;">
+        <ChatBotWindow
+            Messages="@_messages"
+            IsLoading="@_isLoading"
+            OnSendMessage="HandleSendMessage" />
+    </div>
 </div>
 </RequireAuth>
 

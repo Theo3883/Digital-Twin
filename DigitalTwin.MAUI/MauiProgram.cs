@@ -7,6 +7,9 @@ using DigitalTwin.Integrations.Sync;
 using DigitalTwin.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Xml.Linq;
+#if IOS
+using Microsoft.AspNetCore.Components.WebView.Maui;
+#endif
 // Composition is the single DI entry point — MAUI passes integrations via callback.
 
 namespace DigitalTwin;
@@ -25,7 +28,18 @@ public static class MauiProgram
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-            });
+            })
+#if IOS
+            // Register our custom handler that returns a NoAccessoryWebView subclass,
+            // suppressing the iOS keyboard accessory bar (▲ ▼ ✓) natively on all devices.
+            .ConfigureMauiHandlers(handlers =>
+            {
+                handlers.AddHandler<Microsoft.AspNetCore.Components.WebView.Maui.BlazorWebView,
+                                    NoAccessoryBlazorWebViewHandler>();
+            })
+#endif
+            ;
+
 
         builder.Services.AddMauiBlazorWebView();
 
