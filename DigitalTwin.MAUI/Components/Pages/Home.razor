@@ -13,8 +13,15 @@
     @* Top Bar *@
     <div style="display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 30; padding-top: 16px; padding-bottom: 8px;">
         <div style="display: flex; align-items: center; gap: 12px;">
-            <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #60a5fa, #a855f7); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px; border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0;">
-                @(_userInitials)
+            <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #60a5fa, #a855f7); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px; border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0; overflow: hidden;">
+                @if (!string.IsNullOrEmpty(_currentUser?.PhotoUrl))
+                {
+                    <img src="@_currentUser.PhotoUrl" alt="@_userName" style="width: 100%; height: 100%; object-fit: cover;" />
+                }
+                else
+                {
+                    @(_userInitials)
+                }
             </div>
             <div style="display: flex; flex-direction: column;">
                 <span style="font-size: 18px; font-weight: 600; line-height: 1.2; letter-spacing: -0.3px; color: var(--text-main);">@(_userName)</span>

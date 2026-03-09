@@ -25,6 +25,29 @@ public class DoctorPatientAssignmentRepository : IDoctorPatientAssignmentReposit
         return entities.Select(ToDomain);
     }
 
+    public async Task<IEnumerable<DoctorPatientAssignment>> GetByPatientIdAsync(Guid patientId)
+    {
+        await using var db = _factory();
+        var entities = await db.DoctorPatientAssignments
+            .Where(a => a.PatientId == patientId)
+            .OrderByDescending(a => a.AssignedAt)
+            .ToListAsync();
+        return entities.Select(ToDomain);
+    }
+
+    public async Task<IEnumerable<DoctorPatientAssignment>> GetByPatientEmailAsync(string patientEmail)
+    {
+        var normalized = (patientEmail ?? string.Empty).Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(normalized)) return [];
+
+        await using var db = _factory();
+        var entities = await db.DoctorPatientAssignments
+            .Where(a => a.PatientEmail.ToLower() == normalized)
+            .OrderByDescending(a => a.AssignedAt)
+            .ToListAsync();
+        return entities.Select(ToDomain);
+    }
+
     public async Task<DoctorPatientAssignment?> GetByDoctorAndPatientAsync(Guid doctorId, Guid patientId)
     {
         await using var db = _factory();

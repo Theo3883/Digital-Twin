@@ -99,6 +99,20 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IPatientContextService, PatientContextService>();
 
+        // Doctor assignments: prefer cloud repositories when configured.
+        services.AddScoped<IDoctorPatientAssignmentService>(sp =>
+        {
+            var assignments =
+                sp.GetKeyedService<IDoctorPatientAssignmentRepository>(Cloud)
+                ?? sp.GetRequiredService<IDoctorPatientAssignmentRepository>();
+
+            var users =
+                sp.GetKeyedService<IUserRepository>(Cloud)
+                ?? sp.GetRequiredService<IUserRepository>();
+
+            return new DoctorPatientAssignmentService(assignments, users);
+        });
+
         // ── Application services ─────────────────────────────────────────────
         services.AddScoped<IVitalsApplicationService, VitalsApplicationService>();
         services.AddScoped<IEnvironmentApplicationService, EnvironmentApplicationService>();
@@ -109,6 +123,7 @@ public static class DependencyInjection
         services.AddScoped<IEcgApplicationService, EcgApplicationService>();
         services.AddScoped<IChatBotApplicationService, ChatBotApplicationService>();
         services.AddScoped<ICoachingApplicationService, CoachingApplicationService>();
+        services.AddScoped<IDoctorAssignmentApplicationService, DoctorAssignmentApplicationService>();
 
         // ── Table drainers (local → cloud sync) ─────────────────────────────
         services.AddScoped<ITableDrainer>(sp => new UserDrainer(

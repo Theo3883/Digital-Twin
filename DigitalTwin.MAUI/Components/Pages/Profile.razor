@@ -1,5 +1,6 @@
 @page "/profile"
 @inject IAuthApplicationService AuthService
+@inject IDoctorAssignmentApplicationService DoctorAssignments
 @inject IHealthDataSyncService SyncService
 @inject NavigationManager Navigation
 
@@ -109,27 +110,46 @@
         <div class="glass-card" style="padding: 16px;">
             <h3 style="font-size: 14px; font-weight: 600; color: var(--text-main); margin-bottom: 16px;">Assigned Doctors</h3>
             <div style="display: flex; flex-direction: column; gap: 16px;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 500; color: var(--text-main); position: relative; flex-shrink: 0;">
-                        EI
-                        <div style="position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; background: var(--green-positive); border-radius: 50%; border: 2px solid var(--bg-deep);"></div>
+                @if (_assignedDoctors.Count == 0)
+                {
+                    <div style="font-size: 13px; color: var(--text-sec); line-height: 1.6;">
+                        No doctor is currently assigned to your profile.
                     </div>
-                    <div>
-                        <div style="font-size: 14px; font-weight: 500; color: var(--text-main);">Dr. Elena Ionescu</div>
-                        <div style="font-size: 12px; color: var(--text-sec);">Cardiologist · Spitalul Universitar</div>
-                    </div>
-                </div>
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 500; color: var(--text-main); flex-shrink: 0;">MP</div>
-                    <div>
-                        <div style="font-size: 14px; font-weight: 500; color: var(--text-main);">Dr. Mihai Popa</div>
-                        <div style="font-size: 12px; color: var(--text-sec);">General Practitioner</div>
-                    </div>
-                </div>
-                <button style="width: 100%; padding: 8px; border-radius: var(--radius-chip); border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: var(--teal-primary); font-size: 12px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-                    Connect New Doctor
-                </button>
+                }
+                else
+                {
+                    @foreach (var doctor in _assignedDoctors)
+                    {
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 40px; height: 40px; border-radius: 50%;
+                                        background: rgba(255,255,255,0.08);
+                                        display: flex; align-items: center; justify-content: center;
+                                        font-size: 14px; font-weight: 600; color: var(--text-main);
+                                        position: relative; flex-shrink: 0; overflow: hidden;">
+                                @if (!string.IsNullOrEmpty(doctor.PhotoUrl))
+                                {
+                                    <img src="@doctor.PhotoUrl" alt="@doctor.FullName"
+                                         style="width: 100%; height: 100%; object-fit: cover;" />
+                                }
+                                else
+                                {
+                                    @GetInitials(doctor.FullName)
+                                }
+                            </div>
+                            <div style="min-width: 0;">
+                                <div style="font-size: 14px; font-weight: 500; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    @doctor.FullName
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-sec); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    @doctor.Email
+                                </div>
+                                <div style="font-size: 10px; color: var(--text-tert); margin-top: 2px;">
+                                    Assigned @doctor.AssignedAt.ToLocalTime().ToString("dd MMM yyyy")
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
             </div>
         </div>
 
@@ -176,6 +196,7 @@
 @code {
     private AuthResultDto? _currentUser;
     private PatientDisplayDto? _patient;
+    private List<AssignedDoctorDto> _assignedDoctors = new();
     private bool _showForm;
     private bool _isSaving;
     private string? _formError;
@@ -196,6 +217,7 @@
         if (_currentUser is not null)
         {
             _patient = await AuthService.GetPatientProfileAsync();
+            _assignedDoctors = (await DoctorAssignments.GetAssignedDoctorsAsync(_currentUser.Email)).ToList();
         }
         RebuildChecklist();
     }
@@ -260,5 +282,14 @@
             new(!string.IsNullOrEmpty(_patient?.Allergies), "Allergies info"),
             new(!string.IsNullOrEmpty(_patient?.MedicalHistoryNotes), "Medical history")
         };
+    }
+
+    private static string GetInitials(string fullName)
+    {
+        if (string.IsNullOrWhiteSpace(fullName)) return "DR";
+        return string.Concat(fullName
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Take(2)
+            .Select(w => char.ToUpperInvariant(w[0])));
     }
 }

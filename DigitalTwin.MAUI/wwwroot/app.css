@@ -584,6 +584,8 @@ html, body {
   /* Prevent any iOS rubber-band bounce from showing white edges */
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
+  /* Prevent double-tap zoom on iOS */
+  touch-action: manipulation;
 }
 
 /* 3. The blazor app root fills all available space */

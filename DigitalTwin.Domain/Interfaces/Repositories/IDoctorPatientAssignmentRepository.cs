@@ -7,6 +7,12 @@ public interface IDoctorPatientAssignmentRepository
     /// <summary>Get all patient IDs assigned to a specific doctor.</summary>
     Task<IEnumerable<DoctorPatientAssignment>> GetByDoctorIdAsync(Guid doctorId);
 
+    /// <summary>Get all doctors assigned to a specific patient.</summary>
+    Task<IEnumerable<DoctorPatientAssignment>> GetByPatientIdAsync(Guid patientId);
+
+    /// <summary>Get all doctors assigned to a patient email.</summary>
+    Task<IEnumerable<DoctorPatientAssignment>> GetByPatientEmailAsync(string patientEmail);
+
     /// <summary>Get a specific assignment.</summary>
     Task<DoctorPatientAssignment?> GetByDoctorAndPatientAsync(Guid doctorId, Guid patientId);
 
