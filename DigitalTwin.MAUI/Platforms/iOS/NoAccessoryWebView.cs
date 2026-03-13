@@ -12,9 +12,16 @@ namespace DigitalTwin;
 /// fully reliable, version-independent way to hide it.
 /// </summary>
 [Register("NoAccessoryWebView")]
-internal sealed class NoAccessoryWebView(CGRect frame, WKWebViewConfiguration configuration)
-    : WKWebView(frame, configuration)
+internal sealed class NoAccessoryWebView : WKWebView
 {
+    public NoAccessoryWebView(CGRect frame, WKWebViewConfiguration configuration)
+        : base(frame, configuration)
+    {
+        // Hide iOS scroll indicators for this web view
+        ScrollView.ShowsVerticalScrollIndicator = false;
+        ScrollView.ShowsHorizontalScrollIndicator = false;
+    }
+
     /// <summary>
     /// Returning null removes the accessory bar entirely.
     /// </summary>

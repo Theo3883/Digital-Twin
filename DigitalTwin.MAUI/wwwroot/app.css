@@ -529,7 +529,7 @@ object {
   vertical-align: middle;
   /* 2 */
 }
-
+  
 /*
 Constrain images and videos to the parent width and preserve their intrinsic aspect ratio. (https://github.com/mozdevs/cssremedy/issues/14)
 */
@@ -692,10 +692,22 @@ body {
   /* height of the sticky top bar */
   left: 0;
   right: 0;
-  /* Bottom sits just above the tab bar: bottom=24px + safe-bottom + height=80px */
+  /* Bottom sits just above the tab bar: bottom=24px + var(--safe-bottom, 0px) + 80px */
   bottom: calc(24px + var(--safe-bottom, 0px) + 80px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   z-index: 20;
+}
+
+/* 13. Hide scrollbars everywhere (including iOS WebView) */
+*::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+
+* {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
 }
