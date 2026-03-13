@@ -11,4 +11,6 @@ public class DoctorPatientAssignmentEntity
     public DateTime AssignedAt { get; set; } = DateTime.UtcNow;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? DeletedAt { get; set; }
+    public bool IsDirty { get; set; }
+    public DateTime? SyncedAt { get; set; }
 }

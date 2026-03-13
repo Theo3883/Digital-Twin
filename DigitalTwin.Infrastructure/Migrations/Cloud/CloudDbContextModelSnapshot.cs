@@ -43,6 +43,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                     b.Property<Guid>("DoctorId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("IsDirty")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Notes")
                         .HasColumnType("text");
 
@@ -52,6 +55,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
 
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("SyncedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 

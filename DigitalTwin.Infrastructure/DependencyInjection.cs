@@ -101,7 +101,7 @@ public static class DependencyInjection
         services.AddKeyedScoped<IDoctorPatientAssignmentRepository>(Cloud, (sp, _) =>
         {
             var f = sp.GetRequiredService<IDbContextFactory<CloudDbContext>>();
-            return new DoctorPatientAssignmentRepository(() => f.CreateDbContext());
+            return new DoctorPatientAssignmentRepository(() => f.CreateDbContext(), markDirtyOnInsert: false);
         });
 
         return services;

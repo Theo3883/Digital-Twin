@@ -6,9 +6,11 @@ using Microsoft.Extensions.Logging;
 namespace DigitalTwin.Application.Sync.Drainers;
 
 /// <summary>
-/// Drains dirty <c>User</c> rows from local SQLite to the cloud database.
-/// Uses an upsert strategy keyed on <c>Email</c>: existing cloud users are
-/// updated, new users are inserted.
+/// Bidirectional sync for <c>User</c> rows.
+///
+/// PUSH: dirty local users → cloud (upsert by email).
+/// PULL: for each local user, refresh their profile from the cloud so changes
+///       made on other devices (e.g. name, photo) appear locally.
 /// </summary>
 public sealed class UserDrainer : ITableDrainer
 {
@@ -40,25 +42,33 @@ public sealed class UserDrainer : ITableDrainer
             return 0;
         }
 
+        var pushed = await PushAsync(ct);
+        var pulled = await PullAsync(ct);
+        return pushed + pulled;
+    }
+
+    // ── PUSH: local dirty → cloud ────────────────────────────────────────────
+
+    private async Task<int> PushAsync(CancellationToken ct)
+    {
         var dirty = (await _local.GetDirtyAsync()).ToList();
         if (dirty.Count == 0) return 0;
 
         if (_logger.IsEnabled(LogLevel.Debug))
-            _logger.LogDebug("[{Table}] Draining {Count} dirty rows to cloud.", TableName, dirty.Count);
+            _logger.LogDebug("[{Table}] Pushing {Count} dirty rows to cloud.", TableName, dirty.Count);
 
         foreach (var user in dirty)
         {
             ct.ThrowIfCancellationRequested();
-            await UpsertAsync(user);
+            await UpsertToCloudAsync(user);
         }
 
         await _local.MarkSyncedAsync(dirty);
         await _local.PurgeSyncedOlderThanAsync(DateTime.UtcNow - PurgeOlderThan);
-
         return dirty.Count;
     }
 
-    private async Task UpsertAsync(User user)
+    private async Task UpsertToCloudAsync(User user)
     {
         var existing = await _cloud!.GetByEmailAsync(user.Email);
         if (existing is not null)
@@ -78,5 +88,39 @@ public sealed class UserDrainer : ITableDrainer
         {
             await _cloud.AddAsync(user);
         }
+    }
+
+    // ── PULL: cloud → local (scoped to this device's users) ─────────────────
+    // Only the users stored locally (i.e. the current device user) are refreshed.
+
+    private async Task<int> PullAsync(CancellationToken ct)
+    {
+        var localUsers = (await _local.GetAllAsync()).ToList();
+        int count = 0;
+
+        foreach (var localUser in localUsers)
+        {
+            ct.ThrowIfCancellationRequested();
+            var cloudUser = await _cloud!.GetByEmailAsync(localUser.Email);
+            if (cloudUser is null) continue;
+
+            // Refresh local profile fields that the server is authoritative for.
+            localUser.Role        = cloudUser.Role;
+            localUser.FirstName   = cloudUser.FirstName;
+            localUser.LastName    = cloudUser.LastName;
+            localUser.PhotoUrl    = cloudUser.PhotoUrl;
+            localUser.Phone       = cloudUser.Phone;
+            localUser.Address     = cloudUser.Address;
+            localUser.City        = cloudUser.City;
+            localUser.Country     = cloudUser.Country;
+            localUser.DateOfBirth = cloudUser.DateOfBirth;
+            await _local.UpdateAsync(localUser);
+            count++;
+        }
+
+        if (count > 0 && _logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("[{Table}] Pulled and refreshed {Count} local users from cloud.", TableName, count);
+
+        return count;
     }
 }

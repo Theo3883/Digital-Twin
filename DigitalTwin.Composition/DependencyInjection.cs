@@ -164,6 +164,13 @@ public static class DependencyInjection
             sp.GetKeyedService<IPatientRepository>(Cloud),
             sp.GetRequiredService<ILogger<SleepSessionDrainer>>()));
 
+        services.AddScoped<ITableDrainer>(sp => new DoctorPatientAssignmentDrainer(
+            sp.GetRequiredService<IDoctorPatientAssignmentRepository>(),
+            sp.GetKeyedService<IDoctorPatientAssignmentRepository>(Cloud),
+            sp.GetRequiredService<IPatientRepository>(),
+            sp.GetKeyedService<IPatientRepository>(Cloud),
+            sp.GetRequiredService<ILogger<DoctorPatientAssignmentDrainer>>()));
+
         // ── Validators ───────────────────────────────────────────────────────
         services.AddValidation();
 

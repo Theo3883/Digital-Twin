@@ -50,6 +50,23 @@ public class EnvironmentReadingRepository : IEnvironmentReadingRepository
         return entities.Select(ToDomain);
     }
 
+    public async Task<IEnumerable<EnvironmentReading>> GetSinceAsync(DateTime since, int limit = 200)
+    {
+        await using var db = _factory();
+        var entities = await db.EnvironmentReadings
+            .Where(r => r.Timestamp >= since)
+            .OrderByDescending(r => r.Timestamp)
+            .Take(limit)
+            .ToListAsync();
+        return entities.Select(ToDomain);
+    }
+
+    public async Task<bool> ExistsAsync(DateTime timestamp)
+    {
+        await using var db = _factory();
+        return await db.EnvironmentReadings.AnyAsync(r => r.Timestamp == timestamp);
+    }
+
     public async Task MarkSyncedAsync(DateTime beforeOrAtTimestamp)
     {
         await using var db = _factory();

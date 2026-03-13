@@ -6,6 +6,7 @@ namespace DigitalTwin.Domain.Interfaces.Repositories;
 public interface IUserOAuthRepository
 {
     Task<UserOAuth?> FindByProviderAndUserIdAsync(OAuthProvider provider, string providerUserId);
+    Task<IEnumerable<UserOAuth>> GetByUserIdAsync(Guid userId);
     Task AddAsync(UserOAuth userOAuth);
     Task UpdateAsync(UserOAuth userOAuth);
     Task<IEnumerable<UserOAuth>> GetDirtyAsync();

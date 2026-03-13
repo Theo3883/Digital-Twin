@@ -6,72 +6,69 @@ using Microsoft.Extensions.Logging;
 namespace DigitalTwin.Application.Sync.Drainers;
 
 /// <summary>
-/// Drains dirty <c>VitalSign</c> rows from local SQLite to the cloud database.
-/// Maps local PatientId → cloud PatientId via UserId (local and cloud use different ID spaces).
-/// Must run after <see cref="PatientDrainer"/> so the cloud Patient exists.
+/// Bidirectional sync for <c>VitalSign</c> rows.
+///
+/// PUSH: dirty local vitals → cloud (batch insert, maps local PatientId → cloud PatientId).
+/// PULL: for each local patient, fetch recent cloud vitals (last 7 days) and add
+///       any that are missing locally — scoped strictly to this device's patient.
+/// Must run after <see cref="PatientDrainer"/>.
 /// </summary>
-public sealed class VitalSignDrainer : ITableDrainer
+public sealed class VitalSignDrainer(
+    IVitalSignRepository local,
+    IVitalSignRepository? cloud,
+    IPatientRepository patient,
+    IPatientRepository? cloudPatient,
+    ILogger<VitalSignDrainer> logger)
+    : ITableDrainer
 {
     private const int ChunkSize = 100;
     private static readonly TimeSpan PurgeOlderThan = TimeSpan.FromDays(7);
-
-    private readonly IVitalSignRepository _local;
-    private readonly IVitalSignRepository? _cloud;
-    private readonly IPatientRepository _localPatient;
-    private readonly IPatientRepository? _cloudPatient;
-    private readonly ILogger<VitalSignDrainer> _logger;
+    private static readonly TimeSpan PullWindow = TimeSpan.FromDays(7);
 
     public int Order => 3;
     public string TableName => "VitalSigns";
 
-    public VitalSignDrainer(
-        IVitalSignRepository local,
-        IVitalSignRepository? cloud,
-        IPatientRepository localPatient,
-        IPatientRepository? cloudPatient,
-        ILogger<VitalSignDrainer> logger)
-    {
-        _local = local;
-        _cloud = cloud;
-        _localPatient = localPatient;
-        _cloudPatient = cloudPatient;
-        _logger = logger;
-    }
-
     public async Task<int> DrainAsync(CancellationToken ct = default)
     {
-        if (_cloud is null || _cloudPatient is null)
+        if (cloud is null || cloudPatient is null)
         {
-            if (_logger.IsEnabled(LogLevel.Debug))
-                _logger.LogDebug("[{Table}] Cloud repository not configured — skipping.", TableName);
+            if (logger.IsEnabled(LogLevel.Debug))
+                logger.LogDebug("[{Table}] Cloud repository not configured — skipping.", TableName);
             return 0;
         }
 
-        var dirty = (await _local.GetDirtyAsync()).ToList();
+        var pushed = await PushAsync(ct);
+        var pulled = await PullAsync(ct);
+        return pushed + pulled;
+    }
+
+    // ── PUSH ─────────────────────────────────────────────────────────────────
+
+    private async Task<int> PushAsync(CancellationToken ct)
+    {
+        var dirty = (await local.GetDirtyAsync()).ToList();
         if (dirty.Count == 0) return 0;
 
-        if (_logger.IsEnabled(LogLevel.Debug))
-            _logger.LogDebug("[{Table}] Draining {Count} dirty rows to cloud.", TableName, dirty.Count);
+        if (logger.IsEnabled(LogLevel.Debug))
+            logger.LogDebug("[{Table}] Pushing {Count} dirty rows to cloud.", TableName, dirty.Count);
 
-        // Map local PatientId → cloud PatientId. Local and cloud use different ID spaces.
         var mapped = await MapToCloudPatientIdsAsync(dirty, ct);
         if (mapped.Count == 0)
         {
-            _logger.LogWarning("[{Table}] No vitals could be mapped to cloud Patient — skipping (will retry).", TableName);
+            logger.LogWarning("[{Table}] No vitals could be mapped to cloud Patient — skipping (will retry).", TableName);
             return 0;
         }
 
         foreach (var chunk in mapped.Chunk(ChunkSize))
         {
             ct.ThrowIfCancellationRequested();
-            await _cloud.AddRangeAsync(chunk);
+            await cloud!.AddRangeAsync(chunk);
         }
 
         foreach (var group in dirty.GroupBy(v => v.PatientId))
-            await _local.MarkSyncedAsync(group.Key, group.Max(v => v.Timestamp));
+            await local.MarkSyncedAsync(group.Key, group.Max(v => v.Timestamp));
 
-        await _local.PurgeSyncedOlderThanAsync(DateTime.UtcNow - PurgeOlderThan);
-
+        await local.PurgeSyncedOlderThanAsync(DateTime.UtcNow - PurgeOlderThan);
         return dirty.Count;
     }
 
@@ -86,21 +83,21 @@ public sealed class VitalSignDrainer : ITableDrainer
 
             if (!localToCloud.TryGetValue(v.PatientId, out var cloudPatientId))
             {
-                var localPatient = await _localPatient.GetByIdAsync(v.PatientId);
+                var localPatient = await patient.GetByIdAsync(v.PatientId);
                 if (localPatient is null)
                 {
-                    _logger.LogWarning("[{Table}] Local Patient {Id} not found — vital skipped.", TableName, v.PatientId);
+                    logger.LogWarning("[{Table}] Local Patient {Id} not found — vital skipped.", TableName, v.PatientId);
                     continue;
                 }
 
-                var cloudPatient = await _cloudPatient!.GetByUserIdAsync(localPatient.UserId);
-                if (cloudPatient is null)
+                var cloudPatient1 = await cloudPatient!.GetByUserIdAsync(localPatient.UserId);
+                if (cloudPatient1 is null)
                 {
-                    _logger.LogWarning("[{Table}] Cloud Patient for UserId {UserId} not found — ensure PatientDrainer runs first.", TableName, localPatient.UserId);
+                    logger.LogWarning("[{Table}] Cloud Patient for UserId {UserId} not found — ensure PatientDrainer runs first.", TableName, localPatient.UserId);
                     continue;
                 }
 
-                cloudPatientId = cloudPatient.Id;
+                cloudPatientId = cloudPatient1.Id;
                 localToCloud[v.PatientId] = cloudPatientId;
             }
 
@@ -116,5 +113,47 @@ public sealed class VitalSignDrainer : ITableDrainer
         }
 
         return result;
+    }
+
+    // ── PULL ──────────────────────────────────────────────────────────────────
+    // Scoped to local patients only — this device only caches its own patient's vitals.
+
+    private async Task<int> PullAsync(CancellationToken ct)
+    {
+        var localPatients = (await patient.GetAllAsync()).ToList();
+        var since = DateTime.UtcNow - PullWindow;
+        int count = 0;
+
+        foreach (var localPatient in localPatients)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            var cloudPatient1 = await cloudPatient!.GetByUserIdAsync(localPatient.UserId);
+            if (cloudPatient1 is null) continue;
+
+            var cloudVitals = (await cloud!.GetByPatientAsync(cloudPatient1.Id, from: since)).ToList();
+
+            foreach (var v in cloudVitals)
+            {
+                ct.ThrowIfCancellationRequested();
+                if (await local.ExistsAsync(localPatient.Id, v.Type, v.Timestamp)) continue;
+
+                await local.AddAsync(new VitalSign
+                {
+                    PatientId = localPatient.Id,
+                    Type      = v.Type,
+                    Value     = v.Value,
+                    Unit      = v.Unit,
+                    Source    = v.Source,
+                    Timestamp = v.Timestamp
+                });
+                count++;
+            }
+        }
+
+        if (count > 0 && logger.IsEnabled(LogLevel.Debug))
+            logger.LogDebug("[{Table}] Pulled {Count} new vitals from cloud.", TableName, count);
+
+        return count;
     }
 }

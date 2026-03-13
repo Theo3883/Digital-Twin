@@ -24,4 +24,18 @@ public interface IDoctorPatientAssignmentRepository
 
     /// <summary>Remove an assignment.</summary>
     Task RemoveAsync(Guid doctorId, Guid patientId);
+
+    // ── Sync helpers (used by DoctorPatientAssignmentDrainer) ─────────────────
+
+    /// <summary>Get locally-created assignments that haven't been pushed to the cloud yet.</summary>
+    Task<IEnumerable<DoctorPatientAssignment>> GetDirtyAsync();
+
+    /// <summary>Mark a set of assignments as synced (clears IsDirty, sets SyncedAt).</summary>
+    Task MarkSyncedAsync(IEnumerable<DoctorPatientAssignment> assignments);
+
+    /// <summary>
+    /// Upsert a batch of assignments pulled from the cloud into the local SQLite cache.
+    /// Reactivates soft-deleted rows and soft-deletes rows no longer present in the cloud set.
+    /// </summary>
+    Task UpsertRangeFromCloudAsync(Guid patientId, IEnumerable<DoctorPatientAssignment> cloudAssignments);
 }

@@ -1,4 +1,3 @@
-using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Interfaces.Repositories;
 using DigitalTwin.Domain.Models;
 using Microsoft.Extensions.Logging;
@@ -6,9 +5,11 @@ using Microsoft.Extensions.Logging;
 namespace DigitalTwin.Application.Sync.Drainers;
 
 /// <summary>
-/// Drains dirty <c>Patient</c> rows from local SQLite to the cloud database.
-/// Must run after <see cref="UserDrainer"/>. Maps local UserId → cloud UserId via Email.
-/// Uses an upsert strategy keyed on cloud UserId.
+/// Bidirectional sync for <c>Patient</c> rows.
+///
+/// PUSH: dirty local patient profiles → cloud (upsert keyed on cloud UserId).
+/// PULL: for each local patient, refresh from cloud so changes made elsewhere appear locally.
+/// Must run after <see cref="UserDrainer"/>.
 /// </summary>
 public sealed class PatientDrainer : ITableDrainer
 {
@@ -46,25 +47,33 @@ public sealed class PatientDrainer : ITableDrainer
             return 0;
         }
 
+        var pushed = await PushAsync(ct);
+        var pulled = await PullAsync(ct);
+        return pushed + pulled;
+    }
+
+    // ── PUSH ─────────────────────────────────────────────────────────────────
+
+    private async Task<int> PushAsync(CancellationToken ct)
+    {
         var dirty = (await _local.GetDirtyAsync()).ToList();
         if (dirty.Count == 0) return 0;
 
         if (_logger.IsEnabled(LogLevel.Debug))
-            _logger.LogDebug("[{Table}] Draining {Count} dirty rows to cloud.", TableName, dirty.Count);
+            _logger.LogDebug("[{Table}] Pushing {Count} dirty rows to cloud.", TableName, dirty.Count);
 
         foreach (var patient in dirty)
         {
             ct.ThrowIfCancellationRequested();
-            await UpsertAsync(patient);
+            await UpsertToCloudAsync(patient);
         }
 
         await _local.MarkSyncedAsync(dirty);
         await _local.PurgeSyncedOlderThanAsync(DateTime.UtcNow - PurgeOlderThan);
-
         return dirty.Count;
     }
 
-    private async Task UpsertAsync(Patient patient)
+    private async Task UpsertToCloudAsync(Patient patient)
     {
         var cloudUserId = await ResolveCloudUserIdAsync(patient.UserId);
         if (cloudUserId is null)
@@ -94,6 +103,37 @@ public sealed class PatientDrainer : ITableDrainer
             };
             await _cloud.AddAsync(cloudPatient);
         }
+    }
+
+    // ── PULL ──────────────────────────────────────────────────────────────────
+    // Scoped to the patients stored locally on this device only.
+
+    private async Task<int> PullAsync(CancellationToken ct)
+    {
+        var localPatients = (await _local.GetAllAsync()).ToList();
+        int count = 0;
+
+        foreach (var localPatient in localPatients)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            var cloudUserId = await ResolveCloudUserIdAsync(localPatient.UserId);
+            if (cloudUserId is null) continue;
+
+            var cloudPatient = await _cloud!.GetByUserIdAsync(cloudUserId.Value);
+            if (cloudPatient is null) continue;
+
+            localPatient.BloodType            = cloudPatient.BloodType;
+            localPatient.Allergies            = cloudPatient.Allergies;
+            localPatient.MedicalHistoryNotes  = cloudPatient.MedicalHistoryNotes;
+            await _local.UpdateAsync(localPatient);
+            count++;
+        }
+
+        if (count > 0 && _logger.IsEnabled(LogLevel.Debug))
+            _logger.LogDebug("[{Table}] Pulled and refreshed {Count} local patients from cloud.", TableName, count);
+
+        return count;
     }
 
     private async Task<Guid?> ResolveCloudUserIdAsync(Guid localUserId)

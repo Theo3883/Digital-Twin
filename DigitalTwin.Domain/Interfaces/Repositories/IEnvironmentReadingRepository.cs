@@ -7,6 +7,8 @@ public interface IEnvironmentReadingRepository
     Task AddAsync(EnvironmentReading reading);
     Task AddRangeAsync(IEnumerable<EnvironmentReading> readings);
     Task<IEnumerable<EnvironmentReading>> GetDirtyAsync();
+    Task<IEnumerable<EnvironmentReading>> GetSinceAsync(DateTime since, int limit = 200);
+    Task<bool> ExistsAsync(DateTime timestamp);
     Task MarkSyncedAsync(DateTime beforeOrAtTimestamp);
     Task PurgeSyncedOlderThanAsync(DateTime cutoffUtc);
 }
