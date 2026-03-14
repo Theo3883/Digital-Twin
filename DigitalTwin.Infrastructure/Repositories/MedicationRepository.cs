@@ -70,6 +70,50 @@ public class MedicationRepository : IMedicationRepository
         }
     }
 
+    public async Task UpsertRangeAsync(IEnumerable<Medication> medications)
+    {
+        var list = medications.ToList();
+        if (list.Count == 0) return;
+
+        await using var db = _factory();
+        foreach (var med in list)
+        {
+            var existing = await db.Medications
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(m => m.Id == med.Id);
+
+            if (existing is null)
+            {
+                var entity = ToEntity(med);
+                entity.IsDirty = _markDirtyOnInsert;
+                if (!_markDirtyOnInsert) entity.SyncedAt = DateTime.UtcNow;
+                db.Medications.Add(entity);
+            }
+            else
+            {
+                existing.PatientId            = med.PatientId;
+                existing.Name                 = med.Name;
+                existing.Dosage               = med.Dosage;
+                existing.Frequency            = med.Frequency;
+                existing.Route                = (int)med.Route;
+                existing.RxCui                = med.RxCui;
+                existing.Instructions         = med.Instructions;
+                existing.Reason               = med.Reason;
+                existing.PrescribedByUserId   = med.PrescribedByUserId;
+                existing.StartDate            = med.StartDate;
+                existing.EndDate              = med.EndDate;
+                existing.Status               = (int)med.Status;
+                existing.DiscontinuedReason   = med.DiscontinuedReason;
+                existing.AddedByRole          = (int)med.AddedByRole;
+                existing.UpdatedAt            = med.UpdatedAt;
+                // preserve dirty/sync state on the cloud row
+                existing.IsDirty              = false;
+                existing.SyncedAt             = DateTime.UtcNow;
+            }
+        }
+        await db.SaveChangesAsync();
+    }
+
     public async Task SoftDeleteAsync(Guid id)
     {
         await using var db = _factory();

@@ -81,7 +81,7 @@ public sealed class MedicationSyncDrainer : SyncDrainerBase<Medication>
     }
 
     protected override async Task UpsertToCloudBatchAsync(List<Medication> cloudItems, CancellationToken ct)
-        => await _cloud!.AddRangeAsync(cloudItems);
+        => await _cloud!.UpsertRangeAsync(cloudItems);
 
     protected override async Task MarkPushedAsSyncedAsync(List<Medication> originalDirtyItems, CancellationToken ct)
     {
