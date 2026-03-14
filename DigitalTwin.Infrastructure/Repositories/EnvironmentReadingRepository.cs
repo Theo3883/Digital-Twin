@@ -36,8 +36,18 @@ public class EnvironmentReadingRepository : IEnvironmentReadingRepository
         foreach (var e in entities) e.IsDirty = _markDirtyOnInsert;
         if (!_markDirtyOnInsert) foreach (var e in entities) e.SyncedAt = DateTime.UtcNow;
         await using var db = _factory();
-        await db.EnvironmentReadings.AddRangeAsync(entities);
-        await db.SaveChangesAsync();
+        await using var tx = await db.Database.BeginTransactionAsync();
+        try
+        {
+            await db.EnvironmentReadings.AddRangeAsync(entities);
+            await db.SaveChangesAsync();
+            await tx.CommitAsync();
+        }
+        catch
+        {
+            await tx.RollbackAsync();
+            throw;
+        }
     }
 
     public async Task<IEnumerable<EnvironmentReading>> GetDirtyAsync()

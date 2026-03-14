@@ -49,6 +49,27 @@ public class MedicationRepository : IMedicationRepository
         await db.SaveChangesAsync();
     }
 
+    public async Task AddRangeAsync(IEnumerable<Medication> medications)
+    {
+        var entities = medications.Select(ToEntity).ToList();
+        if (entities.Count == 0) return;
+        foreach (var e in entities) e.IsDirty = _markDirtyOnInsert;
+        if (!_markDirtyOnInsert) foreach (var e in entities) e.SyncedAt = DateTime.UtcNow;
+        await using var db = _factory();
+        await using var tx = await db.Database.BeginTransactionAsync();
+        try
+        {
+            await db.Medications.AddRangeAsync(entities);
+            await db.SaveChangesAsync();
+            await tx.CommitAsync();
+        }
+        catch
+        {
+            await tx.RollbackAsync();
+            throw;
+        }
+    }
+
     public async Task SoftDeleteAsync(Guid id)
     {
         await using var db = _factory();
@@ -83,6 +104,37 @@ public class MedicationRepository : IMedicationRepository
         return entities.Select(ToDomain);
     }
 
+    public async Task UpdateAsync(Medication medication)
+    {
+        await using var db = _factory();
+        var entity = await db.Medications.FirstOrDefaultAsync(m => m.Id == medication.Id);
+        if (entity is null) return;
+
+        entity.Name = medication.Name;
+        entity.Dosage = medication.Dosage;
+        entity.Frequency = medication.Frequency;
+        entity.Route = (int)medication.Route;
+        entity.RxCui = medication.RxCui;
+        entity.Instructions = medication.Instructions;
+        entity.Reason = medication.Reason;
+        entity.PrescribedByUserId = medication.PrescribedByUserId;
+        entity.StartDate = medication.StartDate;
+        entity.EndDate = medication.EndDate;
+        entity.Status = (int)medication.Status;
+        entity.DiscontinuedReason = medication.DiscontinuedReason;
+        entity.AddedByRole = (int)medication.AddedByRole;
+        entity.UpdatedAt = DateTime.UtcNow;
+        entity.IsDirty = _markDirtyOnInsert;
+
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<bool> ExistsAsync(Guid id)
+    {
+        await using var db = _factory();
+        return await db.Medications.AnyAsync(m => m.Id == id);
+    }
+
     public async Task MarkSyncedAsync(Guid patientId)
     {
         await using var db = _factory();
@@ -92,6 +144,15 @@ public class MedicationRepository : IMedicationRepository
             .ExecuteUpdateAsync(s => s
                 .SetProperty(m => m.IsDirty, false)
                 .SetProperty(m => m.SyncedAt, DateTime.UtcNow));
+    }
+
+    public async Task PurgeSyncedOlderThanAsync(DateTime cutoffUtc)
+    {
+        await using var db = _factory();
+        await db.Medications
+            .IgnoreQueryFilters()
+            .Where(m => !m.IsDirty && m.SyncedAt != null && m.SyncedAt < cutoffUtc)
+            .ExecuteDeleteAsync();
     }
 
     private static Medication ToDomain(MedicationEntity e) => new()

@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Reactive.Disposables;
 using DigitalTwin.Application.Interfaces;
-using DigitalTwin.Application.Sync.Drainers;
+using DigitalTwin.Domain.Interfaces.Sync;
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Models;
 using System.Linq;
@@ -16,7 +16,7 @@ namespace DigitalTwin.Application.Services;
 /// Singleton background service with two responsibilities:
 ///
 /// 1. TABLE DRAIN — every 60 s (and on connectivity restore) calls every registered
-///    <see cref="ITableDrainer"/> in sequence. Always runs once authenticated.
+///    <see cref="ISyncDrainer"/> in sequence. Always runs once authenticated.
 ///
 /// 2. VITALS COLLECTION — subscribes to live <see cref="IHealthDataProvider"/> stream,
 ///    buffers readings in a lock-free queue, and flushes them every 30 s (or eagerly at
@@ -211,8 +211,8 @@ public class HealthDataSyncService : IHealthDataSyncService
                 var patient = await localPatient.GetByIdAsync(_patientId);
                 if (patient is not null)
                 {
-                    var cloudUserIdResolver = scope.ServiceProvider.GetRequiredService<ICloudUserIdResolver>();
-                    var cloudUserId = await cloudUserIdResolver.ResolveCloudUserIdAsync(patient.UserId);
+                    var cloudIdentityResolver = scope.ServiceProvider.GetRequiredService<ICloudIdentityResolver>();
+                    var cloudUserId = await cloudIdentityResolver.ResolveCloudUserIdAsync(patient.UserId);
                     var cloudP = cloudUserId is not null
                         ? await cloudPatient.GetByUserIdAsync(cloudUserId.Value)
                         : null;
@@ -308,7 +308,7 @@ public class HealthDataSyncService : IHealthDataSyncService
     private async Task DrainAllTablesAsync(CancellationToken ct = default)
     {
         using var scope   = _scopeFactory.CreateScope();
-        var drainers = scope.ServiceProvider.GetServices<ITableDrainer>().OrderBy(d => d.Order);
+        var drainers = scope.ServiceProvider.GetServices<ISyncDrainer>().OrderBy(d => d.Order);
 
         foreach (var drainer in drainers)
         {
