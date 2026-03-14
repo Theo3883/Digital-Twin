@@ -40,11 +40,13 @@ public class EcgStreamClient : IEcgStreamProvider, IAsyncDisposable
         _webSocket?.Dispose();
         _webSocket = new ClientWebSocket();
 
-        _logger.LogInformation("Connecting to ESP32 at {Url}", deviceUrl);
+        if (_logger.IsEnabled(LogLevel.Information))
+            _logger.LogInformation("Connecting to ESP32 at {Url}", deviceUrl);
 
         await _webSocket.ConnectAsync(new Uri(deviceUrl), cancellationToken);
 
-        _logger.LogInformation("Connected to ESP32 at {Url}", deviceUrl);
+        if (_logger.IsEnabled(LogLevel.Information))
+            _logger.LogInformation("Connected to ESP32 at {Url}", deviceUrl);
 
         _receiveCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _receiveLoop = ReceiveLoopAsync(_receiveCts.Token);
@@ -61,7 +63,8 @@ public class EcgStreamClient : IEcgStreamProvider, IAsyncDisposable
 
         if (_receiveLoop is not null)
         {
-            try { await _receiveLoop; } catch (OperationCanceledException) { }
+            try { await _receiveLoop; }
+            catch (OperationCanceledException) { /* expected on cancellation */ }
             _receiveLoop = null;
         }
 
@@ -154,5 +157,6 @@ public class EcgStreamClient : IEcgStreamProvider, IAsyncDisposable
         await DisconnectAsync();
         _frames.OnCompleted();
         _frames.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

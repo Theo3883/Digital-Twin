@@ -39,7 +39,8 @@ public class CoachingApplicationService : ICoachingApplicationService
             };
         }
 
-        _logger.LogInformation("[Coaching] Requesting advice for patient {PatientId}.", profile.Id);
+        if (_logger.IsEnabled(LogLevel.Information))
+            _logger.LogInformation("[Coaching] Requesting advice for patient {PatientId}.", profile.Id);
 
         var advice = await _coachingProvider.GetAdviceAsync(profile);
 

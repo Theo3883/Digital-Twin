@@ -680,9 +680,17 @@ body {
   }
 }
 
-/* 11. Prevent horizontal scroll on all devices */
+/* 11 & 13. Prevent horizontal scroll and hide scrollbars on all devices */
 * {
   box-sizing: border-box;
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+
+*::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
 }
 
 /* 12. Chat page: full-height flex layout, escapes page-content padding silo */
@@ -700,14 +708,4 @@ body {
   z-index: 20;
 }
 
-/* 13. Hide scrollbars everywhere (including iOS WebView) */
-*::-webkit-scrollbar {
-  width: 0 !important;
-  height: 0 !important;
-  background: transparent !important;
-}
 
-* {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;     /* Firefox */
-}

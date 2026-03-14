@@ -44,7 +44,7 @@ public class DoctorPatientAssignmentRepository : IDoctorPatientAssignmentReposit
 
         await using var db = _factory();
         var entities = await db.DoctorPatientAssignments
-            .Where(a => a.PatientEmail.ToLower() == normalized)
+            .Where(a => string.Equals(a.PatientEmail, normalized, StringComparison.OrdinalIgnoreCase))
             .OrderByDescending(a => a.AssignedAt)
             .ToListAsync();
         return entities.Select(ToDomain);

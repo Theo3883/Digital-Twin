@@ -46,7 +46,7 @@ public sealed class UserOAuthSyncDrainer : SyncDrainerBase<UserOAuth>
         foreach (var oauth in dirtyItems)
         {
             ct.ThrowIfCancellationRequested();
-            var cloudUserId = await ResolveCloudUserIdAsync(oauth.UserId, ct);
+            var cloudUserId = await ResolveCloudUserIdAsync(oauth.UserId);
             if (cloudUserId is null)
             {
                 Logger.LogWarning("[{Table}] Cloud User not found for local UserId {UserId} — skipped.", TableName, oauth.UserId);
@@ -153,7 +153,7 @@ public sealed class UserOAuthSyncDrainer : SyncDrainerBase<UserOAuth>
 
     // ── Private helpers ──────────────────────────────────────────────────────
 
-    private async Task<Guid?> ResolveCloudUserIdAsync(Guid localUserId, CancellationToken ct)
+    private async Task<Guid?> ResolveCloudUserIdAsync(Guid localUserId)
     {
         var localUser = await _user.GetByIdAsync(localUserId);
         if (localUser is null) return null;

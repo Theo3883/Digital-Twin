@@ -75,18 +75,18 @@ public class MedicationApplicationService : IMedicationApplicationService
         if (string.IsNullOrWhiteSpace(rxCui) && !string.IsNullOrWhiteSpace(dto.Name))
             rxCui = await _rxCuiLookup.LookupRxCuiAsync(dto.Name.Trim());
 
-        var medication = _medicationService.CreateMedication(
-            patientId,
-            dto.Name,
-            dto.Dosage,
-            dto.Frequency,
-            dto.Route,
-            rxCui,
-            dto.Instructions,
-            dto.Reason,
-            prescribedByUserId: null,
-            dto.StartDate,
-            addedBy);
+        var medication = _medicationService.CreateMedication(new Domain.Models.CreateMedicationRequest(
+            PatientId: patientId,
+            Name: dto.Name,
+            Dosage: dto.Dosage,
+            Frequency: dto.Frequency,
+            Route: dto.Route,
+            RxCui: rxCui,
+            Instructions: dto.Instructions,
+            Reason: dto.Reason,
+            PrescribedByUserId: null,
+            StartDate: dto.StartDate,
+            AddedByRole: addedBy));
 
         await _medications.AddAsync(medication);
         return ToDto(medication);

@@ -199,47 +199,61 @@ public class HealthDataSyncService : IHealthDataSyncService
             return;
         }
 
+        if (await TryWriteToCloudAsync(batch))
+            return;
+
+        await WriteLocallyAsync(batch);
+    }
+
+    private async Task<bool> TryWriteToCloudAsync(List<VitalSign> batch)
+    {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
-            var cloud = scope.ServiceProvider.GetKeyedService<IVitalSignRepository>("Cloud");
-            var localPatient = scope.ServiceProvider.GetRequiredService<IPatientRepository>();
-            var cloudPatient = scope.ServiceProvider.GetKeyedService<IPatientRepository>("Cloud");
+            using var scope       = _scopeFactory.CreateScope();
+            var cloud             = scope.ServiceProvider.GetKeyedService<IVitalSignRepository>("Cloud");
+            var localPatientRepo  = scope.ServiceProvider.GetRequiredService<IPatientRepository>();
+            var cloudPatientRepo  = scope.ServiceProvider.GetKeyedService<IPatientRepository>("Cloud");
 
-            if (cloud is not null && cloudPatient is not null)
+            if (cloud is null || cloudPatientRepo is null)
+                return false;
+
+            var patient = await localPatientRepo.GetByIdAsync(_patientId);
+            if (patient is null)
+                return false;
+
+            var resolver    = scope.ServiceProvider.GetRequiredService<ICloudIdentityResolver>();
+            var cloudUserId = await resolver.ResolveCloudUserIdAsync(patient.UserId);
+            var cloudP      = cloudUserId is not null
+                ? await cloudPatientRepo.GetByUserIdAsync(cloudUserId.Value)
+                : null;
+
+            if (cloudP is null)
+                return false;
+
+            var cloudBatch = batch.Select(v => new VitalSign
             {
-                var patient = await localPatient.GetByIdAsync(_patientId);
-                if (patient is not null)
-                {
-                    var cloudIdentityResolver = scope.ServiceProvider.GetRequiredService<ICloudIdentityResolver>();
-                    var cloudUserId = await cloudIdentityResolver.ResolveCloudUserIdAsync(patient.UserId);
-                    var cloudP = cloudUserId is not null
-                        ? await cloudPatient.GetByUserIdAsync(cloudUserId.Value)
-                        : null;
-                    if (cloudP is not null)
-                    {
-                        var cloudBatch = batch.Select(v => new VitalSign
-                        {
-                            PatientId = cloudP.Id,
-                            Type = v.Type,
-                            Value = v.Value,
-                            Unit = v.Unit,
-                            Source = v.Source,
-                            Timestamp = v.Timestamp
-                        }).ToList();
-                        await cloud.AddRangeAsync(cloudBatch);
-                        if (_logger.IsEnabled(LogLevel.Debug))
-                            _logger.LogDebug("[Sync] {Count} vitals written directly to cloud.", batch.Count);
-                        return;
-                    }
-                }
-            }
+                PatientId = cloudP.Id,
+                Type      = v.Type,
+                Value     = v.Value,
+                Unit      = v.Unit,
+                Source    = v.Source,
+                Timestamp = v.Timestamp
+            }).ToList();
+
+            await cloud.AddRangeAsync(cloudBatch);
+            if (_logger.IsEnabled(LogLevel.Debug))
+                _logger.LogDebug("[Sync] {Count} vitals written directly to cloud.", batch.Count);
+            return true;
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "[Sync] Cloud write failed for {Count} vitals; caching locally.", batch.Count);
+            return false;
         }
+    }
 
+    private async Task WriteLocallyAsync(List<VitalSign> batch)
+    {
         try
         {
             using var scope = _scopeFactory.CreateScope();

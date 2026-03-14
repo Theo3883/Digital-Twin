@@ -62,6 +62,7 @@ public static class DependencyInjection
         services.AddScoped<IPatientService, PatientService>();
 
         // ── Application services ─────────────────────────────────────────────
+        services.AddScoped<IDoctorPortalDataFacade, DoctorPortalDataFacade>();
         services.AddScoped<IDoctorPortalApplicationService, DoctorPortalApplicationService>();
 
         // ── Validators ───────────────────────────────────────────────────────
@@ -123,6 +124,7 @@ public static class DependencyInjection
         services.AddScoped<IAuthApplicationService, AuthApplicationService>();
         services.AddSingleton<IHealthDataSyncService, HealthDataSyncService>();
         services.AddScoped<IMedicationApplicationService, MedicationApplicationService>();
+        services.AddScoped<IDoctorPortalDataFacade, DoctorPortalDataFacade>();
         services.AddScoped<IDoctorPortalApplicationService, DoctorPortalApplicationService>();
         services.AddScoped<IEcgApplicationService, EcgApplicationService>();
         services.AddScoped<IChatBotApplicationService, ChatBotApplicationService>();

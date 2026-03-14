@@ -70,6 +70,12 @@ function getQualityVariant(score: number): "default" | "secondary" | "destructiv
   return "destructive";
 }
 
+function getMedStatusVariant(status: number): "default" | "destructive" | "secondary" {
+  if (status === 0) return "default";
+  if (status === 1) return "destructive";
+  return "secondary";
+}
+
 export default function PatientDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -272,8 +278,9 @@ export default function PatientDetailPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
-            <label className="text-sm font-medium">Reason *</label>
+            <label htmlFor="end-med-reason" className="text-sm font-medium">Reason *</label>
             <input
+              id="end-med-reason"
               className="w-full border rounded-md px-3 py-2 text-sm bg-background"
               placeholder="e.g. Treatment completed, side effects, etc."
               value={endMedReason}
@@ -289,7 +296,10 @@ export default function PatientDetailPage() {
               disabled={!endMedReason.trim() || endingMed}
               onClick={handleConfirmEndMedication}
             >
-              {endingMed ? "..." : endMedDialog?.isDiscontinued ? "Remove" : "End"}
+              {(() => {
+                if (endingMed) return "...";
+                return endMedDialog?.isDiscontinued ? "Remove" : "End";
+              })()}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -436,7 +446,7 @@ export default function PatientDetailPage() {
         <TabsContent value="medications" className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
-              {medications.length} medication{medications.length !== 1 ? "s" : ""}
+              {medications.length} medication{medications.length === 1 ? "" : "s"}
             </p>
             <Button size="sm" onClick={() => setShowPrescribeForm((v) => !v)}>
               <Pill className="mr-1 h-4 w-4" />
@@ -452,8 +462,9 @@ export default function PatientDetailPage() {
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1 relative">
-                    <label className="text-xs text-muted-foreground font-medium">Name *</label>
+                    <label htmlFor="prescribe-name" className="text-xs text-muted-foreground font-medium">Name *</label>
                     <input
+                      id="prescribe-name"
                       className="w-full border rounded-md px-3 py-2 text-sm bg-background"
                       placeholder="Search by name (e.g. Metoprolol)"
                       value={prescribeName}
@@ -486,8 +497,9 @@ export default function PatientDetailPage() {
                     )}
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs text-muted-foreground font-medium">Dosage *</label>
+                    <label htmlFor="prescribe-dosage" className="text-xs text-muted-foreground font-medium">Dosage *</label>
                     <input
+                      id="prescribe-dosage"
                       className="w-full border rounded-md px-3 py-2 text-sm bg-background"
                       placeholder="e.g. 50mg"
                       value={prescribeDosage}
@@ -495,8 +507,9 @@ export default function PatientDetailPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs text-muted-foreground font-medium">Frequency</label>
+                    <label htmlFor="prescribe-frequency" className="text-xs text-muted-foreground font-medium">Frequency</label>
                     <input
+                      id="prescribe-frequency"
                       className="w-full border rounded-md px-3 py-2 text-sm bg-background"
                       placeholder="e.g. Twice daily"
                       value={prescribeFrequency}
@@ -504,8 +517,9 @@ export default function PatientDetailPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs text-muted-foreground font-medium">Route</label>
+                    <label htmlFor="prescribe-route" className="text-xs text-muted-foreground font-medium">Route</label>
                     <select
+                      id="prescribe-route"
                       className="w-full border rounded-md px-3 py-2 text-sm bg-background"
                       value={prescribeRoute}
                       onChange={(e) => setPrescribeRoute(Number(e.target.value) as 0 | 1 | 2 | 3 | 4)}
@@ -516,8 +530,9 @@ export default function PatientDetailPage() {
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs text-muted-foreground font-medium">Reason (optional)</label>
+                    <label htmlFor="prescribe-reason" className="text-xs text-muted-foreground font-medium">Reason (optional)</label>
                     <input
+                      id="prescribe-reason"
                       className="w-full border rounded-md px-3 py-2 text-sm bg-background"
                       placeholder="e.g. Blood pressure control"
                       value={prescribeReason}
@@ -563,7 +578,7 @@ export default function PatientDetailPage() {
                         <TableCell className="text-muted-foreground">{m.frequency ?? "—"}</TableCell>
                         <TableCell>{MedicationRouteLabel[m.route]}</TableCell>
                         <TableCell>
-                          <Badge variant={m.status === 0 ? "default" : m.status === 1 ? "destructive" : "secondary"}>
+                          <Badge variant={getMedStatusVariant(m.status)}>
                             {MedicationStatusLabel[m.status]}
                           </Badge>
                         </TableCell>

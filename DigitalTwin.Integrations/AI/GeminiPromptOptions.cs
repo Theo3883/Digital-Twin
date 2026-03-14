@@ -94,7 +94,8 @@ public class GeminiPromptOptions
         """;
 
     // ── Generation parameters (deterministic output) ────────────────────────
-
+    /// <summary>Base endpoint URL for the Gemini generateContent API (model + method, no key).</summary>
+    public string EndpointUrl { get; set; } = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent";
     public double Temperature { get; set; } = 0.3;
     public double TopP { get; set; } = 0.8;
     public int TopK { get; set; } = 40;

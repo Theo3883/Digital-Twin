@@ -14,8 +14,7 @@ public class GeminiApiClient : IGeminiApiClient
     private readonly GeminiPromptOptions _options;
     private readonly ILogger<GeminiApiClient> _logger;
     private readonly string _apiKey;
-
-    private const string BaseUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent";
+    private readonly string _baseUrl;
 
     public GeminiApiClient(
         IHttpClientFactory httpClientFactory,
@@ -27,6 +26,7 @@ public class GeminiApiClient : IGeminiApiClient
         _options    = options.Value;
         _logger     = logger;
         _apiKey     = apiKey;
+        _baseUrl    = options.Value.EndpointUrl;
     }
 
     public Task<string> GenerateContentAsync(string systemPrompt, string userMessage, CancellationToken ct = default)
@@ -62,13 +62,14 @@ public class GeminiApiClient : IGeminiApiClient
             }
         };
 
-        var url = $"{BaseUrl}?key={_apiKey}";
+        var url = $"{_baseUrl}?key={_apiKey}";
 
         for (var attempt = 1; attempt <= _options.MaxRetries; attempt++)
         {
             ct.ThrowIfCancellationRequested();
 
-            _logger.LogInformation("[GeminiApi] Sending request (attempt {Attempt}/{Max}).", attempt, _options.MaxRetries);
+            if (_logger.IsEnabled(LogLevel.Information))
+                _logger.LogInformation("[GeminiApi] Sending request (attempt {Attempt}/{Max}).", attempt, _options.MaxRetries);
 
             var response = await _httpClient.PostAsJsonAsync(url, requestBody, ct);
 

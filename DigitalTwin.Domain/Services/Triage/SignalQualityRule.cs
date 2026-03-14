@@ -17,7 +17,7 @@ public class SignalQualityRule : IEcgTriageRule
             return TriageResult.Critical;
 
         var first = frame.Samples[0];
-        var allIdentical = frame.Samples.All(s => s == first);
+        var allIdentical = frame.Samples.All(s => Math.Abs(s - first) <= double.Epsilon);
         if (allIdentical)
             return TriageResult.Critical;
 

@@ -6,41 +6,30 @@ namespace DigitalTwin.Domain.Services;
 
 public class MedicationService : IMedicationService
 {
-    public Medication CreateMedication(
-        Guid patientId,
-        string name,
-        string dosage,
-        string? frequency,
-        MedicationRoute route,
-        string? rxCui,
-        string? instructions,
-        string? reason,
-        Guid? prescribedByUserId,
-        DateTime? startDate,
-        AddedByRole addedByRole)
+    public Medication CreateMedication(CreateMedicationRequest request)
     {
-        if (string.IsNullOrWhiteSpace(name))
-            throw new ArgumentException("Medication name is required.", nameof(name));
-        if (string.IsNullOrWhiteSpace(dosage))
-            throw new ArgumentException("Dosage is required.", nameof(dosage));
+        if (string.IsNullOrWhiteSpace(request.Name))
+            throw new ArgumentException("Medication name is required.", nameof(request));
+        if (string.IsNullOrWhiteSpace(request.Dosage))
+            throw new ArgumentException("Dosage is required.", nameof(request));
 
         var now = DateTime.UtcNow;
 
         return new Medication
         {
             Id = Guid.NewGuid(),
-            PatientId = patientId,
-            Name = name.Trim(),
-            Dosage = dosage.Trim(),
-            Frequency = frequency?.Trim(),
-            Route = route,
-            RxCui = rxCui?.Trim(),
-            Instructions = instructions?.Trim(),
-            Reason = reason?.Trim(),
-            PrescribedByUserId = prescribedByUserId,
-            StartDate = startDate,
+            PatientId = request.PatientId,
+            Name = request.Name.Trim(),
+            Dosage = request.Dosage.Trim(),
+            Frequency = request.Frequency?.Trim(),
+            Route = request.Route,
+            RxCui = request.RxCui?.Trim(),
+            Instructions = request.Instructions?.Trim(),
+            Reason = request.Reason?.Trim(),
+            PrescribedByUserId = request.PrescribedByUserId,
+            StartDate = request.StartDate,
             Status = MedicationStatus.Active,
-            AddedByRole = addedByRole,
+            AddedByRole = request.AddedByRole,
             CreatedAt = now,
             UpdatedAt = now
         };

@@ -85,15 +85,15 @@ public sealed class VitalSignSyncDrainer : SyncDrainerBase<VitalSign>
 
     protected override async Task<IReadOnlyList<PullScope>> GetPullScopesAsync(CancellationToken ct)
     {
+        var localPatientIds = (await _localPatient.GetAllAsync()).Select(p => p.Id).ToList();
         var scopes = new List<PullScope>();
-        var localPatients = (await _localPatient.GetAllAsync()).ToList();
 
-        foreach (var localPatient in localPatients)
+        foreach (var localPatientId in localPatientIds)
         {
             ct.ThrowIfCancellationRequested();
-            var cloudPatientId = await _identityResolver.ResolveCloudPatientIdAsync(localPatient.Id, ct);
+            var cloudPatientId = await _identityResolver.ResolveCloudPatientIdAsync(localPatientId, ct);
             if (cloudPatientId is null) continue;
-            scopes.Add(new PullScope(localPatient.Id, cloudPatientId.Value));
+            scopes.Add(new PullScope(localPatientId, cloudPatientId.Value));
         }
 
         return scopes;

@@ -1,7 +1,7 @@
 // ECG Canvas renderer — hospital-monitor sweep style
 // Exposed as window.EcgCanvas for Blazor JSInterop calls.
 
-window.EcgCanvas = (() => {
+globalThis.EcgCanvas = (() => {
     const contexts = {};
 
     function getCtx(canvasId) {

@@ -15,7 +15,6 @@ public sealed class CloudIdentityResolver : ICloudIdentityResolver
     private readonly IUserRepository? _cloudUser;
     private readonly IPatientRepository _localPatient;
     private readonly IPatientRepository? _cloudPatient;
-    private readonly ILogger<CloudIdentityResolver> _logger;
 
     public CloudIdentityResolver(
         IUserRepository localUser,
@@ -24,11 +23,11 @@ public sealed class CloudIdentityResolver : ICloudIdentityResolver
         IPatientRepository? cloudPatient,
         ILogger<CloudIdentityResolver> logger)
     {
-        _localUser = localUser;
-        _cloudUser = cloudUser;
+        _localUser    = localUser;
+        _cloudUser    = cloudUser;
         _localPatient = localPatient;
         _cloudPatient = cloudPatient;
-        _logger = logger;
+        _ = logger; // logger reserved for future diagnostic use
     }
 
     public async Task<Guid?> ResolveCloudUserIdAsync(Guid localUserId, CancellationToken ct = default)

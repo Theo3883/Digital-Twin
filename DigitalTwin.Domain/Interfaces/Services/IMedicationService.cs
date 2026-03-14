@@ -14,16 +14,5 @@ public interface IMedicationService
     /// Creates a valid <see cref="Medication"/> domain object, applying defaults and validating inputs.
     /// Does NOT persist — caller must call the repository.
     /// </summary>
-    Medication CreateMedication(
-        Guid patientId,
-        string name,
-        string dosage,
-        string? frequency,
-        MedicationRoute route,
-        string? rxCui,
-        string? instructions,
-        string? reason,
-        Guid? prescribedByUserId,
-        DateTime? startDate,
-        AddedByRole addedByRole);
+    Medication CreateMedication(CreateMedicationRequest request);
 }

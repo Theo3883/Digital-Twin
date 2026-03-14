@@ -293,10 +293,6 @@
   border-radius: var(--radius-inner) !important;
 }
 
-.mud-dialog .mud-dialog-content {
-  border-radius: var(--radius-card) !important;
-}
-
 .mud-avatar {
   border-radius: 50% !important;
 }
@@ -464,6 +460,7 @@ input, select, textarea {
 
 /* Content area */
 .mud-dialog .mud-dialog-content {
+  border-radius: var(--radius-card) !important;
   color: var(--text-main) !important;
   padding: 16px 20px !important;
 }
