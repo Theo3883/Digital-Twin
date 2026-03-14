@@ -421,3 +421,125 @@
 input, select, textarea {
   font-size: 16px;
 }
+
+/* ============================================================
+   Liquid Glass — MudBlazor Dialog Overrides
+   ============================================================ */
+
+/* Dim + blur the backdrop */
+.mud-overlay.mud-overlay-dialog {
+  background: rgba(0, 0, 0, 0.55) !important;
+  backdrop-filter: blur(6px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(6px) saturate(120%) !important;
+}
+
+/* The dialog box itself — same liquid glass as .glass-card */
+.mud-dialog {
+  background: var(--glass-bg) !important;
+  backdrop-filter: var(--glass-blur) !important;
+  -webkit-backdrop-filter: var(--glass-blur) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-top-color: var(--glass-highlight) !important;
+  border-left-color: var(--glass-highlight) !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--glass-shadow), 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+  overflow: hidden;
+}
+
+/* Title bar */
+.mud-dialog .mud-dialog-title {
+  font-family: var(--font-display) !important;
+  font-weight: 700 !important;
+  font-size: 18px !important;
+  color: var(--text-main) !important;
+  padding: 20px 20px 14px !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  letter-spacing: -0.2px;
+}
+
+/* Close button inside title */
+.mud-dialog .mud-dialog-title .mud-icon-button {
+  color: var(--text-sec) !important;
+}
+
+/* Content area */
+.mud-dialog .mud-dialog-content {
+  color: var(--text-main) !important;
+  padding: 16px 20px !important;
+}
+
+/* Actions bar */
+.mud-dialog .mud-dialog-actions {
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  padding: 10px 16px !important;
+  gap: 8px;
+}
+
+/* Primary action button → teal */
+.mud-dialog .mud-dialog-actions .mud-button-filled.mud-button-filled-primary {
+  background: var(--teal-primary) !important;
+  color: #000 !important;
+  font-weight: 600 !important;
+  border-radius: var(--radius-button) !important;
+}
+
+.mud-dialog .mud-dialog-actions .mud-button-filled.mud-button-filled-primary:hover {
+  background: var(--teal-active) !important;
+}
+
+/* Cancel / text buttons */
+.mud-dialog .mud-dialog-actions .mud-button-text {
+  color: var(--text-sec) !important;
+  font-weight: 500 !important;
+}
+
+.mud-dialog .mud-dialog-actions .mud-button-text:hover {
+  color: var(--text-main) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* MudTextField / MudSelect inside dialog — glass inputs */
+.mud-dialog .mud-input-outlined .mud-input-outlined-border {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  border-radius: var(--radius-input) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.mud-dialog .mud-input-outlined:hover .mud-input-outlined-border {
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+.mud-dialog .mud-input-outlined.mud-input-focused .mud-input-outlined-border {
+  border-color: var(--teal-primary) !important;
+}
+
+.mud-dialog .mud-input-control .mud-input-label,
+.mud-dialog .mud-input-control .mud-input-label-animated {
+  color: var(--text-sec) !important;
+}
+
+.mud-dialog .mud-input-slot,
+.mud-dialog .mud-input input,
+.mud-dialog .mud-input textarea {
+  color: var(--text-main) !important;
+}
+
+/* MudSelect dropdown paper */
+.mud-popover-paper {
+  background: rgba(18, 22, 36, 0.95) !important;
+  backdrop-filter: blur(32px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5) !important;
+}
+
+.mud-popover-paper .mud-list-item {
+  color: var(--text-main) !important;
+}
+
+.mud-popover-paper .mud-list-item:hover,
+.mud-popover-paper .mud-list-item.mud-selected {
+  background: rgba(0, 212, 200, 0.12) !important;
+  color: var(--teal-primary) !important;
+}

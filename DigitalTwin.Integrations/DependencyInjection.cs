@@ -91,14 +91,17 @@ public static class DependencyInjection
 
             services.AddScoped<IChatBotProvider, GeminiChatBotProvider>();
             services.AddScoped<ICoachingProvider, GeminiCoachingProvider>();
+            services.AddScoped<IRxCuiLookupProvider, GeminiRxCuiLookupProvider>();
         }
         else
         {
             services.AddScoped<IChatBotProvider, MockChatBotProvider>();
             services.AddScoped<ICoachingProvider, MockCoachingProvider>();
+            services.AddScoped<IRxCuiLookupProvider, NullRxCuiLookupProvider>();
         }
 
         services.AddHttpClient<IMedicationInteractionProvider, RxNavProvider>();
+        services.AddHttpClient<IDrugSearchProvider, RxNavProvider>();
 
         // ECG: direct connection to ESP32 on local network.
         // EcgDeviceUrl is set via ECG_DEVICE_URL env var or entered by the user at runtime.

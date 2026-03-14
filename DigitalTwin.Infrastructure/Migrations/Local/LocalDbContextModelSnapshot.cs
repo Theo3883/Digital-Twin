@@ -135,6 +135,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("AddedByRole")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
@@ -156,6 +159,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
 
                     b.Property<string>("Instructions")
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDirty")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -181,6 +187,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
 
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("SyncedAt")
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("TEXT");

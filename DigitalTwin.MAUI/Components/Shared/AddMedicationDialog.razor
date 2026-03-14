@@ -1,0 +1,177 @@
+@using DigitalTwin.Application.DTOs
+@using DigitalTwin.Application.Interfaces
+@using DigitalTwin.Domain.Enums
+@inject IMedicationApplicationService MedicationService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="font-family: var(--font-display); font-weight: 700;">Add Medication</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <div style="display: flex; flex-direction: column; gap: 14px; min-width: 300px; padding-top: 4px;">
+
+            @* Name with inline RxCUI autocomplete *@
+            <div style="position: relative;">
+                <MudTextField T="string"
+                              Label="Medication Name"
+                              Placeholder="Search by name (e.g. Metoprolol)…"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              Value="@_name"
+                              ValueChanged="OnNameChangedAsync"
+                              Adornment="@(_isSearching ? Adornment.End : Adornment.None)"
+                              AdornmentIcon="@Icons.Material.Filled.HourglassEmpty"
+                              Immediate="true"
+                              DebounceInterval="0" />
+
+                @if (!string.IsNullOrEmpty(_rxCui))
+                {
+                    <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+                        <span class="glass-chip" style="font-size: 11px; color: var(--teal-primary); border-color: rgba(0,212,200,0.3); background: rgba(0,212,200,0.08); padding: 3px 10px;">
+                            RxCUI: @_rxCui
+                        </span>
+                        <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                       Size="Size.Small"
+                                       Color="Color.Default"
+                                       OnClick="ClearRxCui" />
+                    </div>
+                }
+
+                @if (_suggestions.Count > 0)
+                {
+                    <MudPaper Elevation="8"
+                              Style="position: absolute; top: calc(100% + 2px); left: 0; right: 0; z-index: 200; border-radius: 12px; overflow: hidden; background: rgba(20,25,40,0.98); border: 1px solid rgba(255,255,255,0.15);">
+                        @foreach (var s in _suggestions)
+                        {
+                            <button type="button"
+                                    @onclick="() => SelectSuggestion(s.Name, s.RxCui)"
+                                    style="width: 100%; border: none; border-bottom: 1px solid rgba(255,255,255,0.06); background: transparent; padding: 12px 14px; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 2px;">
+                                <span style="font-size: 13px; color: var(--text-main); font-weight: 500;">@s.Name</span>
+                                <span style="font-size: 11px; color: var(--text-sec);">RxCUI @s.RxCui</span>
+                            </button>
+                        }
+                    </MudPaper>
+                }
+            </div>
+
+            <MudTextField T="string"
+                          Label="Dosage"
+                          Placeholder="e.g. 50mg"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          @bind-Value="_dosage" />
+
+            <MudTextField T="string"
+                          Label="Frequency"
+                          Placeholder="e.g. Twice daily"
+                          Variant="Variant.Outlined"
+                          @bind-Value="_frequency" />
+
+            <MudSelect T="MedicationRoute"
+                       Label="Route"
+                       Variant="Variant.Outlined"
+                       @bind-Value="_route">
+                @foreach (var route in Enum.GetValues<MedicationRoute>())
+                {
+                    <MudSelectItem Value="@route">@route</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudTextField T="string"
+                          Label="Reason (optional)"
+                          Placeholder="e.g. Blood pressure control"
+                          Variant="Variant.Outlined"
+                          @bind-Value="_reason" />
+        </div>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Cancel</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="Submit"
+                   Disabled="@(!IsValid)">Add</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private string _name = string.Empty;
+    private string _dosage = string.Empty;
+    private string _frequency = string.Empty;
+    private MedicationRoute _route = MedicationRoute.Oral;
+    private string _reason = string.Empty;
+    private string _rxCui = string.Empty;
+
+    private List<DrugSearchResultDto> _suggestions = [];
+    private bool _isSearching;
+    private CancellationTokenSource? _cts;
+
+    private bool IsValid =>
+        !string.IsNullOrWhiteSpace(_name) && !string.IsNullOrWhiteSpace(_dosage);
+
+    private async Task OnNameChangedAsync(string value)
+    {
+        _name = value;
+        _suggestions = [];
+
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
+        if (_name.Length < 3)
+        {
+            _isSearching = false;
+            return;
+        }
+
+        _isSearching = true;
+
+        try
+        {
+            await Task.Delay(400, token);
+            if (token.IsCancellationRequested) return;
+
+            _suggestions = (await MedicationService.SearchDrugsByNameAsync(_name, 8, token)).ToList();
+        }
+        catch (OperationCanceledException) { }
+        catch { _suggestions = []; }
+        finally
+        {
+            _isSearching = false;
+        }
+    }
+
+    private void SelectSuggestion(string name, string rxCui)
+    {
+        _name = name;
+        _rxCui = rxCui;
+        _suggestions = [];
+        _cts?.Cancel();
+    }
+
+    private void ClearRxCui() => _rxCui = string.Empty;
+
+    private void Submit()
+    {
+        if (!IsValid) return;
+
+        var dto = new AddMedicationDto
+        {
+            Name      = _name.Trim(),
+            Dosage    = _dosage.Trim(),
+            Frequency = string.IsNullOrWhiteSpace(_frequency) ? null : _frequency.Trim(),
+            Route     = _route,
+            RxCui     = string.IsNullOrWhiteSpace(_rxCui) ? null : _rxCui.Trim(),
+            Reason    = string.IsNullOrWhiteSpace(_reason) ? null : _reason.Trim(),
+            StartDate = DateTime.UtcNow
+        };
+
+        MudDialog.Close(DialogResult.Ok(dto));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

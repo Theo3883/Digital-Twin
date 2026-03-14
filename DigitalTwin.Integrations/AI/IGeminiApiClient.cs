@@ -7,4 +7,13 @@ namespace DigitalTwin.Integrations.AI;
 public interface IGeminiApiClient
 {
     Task<string> GenerateContentAsync(string systemPrompt, string userMessage, CancellationToken ct = default);
+
+    /// <summary>
+    /// Same as GenerateContentAsync but with a temperature override (e.g. 0 for deterministic lookup tasks).
+    /// </summary>
+    Task<string> GenerateContentAsync(
+        string systemPrompt,
+        string userMessage,
+        double temperature,
+        CancellationToken ct = default);
 }

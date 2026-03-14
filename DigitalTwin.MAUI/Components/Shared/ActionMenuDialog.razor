@@ -1,0 +1,47 @@
+@using DigitalTwin.Components.Shared
+
+<MudDialog>
+    <TitleContent>
+        <MudText Style="font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px;">
+            @Title
+        </MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <div style="display: flex; flex-direction: column; gap: 6px; min-width: 260px; padding: 4px 0;">
+            @foreach (var action in Actions)
+            {
+                <button type="button"
+                        @key="@action.Key"
+                        @onclick="() => Choose(action.Key)"
+                        style="display: flex; align-items: center; gap: 14px; padding: 16px 14px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); cursor: pointer; width: 100%; border-radius: 16px; text-align: left; transition: background 0.15s ease, border-color 0.15s ease;"
+                        onmouseover="this.style.background='rgba(255,255,255,0.09)'; this.style.borderColor='rgba(255,255,255,0.15)';"
+                        onmouseout="this.style.background='rgba(255,255,255,0.04)'; this.style.borderColor='rgba(255,255,255,0.08)';">
+                    <MudIcon Icon="@action.Icon" Style="@($"color: {action.TextColor}; flex-shrink: 0;")" Size="Size.Medium" />
+                    <span style="@($"font-size: 16px; color: {action.TextColor}; font-weight: 500; font-family: var(--font-display);")">@action.Label</span>
+                </button>
+            }
+        </div>
+    </DialogContent>
+
+    <DialogActions>
+        <button type="button"
+                @onclick="Cancel"
+                style="width: 100%; padding: 13px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); border-radius: var(--radius-button); color: var(--text-sec); font-size: 15px; font-weight: 500; cursor: pointer; font-family: var(--font-display); letter-spacing: 0.2px; transition: background 0.15s ease;"
+                onmouseover="this.style.background='rgba(255,255,255,0.1)'"
+                onmouseout="this.style.background='rgba(255,255,255,0.06)'">
+            Cancel
+        </button>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public List<ActionItem> Actions { get; set; } = [];
+
+    private void Choose(string key) => MudDialog.Close(DialogResult.Ok(key));
+
+    private void Cancel() => MudDialog.Cancel();
+}

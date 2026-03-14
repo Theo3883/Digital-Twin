@@ -28,6 +28,18 @@ public interface IDoctorPortalApplicationService
         string doctorEmail, Guid patientId,
         DateTime? from = null, DateTime? to = null);
 
+    /// <summary>Get all medications for an assigned patient.</summary>
+    Task<IEnumerable<MedicationDto>> GetPatientMedicationsAsync(string doctorEmail, Guid patientId);
+
+    /// <summary>Prescribe a medication for an assigned patient (added by doctor).</summary>
+    Task<MedicationDto?> AddPatientMedicationAsync(string doctorEmail, Guid patientId, AddMedicationDto dto);
+
+    /// <summary>Remove (soft-delete) a medication for an assigned patient.</summary>
+    Task<bool> DeletePatientMedicationAsync(string doctorEmail, Guid patientId, Guid medicationId);
+
+    /// <summary>End (discontinue) a medication for an assigned patient with a reason.</summary>
+    Task<bool> DiscontinuePatientMedicationAsync(string doctorEmail, Guid patientId, Guid medicationId, string reason);
+
     /// <summary>Assign a patient to a doctor by patient email.</summary>
     Task<DoctorPatientSummaryDto?> AssignPatientAsync(string doctorEmail, AssignPatientDto dto);
 

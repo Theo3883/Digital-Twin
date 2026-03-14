@@ -1,3 +1,4 @@
+using DigitalTwin.Application.Interfaces;
 using DigitalTwin.Domain.Interfaces.Repositories;
 using DigitalTwin.Domain.Models;
 using Microsoft.Extensions.Logging;
@@ -22,6 +23,7 @@ public sealed class SleepSessionDrainer : ITableDrainer
     private readonly ISleepSessionRepository? _cloud;
     private readonly IPatientRepository _localPatient;
     private readonly IPatientRepository? _cloudPatient;
+    private readonly ICloudUserIdResolver _cloudUserIdResolver;
     private readonly ILogger<SleepSessionDrainer> _logger;
 
     public int Order => 5;
@@ -32,12 +34,14 @@ public sealed class SleepSessionDrainer : ITableDrainer
         ISleepSessionRepository? cloud,
         IPatientRepository localPatient,
         IPatientRepository? cloudPatient,
+        ICloudUserIdResolver cloudUserIdResolver,
         ILogger<SleepSessionDrainer> logger)
     {
         _local = local;
         _cloud = cloud;
         _localPatient = localPatient;
         _cloudPatient = cloudPatient;
+        _cloudUserIdResolver = cloudUserIdResolver;
         _logger = logger;
     }
 
@@ -104,10 +108,16 @@ public sealed class SleepSessionDrainer : ITableDrainer
                     continue;
                 }
 
-                var cloudPatient = await _cloudPatient!.GetByUserIdAsync(localPatient.UserId);
+                var cloudUserId = await _cloudUserIdResolver.ResolveCloudUserIdAsync(localPatient.UserId, ct);
+                if (cloudUserId is null)
+                {
+                    _logger.LogWarning("[{Table}] Cloud User for local UserId {UserId} not found — ensure UserDrainer runs first.", TableName, localPatient.UserId);
+                    continue;
+                }
+                var cloudPatient = await _cloudPatient!.GetByUserIdAsync(cloudUserId.Value);
                 if (cloudPatient is null)
                 {
-                    _logger.LogWarning("[{Table}] Cloud Patient for UserId {UserId} not found — ensure PatientDrainer runs first.", TableName, localPatient.UserId);
+                    _logger.LogWarning("[{Table}] Cloud Patient for UserId {UserId} not found — ensure PatientDrainer runs first.", TableName, cloudUserId.Value);
                     continue;
                 }
 
@@ -141,7 +151,9 @@ public sealed class SleepSessionDrainer : ITableDrainer
         {
             ct.ThrowIfCancellationRequested();
 
-            var cloudPatient = await _cloudPatient!.GetByUserIdAsync(localPatient.UserId);
+            var cloudUserId = await _cloudUserIdResolver.ResolveCloudUserIdAsync(localPatient.UserId, ct);
+            if (cloudUserId is null) continue;
+            var cloudPatient = await _cloudPatient!.GetByUserIdAsync(cloudUserId.Value);
             if (cloudPatient is null) continue;
 
             var cloudSessions = (await _cloud!.GetByPatientAsync(cloudPatient.Id, from: since)).ToList();

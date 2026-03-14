@@ -1,3 +1,4 @@
+using DigitalTwin.Application.Interfaces;
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Interfaces.Repositories;
 using DigitalTwin.Domain.Models;
@@ -18,6 +19,7 @@ public sealed class VitalSignDrainer(
     IVitalSignRepository? cloud,
     IPatientRepository patient,
     IPatientRepository? cloudPatient,
+    ICloudUserIdResolver cloudUserIdResolver,
     ILogger<VitalSignDrainer> logger)
     : ITableDrainer
 {
@@ -90,10 +92,16 @@ public sealed class VitalSignDrainer(
                     continue;
                 }
 
-                var cloudPatient1 = await cloudPatient!.GetByUserIdAsync(localPatient.UserId);
+                var cloudUserId = await cloudUserIdResolver.ResolveCloudUserIdAsync(localPatient.UserId, ct);
+                if (cloudUserId is null)
+                {
+                    logger.LogWarning("[{Table}] Cloud User for local UserId {UserId} not found — ensure UserDrainer runs first.", TableName, localPatient.UserId);
+                    continue;
+                }
+                var cloudPatient1 = await cloudPatient!.GetByUserIdAsync(cloudUserId.Value);
                 if (cloudPatient1 is null)
                 {
-                    logger.LogWarning("[{Table}] Cloud Patient for UserId {UserId} not found — ensure PatientDrainer runs first.", TableName, localPatient.UserId);
+                    logger.LogWarning("[{Table}] Cloud Patient for UserId {UserId} not found — ensure PatientDrainer runs first.", TableName, cloudUserId.Value);
                     continue;
                 }
 
@@ -128,7 +136,9 @@ public sealed class VitalSignDrainer(
         {
             ct.ThrowIfCancellationRequested();
 
-            var cloudPatient1 = await cloudPatient!.GetByUserIdAsync(localPatient.UserId);
+            var cloudUserId = await cloudUserIdResolver.ResolveCloudUserIdAsync(localPatient.UserId, ct);
+            if (cloudUserId is null) continue;
+            var cloudPatient1 = await cloudPatient!.GetByUserIdAsync(cloudUserId.Value);
             if (cloudPatient1 is null) continue;
 
             var cloudVitals = (await cloud!.GetByPatientAsync(cloudPatient1.Id, from: since)).ToList();

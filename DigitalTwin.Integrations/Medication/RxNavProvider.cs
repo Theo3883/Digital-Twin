@@ -7,7 +7,7 @@ using DigitalTwin.Integrations.Medication.DTOs;
 
 namespace DigitalTwin.Integrations.Medication;
 
-public class RxNavProvider : IMedicationInteractionProvider
+public class RxNavProvider : IMedicationInteractionProvider, IDrugSearchProvider
 {
     private readonly HttpClient _http;
 
@@ -15,6 +15,8 @@ public class RxNavProvider : IMedicationInteractionProvider
     {
         _http = http;
     }
+
+    // ── Drug interaction check ────────────────────────────────────────────────
 
     public async Task<IEnumerable<MedicationInteraction>> GetInteractionsAsync(
         IEnumerable<string> rxCuis)
@@ -54,6 +56,44 @@ public class RxNavProvider : IMedicationInteractionProvider
             return [];
         }
     }
+
+    // ── Drug name search (RxCUI autocomplete) ────────────────────────────────
+
+    public async Task<IEnumerable<DrugSearchResult>> SearchByNameAsync(
+        string query,
+        int maxResults = 8,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
+            return [];
+
+        try
+        {
+            var url = $"https://rxnav.nlm.nih.gov/REST/drugs.json?name={Uri.EscapeDataString(query)}";
+            var response = await _http.GetFromJsonAsync<RxNavDrugsResponse>(url, ct);
+
+            if (response?.DrugGroup?.ConceptGroup is null)
+                return [];
+
+            return response.DrugGroup.ConceptGroup
+                .Where(g => g.ConceptProperties is not null)
+                .SelectMany(g => g.ConceptProperties!)
+                .Where(p => !string.IsNullOrWhiteSpace(p.Rxcui) && !string.IsNullOrWhiteSpace(p.Name))
+                .Take(maxResults)
+                .Select(p => new DrugSearchResult(p.Name!, p.Rxcui!))
+                .ToList();
+        }
+        catch (OperationCanceledException)
+        {
+            return [];
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static InteractionSeverity ParseSeverity(string? severity)
     {

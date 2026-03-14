@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace DigitalTwin.Infrastructure.Migrations.Local
 {
     /// <inheritdoc />
-    public partial class InitialLocal : Migration
+    public partial class InitialMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -23,7 +23,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                     Notes = table.Column<string>(type: "TEXT", nullable: true),
                     AssignedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
+                    DeletedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    IsDirty = table.Column<bool>(type: "INTEGER", nullable: false),
+                    SyncedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -155,6 +157,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                     EndDate = table.Column<DateTime>(type: "TEXT", nullable: true),
                     Status = table.Column<int>(type: "INTEGER", nullable: false),
                     DiscontinuedReason = table.Column<string>(type: "TEXT", nullable: true),
+                    AddedByRole = table.Column<int>(type: "INTEGER", nullable: false),
+                    IsDirty = table.Column<bool>(type: "INTEGER", nullable: false),
+                    SyncedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "TEXT", nullable: true)

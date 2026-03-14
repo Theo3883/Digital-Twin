@@ -29,7 +29,14 @@ public class GeminiApiClient : IGeminiApiClient
         _apiKey     = apiKey;
     }
 
-    public async Task<string> GenerateContentAsync(string systemPrompt, string userMessage, CancellationToken ct = default)
+    public Task<string> GenerateContentAsync(string systemPrompt, string userMessage, CancellationToken ct = default)
+        => GenerateContentAsync(systemPrompt, userMessage, _options.Temperature, ct);
+
+    public async Task<string> GenerateContentAsync(
+        string systemPrompt,
+        string userMessage,
+        double temperature,
+        CancellationToken ct = default)
     {
         var requestBody = new
         {
@@ -47,7 +54,7 @@ public class GeminiApiClient : IGeminiApiClient
             },
             generationConfig = new
             {
-                temperature     = _options.Temperature,
+                temperature     = temperature,
                 topP            = _options.TopP,
                 topK            = _options.TopK,
                 maxOutputTokens = _options.MaxOutputTokens,

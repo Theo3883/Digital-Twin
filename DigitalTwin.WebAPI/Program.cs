@@ -1,5 +1,9 @@
 using System.Text;
+using DigitalTwin.Application.Interfaces;
+using DigitalTwin.Application.Services;
 using DigitalTwin.Composition;
+using DigitalTwin.Domain.Interfaces.Providers;
+using DigitalTwin.Integrations.Medication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 
@@ -44,6 +48,12 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
 var cloudConn = builder.Configuration.GetConnectionString("CloudDb")
     ?? throw new InvalidOperationException("ConnectionStrings:CloudDb is required.");
 builder.Services.AddDigitalTwinForWebApi(cloudConn);
+
+// ── Drug search for doctor portal (RxNav + MedicationApplicationService) ─────
+builder.Services.AddHttpClient<IDrugSearchProvider, RxNavProvider>();
+builder.Services.AddHttpClient<IMedicationInteractionProvider, RxNavProvider>();
+builder.Services.AddScoped<IRxCuiLookupProvider, NullRxCuiLookupProvider>();
+builder.Services.AddScoped<IMedicationApplicationService, MedicationApplicationService>();
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();

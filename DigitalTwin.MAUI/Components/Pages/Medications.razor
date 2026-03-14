@@ -1,117 +1,122 @@
 @page "/medications"
+@using DigitalTwin.Domain.Enums
 @inject IMedicationApplicationService MedicationService
+@inject IAuthApplicationService AuthService
+@inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
 <RequireAuth>
-<div class="page-enter" style="padding: 0 16px 120px; display: flex; flex-direction: column; gap: 16px; position: relative; min-height: 100%;">
+<div class="page-enter" style="padding: 0 16px 180px; display: flex; flex-direction: column; gap: 16px; position: relative; min-height: 100%;">
 
-    @* Safety Badge *@
-    @if (_interactions.Any() || _hasSearched)
-    {
-        if (_interactions.Any())
-        {
-            <div class="glass-card" style="padding: 16px; background: rgba(255,149,0,0.1) !important; border-color: rgba(255,149,0,0.3) !important; display: flex; align-items: center; gap: 12px;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--amber-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-                <div>
-                    <h3 style="font-family: var(--font-display); font-weight: 700; color: var(--amber-warning); margin: 0;">⚠ @_interactions.Count Interaction@(_interactions.Count == 1 ? "" : "s") Detected</h3>
-                    <p style="font-size: 12px; color: var(--text-sec); margin-top: 2px;">@(_interactions.Count(i => i.Severity == InteractionSeverity.High)) High · @(_interactions.Count(i => i.Severity == InteractionSeverity.Medium)) Medium · @(_interactions.Count(i => i.Severity == InteractionSeverity.Low)) Low Severity</p>
-                </div>
-            </div>
-        }
-        else
-        {
-            <div class="glass-card" style="padding: 16px; background: rgba(52,199,89,0.1) !important; border-color: rgba(52,199,89,0.3) !important; display: flex; align-items: center; gap: 12px;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--green-positive)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
-                <div>
-                    <h3 style="font-family: var(--font-display); font-weight: 700; color: var(--green-positive); margin: 0;">✓ No Interactions Found</h3>
-                    <p style="font-size: 12px; color: var(--text-sec); margin-top: 2px;">All checked medications are safe to combine</p>
-                </div>
-            </div>
-        }
+    @* ── Interaction banner ─────────────────────────────────────────────────── *@
+    @{
+        var bannerSource = (_interactions.Any() || _hasSearched) ? _interactions : _autoInteractions;
     }
-    else
+    @if (bannerSource.Any())
     {
-        @* Default safety badge *@
+        var hi = bannerSource.Count(i => i.Severity == _sevHigh);
+        var md = bannerSource.Count(i => i.Severity == _sevMed);
+        var lo = bannerSource.Count(i => i.Severity == _sevLow);
         <div class="glass-card" style="padding: 16px; background: rgba(255,149,0,0.1) !important; border-color: rgba(255,149,0,0.3) !important; display: flex; align-items: center; gap: 12px;">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--amber-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
             <div>
-                <h3 style="font-family: var(--font-display); font-weight: 700; color: var(--amber-warning); margin: 0;">⚠ 2 Interactions Detected</h3>
-                <p style="font-size: 12px; color: var(--text-sec); margin-top: 2px;">1 Moderate · 1 Low Severity</p>
+                <h3 style="font-family: var(--font-display); font-weight: 700; color: var(--amber-warning); margin: 0;">⚠ @bannerSource.Count Interaction@(bannerSource.Count == 1 ? "" : "s") Detected</h3>
+                <p style="font-size: 12px; color: var(--text-sec); margin-top: 2px;">@hi High · @md Medium · @lo Low Severity</p>
+            </div>
+        </div>
+    }
+    else if (_hasSearched)
+    {
+        <div class="glass-card" style="padding: 16px; background: rgba(52,199,89,0.1) !important; border-color: rgba(52,199,89,0.3) !important; display: flex; align-items: center; gap: 12px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--green-positive)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+            <div>
+                <h3 style="font-family: var(--font-display); font-weight: 700; color: var(--green-positive); margin: 0;">✓ No Interactions Found</h3>
+                <p style="font-size: 12px; color: var(--text-sec); margin-top: 2px;">All checked medications are safe to combine</p>
+            </div>
+        </div>
+    }
+    else if (!_isLoading && _medications.Count == 0)
+    {
+        <div class="glass-card" style="padding: 16px; background: rgba(52,199,89,0.1) !important; border-color: rgba(52,199,89,0.3) !important; display: flex; align-items: center; gap: 12px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--green-positive)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>
+            <div>
+                <h3 style="font-family: var(--font-display); font-weight: 700; color: var(--green-positive); margin: 0;">No Medications</h3>
+                <p style="font-size: 12px; color: var(--text-sec); margin-top: 2px;">Tap "Add Medication" below to get started</p>
             </div>
         </div>
     }
 
-    @* Interaction Cards from API *@
-    @if (_interactions.Any())
+    @* ── Interaction detail cards ──────────────────────────────────────────── *@
+    @{
+        var detailSource = _interactions.Any() ? _interactions
+                         : (!_hasSearched && _autoInteractions.Any()) ? _autoInteractions
+                         : new List<MedicationInteractionDto>();
+    }
+    @if (detailSource.Any())
     {
         <div style="display: flex; flex-direction: column; gap: 10px;">
-            @foreach (var interaction in _interactions)
+            @foreach (var interaction in detailSource)
             {
-                var borderColor = interaction.Severity == InteractionSeverity.High ? "var(--red-critical)"
-                    : interaction.Severity == InteractionSeverity.Medium ? "var(--amber-warning)" : "#facc15";
-                var textColor = interaction.Severity == InteractionSeverity.High ? "var(--red-critical)"
-                    : interaction.Severity == InteractionSeverity.Medium ? "var(--amber-warning)" : "#facc15";
-                <div class="glass-card" style="padding: 16px; border-left: 4px solid @borderColor !important;">
+                var bc = interaction.Severity == _sevHigh ? "var(--red-critical)"
+                       : interaction.Severity == _sevMed  ? "var(--amber-warning)" : "#facc15";
+                <div class="glass-card" style="padding: 16px; border-left: 4px solid @bc !important;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="@textColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="@bc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
                             <span style="font-size: 14px; font-weight: 500; color: var(--text-main);">@interaction.DrugARxCui + @interaction.DrugBRxCui</span>
                         </div>
-                        <span class="glass-chip" style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: @textColor; padding: 3px 10px;">
-                            <MedicationSafetyBadge Severity="@interaction.Severity" />
-                        </span>
+                        <MedicationSafetyBadge Severity="@interaction.Severity" />
                     </div>
                     <p style="font-size: 12px; color: var(--text-sec); line-height: 1.6;">@interaction.Description</p>
                 </div>
             }
         </div>
     }
-    else if (!_hasSearched)
-    {
-        @* Default interactions display matching DTH *@
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-            <div class="glass-card" style="padding: 16px; border-left: 4px solid var(--amber-warning) !important;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--amber-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
-                        <span style="font-size: 14px; font-weight: 500; color: var(--text-main);">Warfarin + Aspirin</span>
-                    </div>
-                    <span class="glass-chip" style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--amber-warning); padding: 3px 10px;">MODERATE</span>
-                </div>
-                <p style="font-size: 12px; color: var(--text-sec); line-height: 1.6;">Increased bleeding risk. Monitor INR.</p>
-            </div>
-            <div class="glass-card" style="padding: 16px; border-left: 4px solid #facc15 !important;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#facc15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
-                        <span style="font-size: 14px; font-weight: 500; color: var(--text-main);">Metoprolol + Atorvastatin</span>
-                    </div>
-                    <span class="glass-chip" style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #facc15; padding: 3px 10px;">LOW</span>
-                </div>
-                <p style="font-size: 12px; color: var(--text-sec); line-height: 1.6;">Minor interaction, standard monitoring sufficient.</p>
-            </div>
-        </div>
-    }
 
-    @* Active Medications List *@
+    @* ── Active medications ────────────────────────────────────────────────── *@
     <div style="margin-top: 8px;">
-        <h3 style="font-family: var(--font-display); font-weight: 600; font-size: 18px; color: var(--text-main); margin-bottom: 12px;">Active Medications · 4 drugs</h3>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-            @foreach (var med in _staticMeds)
+        <h3 style="font-family: var(--font-display); font-weight: 600; font-size: 18px; color: var(--text-main); margin-bottom: 12px;">
+            Active Medications · @_activeMeds.Count drug@(_activeMeds.Count == 1 ? "" : "s")
+        </h3>
+
+        @if (_isLoading)
+        {
+            <div style="display: flex; justify-content: center; padding: 32px 0;">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Small" />
+            </div>
+        }
+        else if (_activeMeds.Count == 0 && _endedMeds.Count == 0)
+        {
+            <div class="glass-card" style="padding: 24px; text-align: center; color: var(--text-sec); font-size: 14px;">
+                No medications added yet
+            </div>
+        }
+        else
+        {
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                @foreach (var med in _activeMeds)
+                {
+                    <MedicationCard Medication="@med" OnTap="OpenCardMenuAsync" />
+                }
+            </div>
+
+            @if (_endedMeds.Count > 0)
             {
-                <div class="glass-card" style="padding: 16px; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-weight: 500; color: var(--text-main);">@med.Name <span style="color: var(--text-sec); font-weight: 400;">@med.Dose</span></div>
-                        <div style="font-size: 12px; color: var(--text-sec); margin-top: 4px;">@med.Frequency</div>
-                    </div>
-                    <span class="glass-chip" style="font-size: 10px; color: var(--teal-primary); border-color: rgba(0,212,200,0.2); background: rgba(0,212,200,0.05); padding: 4px 10px; white-space: nowrap;">@med.Class</span>
+                <h3 style="font-family: var(--font-display); font-weight: 600; font-size: 16px; color: var(--text-sec); margin: 16px 0 8px 0;">
+                    Ended · @_endedMeds.Count medication@(_endedMeds.Count == 1 ? "" : "s")
+                </h3>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    @foreach (var med in _endedMeds)
+                    {
+                        <MedicationCard Medication="@med" OnTap="OpenCardMenuAsync" />
+                    }
                 </div>
             }
-        </div>
+        }
     </div>
 
-    @* Interaction Checker (collapsible) *@
-    <div>
+    @* ── Interaction checker (collapsible) ────────────────────────────────── *@
+    <div style="margin-bottom: 72px;">
         <button @onclick="() => _showChecker = !_showChecker"
                 style="width: 100%; background: none; border: none; cursor: pointer; text-align: left; padding: 0; margin-bottom: 8px;">
             <div class="glass-chip" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; justify-content: center; width: 100%; border-radius: var(--radius-chip);">
@@ -122,20 +127,25 @@
         @if (_showChecker)
         {
             <div class="glass-card" style="padding: 16px; display: flex; flex-direction: column; gap: 10px;">
-                <input type="text" @bind="_rxCuiInput" @bind:event="oninput"
+                <input type="text"
+                       @bind="_rxCuiInput"
+                       @bind:event="oninput"
                        placeholder="e.g. 207106, 152923"
                        style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px 16px; color: var(--text-main); font-size: 14px; outline: none; width: 100%; box-sizing: border-box;" />
-                <button @onclick="CheckInteractionsAsync" disabled="@_isLoading"
-                        style="padding: 12px; border-radius: 12px; border: none; background: var(--teal-primary); color: white; font-size: 14px; font-weight: 600; cursor: pointer; opacity: @(_isLoading ? "0.6" : "1");">
-                    @(_isLoading ? "Checking..." : "Check Interactions")
+                <button @onclick="CheckInteractionsAsync"
+                        disabled="@_isCheckLoading"
+                        style="padding: 12px; border-radius: 12px; border: none; background: var(--teal-primary); color: white; font-size: 14px; font-weight: 600; cursor: pointer; opacity: @(_isCheckLoading ? "0.6" : "1");">
+                    @(_isCheckLoading ? "Checking…" : "Check Interactions")
                 </button>
             </div>
         }
     </div>
 
-    @* Add Medication FAB *@
+    @* ── FAB ──────────────────────────────────────────────────────────────── *@
     <div style="position: fixed; bottom: 96px; left: 0; right: 0; display: flex; justify-content: center; z-index: 40; pointer-events: none;">
-        <button class="glass-pill" style="background: rgba(0,212,200,0.2); border-color: rgba(0,212,200,0.4); color: var(--teal-primary); padding: 12px 24px; display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; box-shadow: 0 4px 20px rgba(0,212,200,0.2); pointer-events: auto; cursor: pointer;">
+        <button @onclick="OpenAddMedicationAsync"
+                class="glass-pill"
+                style="background: rgba(0,212,200,0.2); border-color: rgba(0,212,200,0.4); color: var(--teal-primary); padding: 12px 24px; display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; box-shadow: 0 4px 20px rgba(0,212,200,0.2); pointer-events: auto; cursor: pointer;">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
             Add Medication
         </button>
@@ -145,25 +155,218 @@
 </RequireAuth>
 
 @code {
-    private string _rxCuiInput = string.Empty;
+    // Severity aliases to avoid ambiguity with Domain.Enums
+    private static readonly DigitalTwin.Application.Enums.InteractionSeverity _sevHigh = DigitalTwin.Application.Enums.InteractionSeverity.High;
+    private static readonly DigitalTwin.Application.Enums.InteractionSeverity _sevMed  = DigitalTwin.Application.Enums.InteractionSeverity.Medium;
+    private static readonly DigitalTwin.Application.Enums.InteractionSeverity _sevLow  = DigitalTwin.Application.Enums.InteractionSeverity.Low;
+
+    private Guid? _patientId;
     private bool _isLoading;
+    private List<MedicationDto> _medications = [];
+    private List<MedicationDto> _activeMeds = [];
+    private List<MedicationDto> _endedMeds = [];
+
+    private List<MedicationInteractionDto> _interactions = [];
+    private List<MedicationInteractionDto> _autoInteractions = [];
     private bool _hasSearched;
     private bool _showChecker;
-    private List<MedicationInteractionDto> _interactions = [];
+    private bool _isCheckLoading;
+    private string _rxCuiInput = string.Empty;
 
-    private readonly List<(string Name, string Dose, string Frequency, string Class)> _staticMeds =
-    [
-        ("Metoprolol", "50mg", "Twice daily", "Beta Blocker"),
-        ("Warfarin", "5mg", "Once daily", "Anticoagulant"),
-        ("Atorvastatin", "20mg", "Once at night", "Statin"),
-        ("Aspirin", "100mg", "Once daily", "Antiplatelet"),
-    ];
+    private static readonly DialogOptions _dialogOptions = new()
+    {
+        CloseOnEscapeKey = true,
+        CloseButton = true,
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true
+    };
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+
+    protected override async Task OnInitializedAsync()
+    {
+        _patientId = await AuthService.GetCurrentPatientIdAsync();
+        if (_patientId.HasValue)
+            await LoadMedicationsAsync();
+    }
+
+    // ── Data loading ──────────────────────────────────────────────────────────
+
+    private async Task LoadMedicationsAsync()
+    {
+        if (!_patientId.HasValue) return;
+        _isLoading = true;
+        try
+        {
+            var meds = await MedicationService.GetMyMedicationsAsync(_patientId.Value);
+            _medications = meds.ToList();
+            _activeMeds  = _medications.Where(m => m.Status == MedicationStatus.Active).ToList();
+            _endedMeds   = _medications.Where(m => m.Status == MedicationStatus.Discontinued).ToList();
+
+            var rxCuis = _medications
+                .Where(m => !string.IsNullOrWhiteSpace(m.RxCui))
+                .Select(m => m.RxCui!)
+                .Distinct()
+                .ToList();
+
+            if (rxCuis.Count >= 2)
+            {
+                try { _autoInteractions = (await MedicationService.CheckInteractionsAsync(rxCuis)).ToList(); }
+                catch { }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading medications: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    // ── Card menu ─────────────────────────────────────────────────────────────
+
+    private async Task OpenCardMenuAsync(MedicationDto med)
+    {
+        var actions = new List<ActionItem>();
+
+        if (med.Status == MedicationStatus.Active)
+        {
+            actions.Add(new ActionItem(
+                "end",
+                "End Medication",
+                Icons.Material.Filled.CheckCircle,
+                "var(--green-positive)"));
+        }
+
+        actions.Add(new ActionItem(
+            "remove",
+            "Remove",
+            Icons.Material.Filled.Delete,
+            "var(--red-critical)"));
+
+        var parameters = new DialogParameters<ActionMenuDialog>
+        {
+            { x => x.Title, med.Name },
+            { x => x.Actions, actions }
+        };
+
+        var dialog = await DialogService.ShowAsync<ActionMenuDialog>(med.Name, parameters, _dialogOptions);
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled || result.Data is not string action) return;
+
+        switch (action)
+        {
+            case "end":
+                await OpenEndReasonDialogAsync(med.Id);
+                break;
+            case "remove":
+                await OpenRemoveReasonDialogAsync(med.Id);
+                break;
+        }
+    }
+
+    private async Task OpenEndReasonDialogAsync(Guid medId)
+    {
+        var fields = new List<FormFieldDef>
+        {
+            new("reason", "Reason for ending", "e.g. Treatment completed", FormFieldType.Text, Required: false)
+        };
+
+        var parameters = new DialogParameters<FormDialog>
+        {
+            { x => x.Title, "End Medication" },
+            { x => x.SubmitLabel, "End" },
+            { x => x.Fields, fields }
+        };
+
+        var dialog = await DialogService.ShowAsync<FormDialog>("End Medication", parameters, _dialogOptions);
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled) return;
+
+        var values = result.Data as Dictionary<string, string>;
+        var reason = values?.GetValueOrDefault("reason");
+
+        try
+        {
+            await MedicationService.DiscontinueMedicationAsync(_patientId!.Value, medId, string.IsNullOrWhiteSpace(reason) ? null : reason);
+            Snackbar.Add("Medication ended.", Severity.Success);
+            await LoadMedicationsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task OpenRemoveReasonDialogAsync(Guid medId)
+    {
+        var fields = new List<FormFieldDef>
+        {
+            new("reason", "Reason for removing", "e.g. Entered by mistake", FormFieldType.Text, Required: true)
+        };
+
+        var parameters = new DialogParameters<FormDialog>
+        {
+            { x => x.Title, "Remove Medication" },
+            { x => x.SubmitLabel, "Remove" },
+            { x => x.Fields, fields }
+        };
+
+        var dialog = await DialogService.ShowAsync<FormDialog>("Remove Medication", parameters, _dialogOptions);
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled) return;
+
+        try
+        {
+            await MedicationService.DeleteMedicationAsync(_patientId!.Value, medId);
+            Snackbar.Add("Medication removed.", Severity.Success);
+            await LoadMedicationsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    // ── Add medication ────────────────────────────────────────────────────────
+
+    private async Task OpenAddMedicationAsync()
+    {
+        if (!_patientId.HasValue)
+        {
+            Snackbar.Add("No patient profile found. Please complete your profile first.", Severity.Warning);
+            return;
+        }
+
+        var dialog = await DialogService.ShowAsync<AddMedicationDialog>("Add Medication", new DialogParameters(), _dialogOptions);
+        var result = await dialog.Result;
+
+        if (result is null || result.Canceled || result.Data is not AddMedicationDto dto) return;
+
+        try
+        {
+            await MedicationService.AddMedicationAsync(_patientId.Value, dto, AddedByRole.Patient);
+            Snackbar.Add("Medication added.", Severity.Success);
+            await LoadMedicationsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    // ── Drug interaction checker ──────────────────────────────────────────────
 
     private async Task CheckInteractionsAsync()
     {
         if (string.IsNullOrWhiteSpace(_rxCuiInput)) return;
 
-        _isLoading = true;
+        _isCheckLoading = true;
         _hasSearched = true;
 
         try
@@ -178,10 +381,9 @@
                 return;
             }
 
-            var results = await MedicationService.CheckInteractionsAsync(rxCuis);
-            _interactions = results.ToList();
+            _interactions = (await MedicationService.CheckInteractionsAsync(rxCuis)).ToList();
 
-            if (_interactions.Any(i => i.Severity == InteractionSeverity.High))
+            if (_interactions.Any(i => i.Severity == _sevHigh))
                 Snackbar.Add("High-risk interactions detected!", Severity.Error);
         }
         catch (Exception ex)
@@ -190,7 +392,7 @@
         }
         finally
         {
-            _isLoading = false;
+            _isCheckLoading = false;
         }
     }
 }

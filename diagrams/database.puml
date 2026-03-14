@@ -14,6 +14,7 @@ title IOS Health App - Database Schema (4NF, Scalable)\nDigital Twin - Digitaliz
 ' VitalSignType: 0=HeartRate, 1=SpO2, 2=Steps, 3=Calories
 ' MedicationStatus: 0=Active, 1=Discontinued, 2=Scheduled, 3=Completed
 ' MedicationRoute: 0=Oral, 1=IV, 2=Topical, 3=Subcutaneous, 4=Other
+' AddedByRole: 0=Patient, 1=Doctor
 ' DoctorActionStatus: 0=Pending, 1=Completed, 2=Cancelled
 ' AlertSeverity: 0=Low, 1=Medium, 2=High, 3=Critical
 ' OAuthProvider: 0=Google
@@ -106,6 +107,9 @@ entity "Medication" as medication {
   EndDate : DATE
   Status : INT
   DiscontinuedReason : TEXT
+  AddedByRole : INT
+  IsDirty : BOOLEAN
+  SyncedAt : DATETIME
   CreatedAt : DATETIME
   UpdatedAt : DATETIME
   DeletedAt : DATETIME

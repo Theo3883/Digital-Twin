@@ -1,6 +1,7 @@
 using FluentValidation;
 using DigitalTwin.Application.Interfaces;
 using DigitalTwin.Application.Services;
+using DigitalTwin.Application.Sync;
 using DigitalTwin.Application.Sync.Drainers;
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Interfaces.Repositories;
@@ -51,6 +52,8 @@ public static class DependencyInjection
             sp.GetRequiredKeyedService<IEnvironmentReadingRepository>(Cloud));
         services.AddScoped<IDoctorPatientAssignmentRepository>(sp =>
             sp.GetRequiredKeyedService<IDoctorPatientAssignmentRepository>(Cloud));
+        services.AddScoped<IMedicationRepository>(sp =>
+            sp.GetRequiredKeyedService<IMedicationRepository>(Cloud));
 
         // ── Domain services (only those required by the API) ─────────────────
         services.AddCoreDomainServices();
@@ -125,6 +128,12 @@ public static class DependencyInjection
         services.AddScoped<ICoachingApplicationService, CoachingApplicationService>();
         services.AddScoped<IDoctorAssignmentApplicationService, DoctorAssignmentApplicationService>();
 
+        // ── Cloud UserId resolution (local ↔ cloud use different ID spaces) ─
+        services.AddScoped<ICloudUserIdResolver>(sp => new CloudUserIdResolver(
+            sp.GetRequiredService<IUserRepository>(),
+            sp.GetKeyedService<IUserRepository>(Cloud),
+            sp.GetRequiredService<ILogger<CloudUserIdResolver>>()));
+
         // ── Table drainers (local → cloud sync) ─────────────────────────────
         services.AddScoped<ITableDrainer>(sp => new UserDrainer(
             sp.GetRequiredService<IUserRepository>(),
@@ -150,6 +159,7 @@ public static class DependencyInjection
             sp.GetKeyedService<IVitalSignRepository>(Cloud),
             sp.GetRequiredService<IPatientRepository>(),
             sp.GetKeyedService<IPatientRepository>(Cloud),
+            sp.GetRequiredService<ICloudUserIdResolver>(),
             sp.GetRequiredService<ILogger<VitalSignDrainer>>()));
 
         services.AddScoped<ITableDrainer>(sp => new EnvironmentReadingDrainer(
@@ -162,6 +172,7 @@ public static class DependencyInjection
             sp.GetKeyedService<ISleepSessionRepository>(Cloud),
             sp.GetRequiredService<IPatientRepository>(),
             sp.GetKeyedService<IPatientRepository>(Cloud),
+            sp.GetRequiredService<ICloudUserIdResolver>(),
             sp.GetRequiredService<ILogger<SleepSessionDrainer>>()));
 
         services.AddScoped<ITableDrainer>(sp => new DoctorPatientAssignmentDrainer(
@@ -169,7 +180,16 @@ public static class DependencyInjection
             sp.GetKeyedService<IDoctorPatientAssignmentRepository>(Cloud),
             sp.GetRequiredService<IPatientRepository>(),
             sp.GetKeyedService<IPatientRepository>(Cloud),
+            sp.GetRequiredService<ICloudUserIdResolver>(),
             sp.GetRequiredService<ILogger<DoctorPatientAssignmentDrainer>>()));
+
+        services.AddScoped<ITableDrainer>(sp => new MedicationDrainer(
+            sp.GetRequiredService<IMedicationRepository>(),
+            sp.GetKeyedService<IMedicationRepository>(Cloud),
+            sp.GetRequiredService<IPatientRepository>(),
+            sp.GetKeyedService<IPatientRepository>(Cloud),
+            sp.GetRequiredService<ICloudUserIdResolver>(),
+            sp.GetRequiredService<ILogger<MedicationDrainer>>()));
 
         // ── Validators ───────────────────────────────────────────────────────
         services.AddValidation();
@@ -192,6 +212,7 @@ public static class DependencyInjection
         services.AddScoped<IVitalSignService, VitalSignService>();
         services.AddScoped<IEnvironmentAssessmentService, EnvironmentAssessmentService>();
         services.AddScoped<IMedicationInteractionService, MedicationInteractionService>();
+        services.AddScoped<IMedicationService, MedicationService>();
 
         // ECG triage: register rules as IEcgTriageRule and the engine that consumes them
         services.AddScoped<IEcgTriageRule, SignalQualityRule>();

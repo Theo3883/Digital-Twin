@@ -1,0 +1,93 @@
+@using DigitalTwin.Components.Shared
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="font-family: var(--font-display); font-weight: 700;">@Title</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <div style="display: flex; flex-direction: column; gap: 16px; padding-top: 4px; min-width: 280px;">
+            @foreach (var field in Fields)
+            {
+                switch (field.Type)
+                {
+                    case FormFieldType.TextArea:
+                        <MudTextField @key="@field.Key"
+                                      T="string"
+                                      Label="@field.Label"
+                                      Placeholder="@field.Placeholder"
+                                      Variant="Variant.Outlined"
+                                      Lines="3"
+                                      Required="@field.Required"
+                                      Value="@_values[field.Key]"
+                                      ValueChanged="@(v => _values[field.Key] = v ?? string.Empty)" />
+                        break;
+
+                    case FormFieldType.Select when field.Options is not null:
+                        <MudSelect @key="@field.Key"
+                                   T="string"
+                                   Label="@field.Label"
+                                   Variant="Variant.Outlined"
+                                   Required="@field.Required"
+                                   Value="@_values[field.Key]"
+                                   ValueChanged="@(v => _values[field.Key] = v ?? string.Empty)">
+                            @foreach (var opt in field.Options)
+                            {
+                                <MudSelectItem Value="@opt">@opt</MudSelectItem>
+                            }
+                        </MudSelect>
+                        break;
+
+                    default:
+                        <MudTextField @key="@field.Key"
+                                      T="string"
+                                      Label="@field.Label"
+                                      Placeholder="@field.Placeholder"
+                                      Variant="Variant.Outlined"
+                                      Required="@field.Required"
+                                      Value="@_values[field.Key]"
+                                      ValueChanged="@(v => _values[field.Key] = v ?? string.Empty)" />
+                        break;
+                }
+            }
+        </div>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Cancel</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="Submit"
+                   Disabled="@(!IsValid)">@SubmitLabel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string SubmitLabel { get; set; } = "Save";
+    [Parameter] public List<FormFieldDef> Fields { get; set; } = [];
+
+    private readonly Dictionary<string, string> _values = new();
+
+    protected override void OnParametersSet()
+    {
+        foreach (var field in Fields)
+        {
+            if (!_values.ContainsKey(field.Key))
+                _values[field.Key] = field.InitialValue ?? string.Empty;
+        }
+    }
+
+    private bool IsValid =>
+        Fields.Where(f => f.Required).All(f => !string.IsNullOrWhiteSpace(_values.GetValueOrDefault(f.Key)));
+
+    private void Submit()
+    {
+        if (!IsValid) return;
+        MudDialog.Close(DialogResult.Ok(new Dictionary<string, string>(_values)));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

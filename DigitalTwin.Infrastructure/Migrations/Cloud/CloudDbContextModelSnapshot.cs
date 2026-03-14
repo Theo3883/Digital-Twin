@@ -140,6 +140,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<int>("AddedByRole")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -161,6 +164,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
 
                     b.Property<string>("Instructions")
                         .HasColumnType("text");
+
+                    b.Property<bool>("IsDirty")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -186,6 +192,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
 
                     b.Property<int>("Status")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SyncedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");

@@ -26,10 +26,10 @@ namespace DigitalTwin.Application.Services;
 public class HealthDataSyncService : IHealthDataSyncService
 {
     // ── Tuning ───────────────────────────────────────────────────────────────────
-    private const int MaxBufferSize  = 500;
-    private const int FlushThreshold = 100;
-    private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(30);
-    private static readonly TimeSpan DrainInterval = TimeSpan.FromSeconds(10);
+    private const int MaxBufferSize  = 5000; 
+    private const int FlushThreshold = 100; 
+    private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(300);
+    private static readonly TimeSpan DrainInterval = TimeSpan.FromSeconds(300);
     private static readonly TimeSpan SleepCollectInterval = TimeSpan.FromMinutes(15);
 
     private readonly IServiceScopeFactory _scopeFactory;
@@ -211,7 +211,11 @@ public class HealthDataSyncService : IHealthDataSyncService
                 var patient = await localPatient.GetByIdAsync(_patientId);
                 if (patient is not null)
                 {
-                    var cloudP = await cloudPatient.GetByUserIdAsync(patient.UserId);
+                    var cloudUserIdResolver = scope.ServiceProvider.GetRequiredService<ICloudUserIdResolver>();
+                    var cloudUserId = await cloudUserIdResolver.ResolveCloudUserIdAsync(patient.UserId);
+                    var cloudP = cloudUserId is not null
+                        ? await cloudPatient.GetByUserIdAsync(cloudUserId.Value)
+                        : null;
                     if (cloudP is not null)
                     {
                         var cloudBatch = batch.Select(v => new VitalSign

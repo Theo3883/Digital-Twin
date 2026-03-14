@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DigitalTwin.Composition\DigitalTwin.Composition.csproj" />
+    <ProjectReference Include="..\DigitalTwin.Integrations\DigitalTwin.Integrations.csproj" />
     <ProjectReference Include="..\DigitalTwin.Application\DigitalTwin.Application.csproj" />
     <ProjectReference Include="..\DigitalTwin.Infrastructure\DigitalTwin.Infrastructure.csproj" />
     <ProjectReference Include="..\DigitalTwin.Domain\DigitalTwin.Domain.csproj" />

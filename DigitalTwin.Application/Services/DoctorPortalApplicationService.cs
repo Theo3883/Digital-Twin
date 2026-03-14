@@ -1,7 +1,10 @@
 using DigitalTwin.Application.DTOs;
 using DigitalTwin.Application.Interfaces;
 using DigitalTwin.Application.Mappers;
+using DigitalTwin.Domain.Enums;
+using DigitalTwin.Domain.Interfaces.Providers;
 using DigitalTwin.Domain.Interfaces.Repositories;
+using DigitalTwin.Domain.Interfaces.Services;
 using DigitalTwin.Domain.Models;
 using Microsoft.Extensions.Logging;
 
@@ -18,6 +21,9 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
     private readonly IUserRepository _users;
     private readonly IVitalSignRepository _vitals;
     private readonly ISleepSessionRepository _sleep;
+    private readonly IMedicationRepository _medications;
+    private readonly IMedicationService _medicationService;
+    private readonly IRxCuiLookupProvider _rxCuiLookup;
     private readonly ILogger<DoctorPortalApplicationService> _logger;
 
     public DoctorPortalApplicationService(
@@ -26,6 +32,9 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
         IUserRepository users,
         IVitalSignRepository vitals,
         ISleepSessionRepository sleep,
+        IMedicationRepository medications,
+        IMedicationService medicationService,
+        IRxCuiLookupProvider rxCuiLookup,
         ILogger<DoctorPortalApplicationService> logger)
     {
         _assignments = assignments;
@@ -33,6 +42,9 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
         _users = users;
         _vitals = vitals;
         _sleep = sleep;
+        _medications = medications;
+        _medicationService = medicationService;
+        _rxCuiLookup = rxCuiLookup;
         _logger = logger;
     }
 
@@ -147,6 +159,93 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
             QualityScore = s.QualityScore
         });
     }
+
+    // ── Medications ──────────────────────────────────────────────────────────────
+
+    public async Task<IEnumerable<MedicationDto>> GetPatientMedicationsAsync(string doctorEmail, Guid patientId)
+    {
+        if (!await IsAuthorizedForPatientAsync(doctorEmail, patientId))
+            return [];
+
+        var medications = await _medications.GetByPatientAsync(patientId);
+        return medications.Select(MedicationToDto);
+    }
+
+    public async Task<MedicationDto?> AddPatientMedicationAsync(
+        string doctorEmail, Guid patientId, AddMedicationDto dto)
+    {
+        if (!await IsAuthorizedForPatientAsync(doctorEmail, patientId))
+            return null;
+
+        var doctor = await _users.GetByEmailAsync(doctorEmail);
+
+        var rxCui = dto.RxCui;
+        if (string.IsNullOrWhiteSpace(rxCui) && !string.IsNullOrWhiteSpace(dto.Name))
+            rxCui = await _rxCuiLookup.LookupRxCuiAsync(dto.Name.Trim());
+
+        var medication = _medicationService.CreateMedication(
+            patientId,
+            dto.Name,
+            dto.Dosage,
+            dto.Frequency,
+            dto.Route,
+            rxCui,
+            dto.Instructions,
+            dto.Reason,
+            prescribedByUserId: doctor?.Id,
+            dto.StartDate,
+            AddedByRole.Doctor);
+
+        await _medications.AddAsync(medication);
+        return MedicationToDto(medication);
+    }
+
+    public async Task<bool> DeletePatientMedicationAsync(
+        string doctorEmail, Guid patientId, Guid medicationId)
+    {
+        if (!await IsAuthorizedForPatientAsync(doctorEmail, patientId))
+            return false;
+
+        var existing = await _medications.GetByIdAsync(medicationId);
+        if (existing is null || existing.PatientId != patientId)
+            return false;
+
+        await _medications.SoftDeleteAsync(medicationId);
+        return true;
+    }
+
+    public async Task<bool> DiscontinuePatientMedicationAsync(
+        string doctorEmail, Guid patientId, Guid medicationId, string reason)
+    {
+        if (!await IsAuthorizedForPatientAsync(doctorEmail, patientId))
+            return false;
+
+        var existing = await _medications.GetByIdAsync(medicationId);
+        if (existing is null || existing.PatientId != patientId)
+            return false;
+
+        await _medications.DiscontinueAsync(medicationId, DateTime.UtcNow, reason?.Trim());
+        return true;
+    }
+
+    private static MedicationDto MedicationToDto(Domain.Models.Medication m) => new()
+    {
+        Id = m.Id,
+        Name = m.Name,
+        Dosage = m.Dosage,
+        Frequency = m.Frequency,
+        Route = m.Route,
+        Status = m.Status,
+        RxCui = m.RxCui,
+        Instructions = m.Instructions,
+        Reason = m.Reason,
+        PrescribedByUserId = m.PrescribedByUserId,
+        StartDate = m.StartDate,
+        EndDate = m.EndDate,
+        DiscontinuedReason = m.DiscontinuedReason,
+        AddedByRole = m.AddedByRole,
+        CreatedAt = m.CreatedAt
+    };
 
     // ── Assign / Unassign ────────────────────────────────────────────────────────
 
