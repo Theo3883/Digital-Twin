@@ -14,8 +14,8 @@ public class MockHealthProvider : IHealthDataProvider
 
     public IObservable<VitalSign> GetLiveVitals()
     {
-        return Observable.Interval(TimeSpan.FromSeconds(2))
-            .SelectMany(_ => GenerateVitals().ToList());
+        return Observable.Timer(TimeSpan.Zero, TimeSpan.FromSeconds(15))
+            .Select(_ => GenerateHeartRate());
     }
 
     public Task<IEnumerable<VitalSign>> GetLatestSamplesAsync(VitalSignType type, int count = 10)
@@ -59,88 +59,25 @@ public class MockHealthProvider : IHealthDataProvider
 
     public Task<bool> RequestPermissionsAsync() => Task.FromResult(true);
 
-    private List<VitalSign> GenerateVitals()
+    private VitalSign GenerateHeartRate()
     {
         var now = DateTime.UtcNow;
-        var elapsed = now.TimeOfDay.TotalSeconds;
-
-        var heartRate = new VitalSign
+        var vital = new VitalSign
         {
-            Type = VitalSignType.HeartRate,
-            Value = Math.Round(80 + 20 * Math.Sin(elapsed / 30.0) + _random.Next(-3, 4), 1),
-            Unit = "bpm",
-            Source = "Mock",
+            Type      = VitalSignType.HeartRate,
+            Value     = Math.Round(80 + 20 * Math.Sin(now.TimeOfDay.TotalSeconds / 30.0) + _random.Next(-3, 4), 1),
+            Unit      = "bpm",
+            Source    = "Mock",
             Timestamp = now
-        };
-
-        var spo2 = new VitalSign
-        {
-            Type = VitalSignType.SpO2,
-            Value = Math.Round(97 + 2 * Math.Sin(elapsed / 60.0) + _random.NextDouble() * 0.5, 1),
-            Unit = "%",
-            Source = "Mock",
-            Timestamp = now
-        };
-
-        var hourOfDay = now.Hour + now.Minute / 60.0;
-        var steps = new VitalSign
-        {
-            Type = VitalSignType.Steps,
-            Value = Math.Round(hourOfDay * 450 + _random.Next(0, 100)),
-            Unit = "steps",
-            Source = "Mock",
-            Timestamp = now
-        };
-
-        var calories = new VitalSign
-        {
-            Type = VitalSignType.Calories,
-            Value = Math.Round(steps.Value * 0.04 + 1200 + _random.Next(0, 50)),
-            Unit = "kcal",
-            Source = "Mock",
-            Timestamp = now
-        };
-
-        var activeEnergy = new VitalSign
-        {
-            Type = VitalSignType.ActiveEnergy,
-            Value = Math.Round(hourOfDay * 35 + _random.Next(0, 20)),
-            Unit = "kcal",
-            Source = "Mock",
-            Timestamp = now
-        };
-
-        var exerciseMinutes = new VitalSign
-        {
-            Type = VitalSignType.ExerciseMinutes,
-            Value = Math.Round(Math.Min(hourOfDay * 2.5 + _random.Next(0, 5), 120)),
-            Unit = "min",
-            Source = "Mock",
-            Timestamp = now
-        };
-
-        var standHours = new VitalSign
-        {
-            Type = VitalSignType.StandHours,
-            Value = Math.Min((int)(hourOfDay * 0.6) + _random.Next(0, 2), 24),
-            Unit = "hrs",
-            Source = "Mock",
-            Timestamp = now
-        };
-
-        var vitals = new List<VitalSign>
-        {
-            heartRate, spo2, steps, calories,
-            activeEnergy, exerciseMinutes, standHours
         };
 
         lock (_sync)
         {
-            _buffer.AddRange(vitals);
+            _buffer.Add(vital);
             if (_buffer.Count > 700)
                 _buffer.RemoveRange(0, _buffer.Count - 700);
         }
 
-        return vitals;
+        return vital;
     }
 }

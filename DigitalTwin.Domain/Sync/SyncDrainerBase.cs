@@ -26,7 +26,7 @@ public abstract class SyncDrainerBase<TModel> : ISyncDrainer
     // ── Configurable properties (override per entity) ────────────────────────
 
     protected virtual TimeSpan PurgeOlderThan => TimeSpan.FromDays(7);
-    protected virtual int ChunkSize => 500;
+    protected virtual int ChunkSize => 10000;
     protected virtual TimeSpan PullWindow => TimeSpan.FromDays(7);
 
     // ── Abstract hooks: cloud check ──────────────────────────────────────────

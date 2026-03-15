@@ -27,8 +27,8 @@ public class HealthDataSyncService : IHealthDataSyncService
 {
     // ── Tuning ───────────────────────────────────────────────────────────────────
     private const int MaxBufferSize  = 5000; 
-    private const int FlushThreshold = 100; 
-    private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(300);
+    private const int FlushThreshold = 100;    // flush eagerly once 100 readings queue up
+    private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(60);  // flush timer every 60 s
     private static readonly TimeSpan DrainInterval = TimeSpan.FromSeconds(300);
     private static readonly TimeSpan SleepCollectInterval = TimeSpan.FromMinutes(15);
 
@@ -187,9 +187,16 @@ public class HealthDataSyncService : IHealthDataSyncService
     }
 
     /// <summary>
-    /// Cloud-first: write directly to the cloud DB; on any failure cache locally
-    /// with IsDirty=true so the drain timer picks it up on the next cycle.
-    /// Maps local PatientId → cloud PatientId via UserId (local and cloud use different ID spaces).
+    /// Writes <paramref name="batch"/> to local SQLite always, and to the cloud when reachable.
+    ///
+    /// Strategy:
+    ///   1. Try cloud write — if it succeeds, mark the local copy as synced (IsDirty=false)
+    ///      so the drain timer does not push the same records again.
+    ///   2. If cloud is unreachable/fails, write locally with IsDirty=true so the drain
+    ///      timer picks them up on the next cycle.
+    ///
+    /// This guarantees the local DB always holds the complete vital-sign history,
+    /// which is required for offline access and for the Home page history charts.
     /// </summary>
     private async Task PersistAsync(List<VitalSign> batch)
     {
@@ -199,10 +206,11 @@ public class HealthDataSyncService : IHealthDataSyncService
             return;
         }
 
-        if (await TryWriteToCloudAsync(batch))
-            return;
+        var cloudSucceeded = await TryWriteToCloudAsync(batch);
 
-        await WriteLocallyAsync(batch);
+        // Always persist locally. If cloud already stored them, mark as synced
+        // (IsDirty=false) so the drain timer won't push duplicates.
+        await WriteLocallyAsync(batch, markDirty: !cloudSucceeded);
     }
 
     private async Task<bool> TryWriteToCloudAsync(List<VitalSign> batch)
@@ -252,15 +260,15 @@ public class HealthDataSyncService : IHealthDataSyncService
         }
     }
 
-    private async Task WriteLocallyAsync(List<VitalSign> batch)
+    private async Task WriteLocallyAsync(List<VitalSign> batch, bool markDirty = true)
     {
         try
         {
             using var scope = _scopeFactory.CreateScope();
             var local = scope.ServiceProvider.GetRequiredService<IVitalSignRepository>();
-            await local.AddRangeAsync(batch);
+            await local.AddRangeAsync(batch, markDirty);
             if (_logger.IsEnabled(LogLevel.Debug))
-                _logger.LogDebug("[Sync] {Count} vitals cached locally (dirty=true).", batch.Count);
+                _logger.LogDebug("[Sync] {Count} vitals saved locally (dirty={Dirty}).", batch.Count, markDirty);
         }
         catch (Exception ex)
         {
@@ -290,6 +298,7 @@ public class HealthDataSyncService : IHealthDataSyncService
             using var scope = _scopeFactory.CreateScope();
             var provider = scope.ServiceProvider.GetRequiredService<IHealthDataProvider>();
             var repo = scope.ServiceProvider.GetRequiredService<ISleepSessionRepository>();
+            var cloudRepo = scope.ServiceProvider.GetKeyedService<ISleepSessionRepository>("Cloud");
 
             var to = DateTime.UtcNow;
             var from = to.AddDays(-3); // look back 3 days to catch late-arriving data
@@ -304,7 +313,18 @@ public class HealthDataSyncService : IHealthDataSyncService
                 if (await repo.ExistsAsync(s.PatientId, s.StartTime))
                     continue;
 
-                await repo.AddAsync(s);
+                var cloudSucceeded = false;
+                if (cloudRepo != null)
+                {
+                    try
+                    {
+                        await cloudRepo.AddAsync(s, markDirty: false);
+                        cloudSucceeded = true;
+                    }
+                    catch { /* will sync via drainer */ }
+                }
+
+                await repo.AddAsync(s, markDirty: !cloudSucceeded);
                 inserted++;
             }
 

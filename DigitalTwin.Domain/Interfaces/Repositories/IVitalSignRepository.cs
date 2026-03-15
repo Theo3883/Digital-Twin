@@ -13,7 +13,13 @@ public interface IVitalSignRepository
 
     Task AddAsync(VitalSign vitalSign);
 
-    Task AddRangeAsync(IEnumerable<VitalSign> vitalSigns);
+    /// <param name="markDirty">
+    /// When <c>true</c> (default) rows are stored with IsDirty=true so the drain
+    /// timer will push them to the cloud. Pass <c>false</c> when the records have
+    /// already been written to the cloud and should be kept locally as a synced
+    /// archive without triggering another upload.
+    /// </param>
+    Task AddRangeAsync(IEnumerable<VitalSign> vitalSigns, bool markDirty = true);
 
     Task<bool> ExistsAsync(Guid patientId, VitalSignType type, DateTime timestamp);
 

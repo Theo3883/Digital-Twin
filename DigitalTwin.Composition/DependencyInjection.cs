@@ -2,6 +2,7 @@ using FluentValidation;
 using DigitalTwin.Application.Interfaces;
 using DigitalTwin.Application.Services;
 using DigitalTwin.Domain.Interfaces;
+using DigitalTwin.Domain.Interfaces.Providers;
 using DigitalTwin.Domain.Interfaces.Repositories;
 using DigitalTwin.Domain.Interfaces.Services;
 using DigitalTwin.Domain.Interfaces.Sync;
@@ -120,10 +121,22 @@ public static class DependencyInjection
 
         // ── Application services ─────────────────────────────────────────────
         services.AddScoped<IVitalsApplicationService, VitalsApplicationService>();
-        services.AddScoped<IEnvironmentApplicationService, EnvironmentApplicationService>();
+        services.AddScoped<IEnvironmentApplicationService>(sp => new EnvironmentApplicationService(
+            sp.GetRequiredService<IEnvironmentDataProvider>(),
+            sp.GetRequiredService<IEnvironmentAssessmentService>(),
+            sp.GetRequiredService<IEnvironmentReadingRepository>(),
+            sp.GetRequiredService<ILogger<EnvironmentApplicationService>>(),
+            sp.GetKeyedService<IEnvironmentReadingRepository>(Cloud)));
         services.AddScoped<IAuthApplicationService, AuthApplicationService>();
         services.AddSingleton<IHealthDataSyncService, HealthDataSyncService>();
-        services.AddScoped<IMedicationApplicationService, MedicationApplicationService>();
+        services.AddScoped<IMedicationApplicationService>(sp => new MedicationApplicationService(
+            sp.GetRequiredService<IMedicationInteractionProvider>(),
+            sp.GetRequiredService<IDrugSearchProvider>(),
+            sp.GetRequiredService<IRxCuiLookupProvider>(),
+            sp.GetRequiredService<IMedicationInteractionService>(),
+            sp.GetRequiredService<IMedicationService>(),
+            sp.GetRequiredService<IMedicationRepository>(),
+            sp.GetKeyedService<IMedicationRepository>(Cloud)));
         services.AddScoped<IDoctorPortalDataFacade, DoctorPortalDataFacade>();
         services.AddScoped<IDoctorPortalApplicationService, DoctorPortalApplicationService>();
         services.AddScoped<IEcgApplicationService, EcgApplicationService>();

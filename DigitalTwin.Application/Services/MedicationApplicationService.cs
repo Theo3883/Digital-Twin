@@ -17,6 +17,7 @@ public class MedicationApplicationService : IMedicationApplicationService
     private readonly IMedicationInteractionService _interactionService;
     private readonly IMedicationService _medicationService;
     private readonly IMedicationRepository _medications;
+    private readonly IMedicationRepository? _cloudMedications;
 
     public MedicationApplicationService(
         IMedicationInteractionProvider provider,
@@ -24,7 +25,8 @@ public class MedicationApplicationService : IMedicationApplicationService
         IRxCuiLookupProvider rxCuiLookup,
         IMedicationInteractionService interactionService,
         IMedicationService medicationService,
-        IMedicationRepository medications)
+        IMedicationRepository medications,
+        IMedicationRepository? cloudMedications = null)
     {
         _provider = provider;
         _drugSearch = drugSearch;
@@ -32,6 +34,7 @@ public class MedicationApplicationService : IMedicationApplicationService
         _interactionService = interactionService;
         _medicationService = medicationService;
         _medications = medications;
+        _cloudMedications = cloudMedications;
     }
 
     // ── Drug interaction checking ─────────────────────────────────────────────
@@ -88,7 +91,18 @@ public class MedicationApplicationService : IMedicationApplicationService
             StartDate: dto.StartDate,
             AddedByRole: addedBy));
 
-        await _medications.AddAsync(medication);
+        var cloudSucceeded = false;
+        if (_cloudMedications != null)
+        {
+            try
+            {
+                await _cloudMedications.AddAsync(medication, markDirty: false);
+                cloudSucceeded = true;
+            }
+            catch { /* will sync via drainer */ }
+        }
+
+        await _medications.AddAsync(medication, markDirty: !cloudSucceeded);
         return ToDto(medication);
     }
 

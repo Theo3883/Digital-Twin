@@ -30,22 +30,24 @@ public class SleepSessionRepository : ISleepSessionRepository
         return entities.Select(ToDomain);
     }
 
-    public async Task AddAsync(SleepSession session)
+    public async Task AddAsync(SleepSession session, bool markDirty = true)
     {
+        var shouldMarkDirty = _markDirtyOnInsert && markDirty;
         await using var db = _factory();
         var entity = ToEntity(session);
-        entity.IsDirty = _markDirtyOnInsert;
-        if (!_markDirtyOnInsert) entity.SyncedAt = DateTime.UtcNow;
+        entity.IsDirty = shouldMarkDirty;
+        if (!shouldMarkDirty) entity.SyncedAt = DateTime.UtcNow;
         db.SleepSessions.Add(entity);
         await db.SaveChangesAsync();
     }
 
-    public async Task AddRangeAsync(IEnumerable<SleepSession> sessions)
+    public async Task AddRangeAsync(IEnumerable<SleepSession> sessions, bool markDirty = true)
     {
+        var shouldMarkDirty = _markDirtyOnInsert && markDirty;
         var entities = sessions.Select(ToEntity).ToList();
         if (entities.Count == 0) return;
-        foreach (var e in entities) e.IsDirty = _markDirtyOnInsert;
-        if (!_markDirtyOnInsert) foreach (var e in entities) e.SyncedAt = DateTime.UtcNow;
+        foreach (var e in entities) e.IsDirty = shouldMarkDirty;
+        if (!shouldMarkDirty) foreach (var e in entities) e.SyncedAt = DateTime.UtcNow;
         await using var db = _factory();
         await using var tx = await db.Database.BeginTransactionAsync();
         try

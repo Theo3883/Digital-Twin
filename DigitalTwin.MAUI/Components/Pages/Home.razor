@@ -38,7 +38,7 @@
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
 
         @* Heart Rate Hero — full width *@
-        <div class="glass-card" @onclick='() => Navigation.NavigateTo("/ecg")'
+        <div class="glass-card" @onclick='() => Navigation.NavigateTo(_currentUser?.HasPatientProfile == true ? "/ecg" : "/profile")'
              style="grid-column: span 2; padding: 20px; position: relative; overflow: hidden; min-height: 160px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer;">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 1;">
                 <div style="display: flex; align-items: center; gap: 8px;">
@@ -47,20 +47,35 @@
                     </div>
                     <span style="font-weight: 600; letter-spacing: -0.3px; color: var(--text-main);">Heart Rate</span>
                 </div>
-                <span style="font-size: 12px; color: var(--text-sec); background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 9999px; backdrop-filter: blur(8px);">Live</span>
+                @if (_currentUser?.HasPatientProfile == true)
+                {
+                    <span style="font-size: 12px; color: var(--text-sec); background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 9999px; backdrop-filter: blur(8px);">Live</span>
+                }
             </div>
-            <div style="position: relative; z-index: 1; margin-top: 16px;">
-                <div style="display: flex; align-items: baseline; gap: 4px;">
-                    <span style="font-family: var(--font-rounded); font-size: 56px; line-height: 1; font-weight: 500; letter-spacing: -2px; color: var(--text-main);">@(_heartRate > 0 ? _heartRate.ToString("F0") : "72")</span>
-                    <span style="font-size: 18px; font-weight: 500; color: var(--text-sec);">BPM</span>
+            @if (_currentUser?.HasPatientProfile == true)
+            {
+                <div style="position: relative; z-index: 1; margin-top: 16px;">
+                    <div style="display: flex; align-items: baseline; gap: 4px;">
+                        <span style="font-family: var(--font-rounded); font-size: 56px; line-height: 1; font-weight: 500; letter-spacing: -2px; color: var(--text-main);">@(_heartRate > 0 ? _heartRate.ToString("F0") : "--")</span>
+                        <span style="font-size: 18px; font-weight: 500; color: var(--text-sec);">BPM</span>
+                    </div>
+                    <p style="font-size: 14px; font-weight: 500; color: var(--text-sec); margin-top: 4px;">@(_heartRate > 0 ? $"{_heartRate:F0} BPM · Live" : "Waiting for data…")</p>
                 </div>
-                <p style="font-size: 14px; font-weight: 500; color: var(--text-sec); margin-top: 4px;">@(_heartRate > 0 ? _heartRate.ToString("F0") : "72") BPM Average Today</p>
-            </div>
-            <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 96px; opacity: 0.3; pointer-events: none;">
-                <svg viewBox="0 0 100 30" style="width: 100%; height: 100%;" preserveAspectRatio="none">
-                    <path d="M0,20 L10,20 L15,5 L20,25 L25,20 L40,20 L45,10 L50,28 L55,20 L100,20" fill="none" stroke="var(--red-critical)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-            </div>
+                <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 96px; opacity: 0.3; pointer-events: none;">
+                    <svg viewBox="0 0 100 30" style="width: 100%; height: 100%;" preserveAspectRatio="none">
+                        <path d="M0,20 L10,20 L15,5 L20,25 L25,20 L40,20 L45,10 L50,28 L55,20 L100,20" fill="none" stroke="var(--red-critical)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+            }
+            else
+            {
+                <div style="position: relative; z-index: 1; margin-top: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding-bottom: 8px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <span style="font-size: 15px; font-weight: 600; color: var(--text-main); text-align: center;">No patient profile</span>
+                    <span style="font-size: 13px; color: var(--text-sec); text-align: center; line-height: 1.5;">Create a patient profile to start<br/>receiving live heart rate data.</span>
+                    <div style="margin-top: 4px; padding: 6px 18px; border-radius: 9999px; background: rgba(255,59,48,0.2); border: 1px solid rgba(255,59,48,0.4); font-size: 13px; font-weight: 600; color: var(--red-critical);">Set up profile →</div>
+                </div>
+            }
         </div>
 
         @* Steps *@
@@ -175,7 +190,7 @@
     protected override async Task OnInitializedAsync()
     {
         _currentUser = await AuthService.GetCurrentUserAsync();
-        await SyncService.StartSyncAsync();
+        // StartSyncAsync is called by MainLayout after the sync gate — do NOT call it here.
 
         _vitalsSubscription = VitalsService.GetLiveVitals()
             .Subscribe(dto =>

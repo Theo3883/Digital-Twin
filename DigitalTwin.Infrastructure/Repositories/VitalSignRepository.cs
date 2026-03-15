@@ -54,12 +54,15 @@ public class VitalSignRepository : IVitalSignRepository
         await db.SaveChangesAsync();
     }
 
-    public async Task AddRangeAsync(IEnumerable<VitalSign> vitalSigns)
+    public async Task AddRangeAsync(IEnumerable<VitalSign> vitalSigns, bool markDirty = true)
     {
+        // Per-call markDirty overrides the constructor default so callers that have
+        // already written to the cloud can store a local synced copy in one step.
+        var shouldMarkDirty = _markDirtyOnInsert && markDirty;
         var entities = vitalSigns.Select(ToEntity).ToList();
         if (entities.Count == 0) return;
-        foreach (var e in entities) e.IsDirty = _markDirtyOnInsert;
-        if (!_markDirtyOnInsert) foreach (var e in entities) e.SyncedAt = DateTime.UtcNow;
+        foreach (var e in entities) e.IsDirty = shouldMarkDirty;
+        if (!shouldMarkDirty) foreach (var e in entities) e.SyncedAt = DateTime.UtcNow;
         await using var db = _factory();
         await using var tx = await db.Database.BeginTransactionAsync();
         try

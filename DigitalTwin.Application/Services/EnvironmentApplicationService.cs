@@ -14,18 +14,21 @@ public class EnvironmentApplicationService : IEnvironmentApplicationService
     private readonly IEnvironmentDataProvider _environmentDataProvider;
     private readonly IEnvironmentAssessmentService _assessmentService;
     private readonly IEnvironmentReadingRepository _repository;
+    private readonly IEnvironmentReadingRepository? _cloudRepository;
     private readonly ILogger<EnvironmentApplicationService> _logger;
 
     public EnvironmentApplicationService(
         IEnvironmentDataProvider environmentDataProvider,
         IEnvironmentAssessmentService assessmentService,
         IEnvironmentReadingRepository repository,
-        ILogger<EnvironmentApplicationService> logger)
+        ILogger<EnvironmentApplicationService> logger,
+        IEnvironmentReadingRepository? cloudRepository = null)
     {
         _environmentDataProvider = environmentDataProvider;
         _assessmentService = assessmentService;
         _repository = repository;
         _logger = logger;
+        _cloudRepository = cloudRepository;
     }
 
     public IObservable<RiskEventDto> RiskEvents =>
@@ -60,9 +63,23 @@ public class EnvironmentApplicationService : IEnvironmentApplicationService
 
     private async Task PersistAsync(Domain.Models.EnvironmentReading reading)
     {
+        var cloudSucceeded = false;
+        if (_cloudRepository != null)
+        {
+            try
+            {
+                await _cloudRepository.AddAsync(reading, markDirty: false);
+                cloudSucceeded = true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[EnvSync] Cloud persist failed; will sync later.");
+            }
+        }
+
         try
         {
-            await _repository.AddAsync(reading);
+            await _repository.AddAsync(reading, markDirty: !cloudSucceeded);
         }
         catch (Exception ex)
         {

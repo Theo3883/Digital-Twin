@@ -12,6 +12,9 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 
+@* Startup sync gate — blocks the app until the initial cloud sync finishes *@
+<SyncGate SyncComplete="@_syncComplete" CurrentStatus="@_syncStatus" />
+
 <!-- Wallpaper background (digital-twin-health) -->
 <div style="min-height: 100dvh; color: var(--text-main); position: relative; background-image: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop'); background-size: cover; background-position: center; background-attachment: fixed;">
 
@@ -55,18 +58,52 @@
     private string _pageTitle = "Digital Twin";
     private bool _showTabBar = true;
 
+    // ── Startup sync gate state ───────────────────────────────────────────────
+    private bool _syncComplete = false;
+    private string _syncStatus = "connecting";
+
     protected override async Task OnInitializedAsync()
     {
         Navigation.LocationChanged += OnLocationChanged;
         UpdatePageState();
 
+        // ── Startup sync sequence ─────────────────────────────────────────────
+        // Step 1 — authenticate
+        _syncStatus = "auth";
+        await InvokeAsync(StateHasChanged);
+
         _currentUser = await AuthService.GetCurrentUserAsync();
 
         if (_currentUser is not null)
         {
-            await SyncService.StartSyncAsync();
+            // Step 2 — push dirty local records to cloud
+            _syncStatus = "pull";
+            await InvokeAsync(StateHasChanged);
+
+            // PushToCloudAsync does a full bidirectional drain (push dirty rows +
+            // pull recent cloud rows) WITHOUT starting live HealthKit streaming.
+            // StartSyncAsync (which starts live vitals) is called AFTER the gate
+            // dismisses so no sensor data flows in during the loading screen.
             await SyncService.PushToCloudAsync();
+
+            // Step 3 — merge is already done inside PushToCloudAsync; just
+            // advance the label so the user sees progress.
+            _syncStatus = "merge";
+            await InvokeAsync(StateHasChanged);
         }
+
+        // Step 4 — all done, unlock the app
+        _syncStatus = "ready";
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(600); // brief "Ready" moment so the user sees it
+        _syncComplete = true;
+        await InvokeAsync(StateHasChanged);
+
+        // Start live HealthKit streaming + drain timer AFTER the gate is gone.
+        // This prevents live sensor data from flooding in during the loading phase.
+        if (_currentUser is not null)
+            await SyncService.StartSyncAsync();
+        // ─────────────────────────────────────────────────────────────────────
 
         _riskSubscription = EnvironmentService.RiskEvents
             .Subscribe(evt =>

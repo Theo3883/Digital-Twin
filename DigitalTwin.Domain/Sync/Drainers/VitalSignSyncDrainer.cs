@@ -130,7 +130,11 @@ public sealed class VitalSignSyncDrainer : SyncDrainerBase<VitalSign>
 
         if (toAdd.Count == 0) return 0;
 
-        await _local.AddRangeAsync(toAdd);
+        // Insert in chunks of ChunkSize (10 000) so each SQLite transaction stays
+        // bounded and doesn't block the UI thread for minutes on large pulls.
+        foreach (var chunk in toAdd.Chunk(ChunkSize))
+            await _local.AddRangeAsync(chunk);
+
         return toAdd.Count;
     }
 

@@ -1,10 +1,31 @@
 @page "/ecg"
 @implements IAsyncDisposable
 @inject IEcgApplicationService EcgService
+@inject IAuthApplicationService AuthService
+@inject NavigationManager Navigation
 @inject ISnackbar Snackbar
 
 <RequireAuth>
 <div class="page-enter" style="min-height: 100%; display: flex; flex-direction: column;">
+
+    @if (_currentUser?.HasPatientProfile == false)
+    {
+        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px; gap: 20px;">
+            <div class="glass-card" style="padding: 32px; max-width: 360px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center;">
+                <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(255,59,48,0.15); display: flex; align-items: center; justify-content: center;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--red-critical)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </div>
+                <span style="font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--text-main);">Patient profile required</span>
+                <p style="font-size: 14px; color: var(--text-sec); line-height: 1.6; margin: 0;">The ECG monitor needs a patient profile to record and analyse your heart activity. Set up your profile to continue.</p>
+                <button @onclick='() => Navigation.NavigateTo("/profile")'
+                        style="padding: 12px 28px; border-radius: 9999px; background: var(--teal-primary); border: none; font-size: 15px; font-weight: 600; color: white; cursor: pointer; width: 100%; margin-top: 4px;">
+                    Create patient profile
+                </button>
+            </div>
+        </div>
+    }
+    else
+    {
 
     @* Top Bar *@
     <div style="padding: 8px 16px 16px; display: flex; align-items: center; justify-content: space-between;">
@@ -143,6 +164,8 @@
         </div>
     </div>
 
+    } @* end HasPatientProfile check *@
+
 </div>
 </RequireAuth>
 
@@ -166,6 +189,7 @@
 
     private IDisposable? _ecgSubscription;
     private IDisposable? _alertSubscription;
+    private AuthResultDto? _currentUser;
 
     private string ConnectionIcon => _isConnected
         ? Icons.Material.Filled.LinkOff
@@ -176,14 +200,19 @@
     private string TriageStatusColor => _criticalAlert is not null ? "var(--red-critical)" : "var(--green-positive)";
     private string TriageStatusLabel => _criticalAlert is not null ? "Critical" : "Normal";
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        _alertSubscription = EcgService.CriticalAlerts
-            .Subscribe(alert =>
-            {
-                _criticalAlert = alert;
-                InvokeAsync(StateHasChanged);
-            });
+        _currentUser = await AuthService.GetCurrentUserAsync();
+
+        if (_currentUser?.HasPatientProfile == true)
+        {
+            _alertSubscription = EcgService.CriticalAlerts
+                .Subscribe(alert =>
+                {
+                    _criticalAlert = alert;
+                    InvokeAsync(StateHasChanged);
+                });
+        }
     }
 
     private async Task ToggleConnectionAsync()

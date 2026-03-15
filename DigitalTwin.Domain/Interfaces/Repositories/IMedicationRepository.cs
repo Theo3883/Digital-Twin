@@ -6,8 +6,8 @@ public interface IMedicationRepository
 {
     Task<IEnumerable<Medication>> GetByPatientAsync(Guid patientId);
     Task<Medication?> GetByIdAsync(Guid id);
-    Task AddAsync(Medication medication);
-    Task AddRangeAsync(IEnumerable<Medication> medications);
+    Task AddAsync(Medication medication, bool markDirty = true);
+    Task AddRangeAsync(IEnumerable<Medication> medications, bool markDirty = true);
     Task UpsertRangeAsync(IEnumerable<Medication> medications);
     Task SoftDeleteAsync(Guid id);
     Task DiscontinueAsync(Guid id, DateTime endDate, string? reason);
