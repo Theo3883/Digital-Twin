@@ -77,7 +77,9 @@ public static class DependencyInjection
 
         services.AddHttpClient("GeminiApi", client =>
         {
-            client.Timeout = TimeSpan.FromSeconds(60);
+            // 30 s is generous for Gemini flash-lite; keeps max total wait
+            // (timeout × MaxRetries) under 1 minute instead of 2.
+            client.Timeout = TimeSpan.FromSeconds(30);
             client.DefaultRequestHeaders.Add("Accept", "application/json");
         });
 

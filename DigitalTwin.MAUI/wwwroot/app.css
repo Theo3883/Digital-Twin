@@ -693,6 +693,19 @@ body {
   background: transparent !important;
 }
 
+/* 11b. iOS: prevent auto-zoom on input focus by enforcing 16px minimum.
+   iOS zooms whenever a focused field has font-size < 16px.
+   touch-action: manipulation kills double-tap zoom on all interactive elements. */
+@supports (-webkit-touch-callout: none) {
+  input,
+  textarea,
+  select,
+  [contenteditable] {
+    font-size: max(16px, 1em) !important;
+    touch-action: manipulation;
+  }
+}
+
 /* 12. Chat page: full-height flex layout, escapes page-content padding silo */
 .chat-page {
   position: fixed;

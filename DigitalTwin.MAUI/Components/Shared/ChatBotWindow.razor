@@ -298,12 +298,32 @@
     private string _inputText = string.Empty;
     private ElementReference _messagesContainer;
 
+    // Track previous values so we only re-render when something meaningful changed.
+    // This prevents a full message-list diff on every single keystroke (oninput).
+    private bool _prevInputHasText;
+    private bool _prevIsLoading;
+    private int _prevMessageCount;
+
+    protected override bool ShouldRender()
+    {
+        var inputHasText = !string.IsNullOrWhiteSpace(_inputText);
+        var needsRender = inputHasText != _prevInputHasText
+                       || IsLoading    != _prevIsLoading
+                       || Messages.Count != _prevMessageCount;
+        _prevInputHasText  = inputHasText;
+        _prevIsLoading     = IsLoading;
+        _prevMessageCount  = Messages.Count;
+        return needsRender;
+    }
+
     private async Task SendMessage()
     {
         if (string.IsNullOrWhiteSpace(_inputText) || IsLoading) return;
 
         var message = _inputText.Trim();
         _inputText = string.Empty;
+        // Force an immediate DOM update so the input clears before the AI call starts.
+        await InvokeAsync(StateHasChanged);
 
         await OnSendMessage.InvokeAsync(message);
     }

@@ -42,26 +42,33 @@
         });
 
         _isLoading = true;
+        // Fire-and-forget render — queues a re-render without blocking the current thread.
+        // DO NOT await InvokeAsync here: awaiting it would block this method until the
+        // WebView's main thread processes the message, which can be delayed under load
+        // and prevents the AI call from starting. The render will happen asynchronously.
         StateHasChanged();
 
+        ChatMessageDto response;
         try
         {
-            var response = await ChatBotService.SendMessageAsync(userMessage);
-            _messages.Add(response);
+            // Run the full AI pipeline on a thread-pool thread so the Blazor renderer
+            // and MAUI main thread remain free to process UI events during the wait.
+            response = await Task.Run(() => ChatBotService.SendMessageAsync(userMessage));
         }
         catch
         {
-            _messages.Add(new ChatMessageDto
+            response = new ChatMessageDto
             {
                 Content   = "I'm sorry, something went wrong. Please try again.",
                 IsUser    = false,
                 Timestamp = DateTime.UtcNow
-            });
+            };
         }
-        finally
-        {
-            _isLoading = false;
-            StateHasChanged();
-        }
+
+        _messages.Add(response);
+        _isLoading = false;
+        // After Task.Run we are on a thread-pool thread — use InvokeAsync to marshal
+        // the final state update back onto the Blazor renderer's sync context.
+        await InvokeAsync(StateHasChanged);
     }
 }
