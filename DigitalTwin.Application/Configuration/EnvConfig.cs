@@ -1,13 +1,15 @@
 namespace DigitalTwin.Application.Configuration;
 
 /// <summary>
-/// Configuration loaded from environment variables (populated from .env or system env).
-/// Presentation layer loads .env and passes this to Composition/Integrations.
+/// Stores application configuration values loaded from environment variables.
 /// </summary>
 public class EnvConfig
 {
     private const string DefaultDbName = "healthapp";
 
+    /// <summary>
+    /// Creates a configuration instance from the current process environment.
+    /// </summary>
     public static EnvConfig FromEnvironment()
     {
         return new EnvConfig
@@ -30,52 +32,97 @@ public class EnvConfig
 
     private static string? Get(string key) => Environment.GetEnvironmentVariable(key);
 
+    /// <summary>
+    /// Gets or sets the PostgreSQL server host name.
+    /// </summary>
     public string PostgresHost { get; set; } = "localhost";
+
+    /// <summary>
+    /// Gets or sets the PostgreSQL server port.
+    /// </summary>
     public int PostgresPort { get; set; } = 5432;
+
+    /// <summary>
+    /// Gets or sets the PostgreSQL user name.
+    /// </summary>
     public string PostgresUser { get; set; } = DefaultDbName;
 
     /// <summary>
-    /// No default — must be set via POSTGRES_PASSWORD environment variable.
-    /// If null, <see cref="PostgresConnectionString"/> returns null and cloud DB is skipped.
+    /// Gets or sets the PostgreSQL password.
+    /// When not configured, the cloud database connection string is not produced.
     /// </summary>
     public string? PostgresPassword { get; set; }
 
+    /// <summary>
+    /// Gets or sets the PostgreSQL database name.
+    /// </summary>
     public string PostgresDb { get; set; } = DefaultDbName;
 
+    /// <summary>
+    /// Gets or sets the Google OAuth client identifier.
+    /// </summary>
     public string? GoogleOAuthClientId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the Google OAuth redirect URI.
+    /// </summary>
     public string? GoogleOAuthRedirectUri { get; set; }
 
+    /// <summary>
+    /// Gets or sets the OpenWeatherMap API key used for environment data.
+    /// </summary>
     public string? OpenWeatherMapApiKey { get; set; }
+
+    /// <summary>
+    /// Gets or sets the Google Air Quality API key.
+    /// </summary>
     public string? GoogleAirQualityApiKey { get; set; }
 
+    /// <summary>
+    /// Gets or sets the configured latitude for environment queries.
+    /// </summary>
     public double Latitude { get; set; } = 48.8566;
+
+    /// <summary>
+    /// Gets or sets the configured longitude for environment queries.
+    /// </summary>
     public double Longitude { get; set; } = 2.3522;
 
     /// <summary>
-    /// WebSocket URL of the ESP32 ECG device on the local network.
-    /// Example: ws://192.168.1.42:8080
-    /// If null, the EcgMonitor page will prompt the user to enter the address.
+    /// Gets or sets the WebSocket URL for the ECG device.
     /// </summary>
     public string? EcgDeviceUrl { get; set; }
 
     /// <summary>
-    /// Gemini Pro API key for AI chatbot and coaching features.
-    /// If null, mock providers are used instead.
+    /// Gets or sets the Gemini API key used for AI-backed features.
     /// </summary>
     public string? GeminiApiKey { get; set; }
 
     /// <summary>
-    /// Returns a PostgreSQL connection string, or <see langword="null"/> if
-    /// <see cref="PostgresPassword"/> has not been configured.
-    /// A null value causes <c>AddDigitalTwin</c> to skip cloud DB registration entirely.
+    /// Gets the PostgreSQL connection string when a password is configured; otherwise returns <see langword="null"/>.
     /// </summary>
     public string? PostgresConnectionString =>
         PostgresPassword is null
             ? null
             : $"Host={PostgresHost};Port={PostgresPort};Database={PostgresDb};Username={PostgresUser};Password={PostgresPassword}";
 
+    /// <summary>
+    /// Gets a value indicating whether OpenWeatherMap integration is enabled.
+    /// </summary>
     public bool UseRealEnvironment => !string.IsNullOrWhiteSpace(OpenWeatherMapApiKey);
+
+    /// <summary>
+    /// Gets a value indicating whether Google Air Quality integration is enabled.
+    /// </summary>
     public bool UseRealAirQuality => !string.IsNullOrWhiteSpace(GoogleAirQualityApiKey);
+
+    /// <summary>
+    /// Gets a value indicating whether any real environment provider is enabled.
+    /// </summary>
     public bool UseRealEnvironmentApis => UseRealEnvironment || UseRealAirQuality;
+
+    /// <summary>
+    /// Gets a value indicating whether Gemini-backed AI features are enabled.
+    /// </summary>
     public bool UseGeminiAi => !string.IsNullOrWhiteSpace(GeminiApiKey);
 }

@@ -3,10 +3,16 @@ using DigitalTwin.Application.DTOs;
 
 namespace DigitalTwin.Application.Validators;
 
+/// <summary>
+/// Validates patient medical profile input.
+/// </summary>
 public class PatientProfileDtoValidator : AbstractValidator<PatientProfileDto>
 {
     private const string BloodTypePattern = @"^(A|B|AB|O)[+-]$";
 
+    /// <summary>
+    /// Initializes validation rules for patient profiles.
+    /// </summary>
     public PatientProfileDtoValidator()
     {
         RuleFor(p => p.BloodType)

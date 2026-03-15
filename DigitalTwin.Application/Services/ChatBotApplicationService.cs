@@ -8,8 +8,7 @@ using Microsoft.Extensions.Logging;
 namespace DigitalTwin.Application.Services;
 
 /// <summary>
-/// Thin orchestrator: delegates context building to the Domain service,
-/// delegates AI call to <see cref="IChatBotProvider"/>, maps to DTO.
+/// Orchestrates chatbot requests by loading patient context and delegating to the chat provider.
 /// </summary>
 public class ChatBotApplicationService : IChatBotApplicationService
 {
@@ -22,6 +21,9 @@ public class ChatBotApplicationService : IChatBotApplicationService
     private PatientProfile? _cachedProfile;
     private bool _profileLoaded;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ChatBotApplicationService"/> class.
+    /// </summary>
     public ChatBotApplicationService(
         IChatBotProvider chatBotProvider,
         IPatientContextService patientContextService,
@@ -32,6 +34,9 @@ public class ChatBotApplicationService : IChatBotApplicationService
         _logger                = logger;
     }
 
+    /// <summary>
+    /// Sends a message to the chatbot provider and returns the generated reply.
+    /// </summary>
     public async Task<ChatMessageDto> SendMessageAsync(string userMessage, CancellationToken ct = default)
     {
         if (!_profileLoaded)

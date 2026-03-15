@@ -10,11 +10,7 @@ using DigitalTwin.Domain.Interfaces.Services;
 namespace DigitalTwin.Application.Services;
 
 /// <summary>
-/// Thin orchestrator for patient-side medication operations.
-/// Business rules (ownership, creation) live in <see cref="IMedicationService"/>.
-/// Persistence strategy (cloud-first / local-fallback) lives in <see cref="IMedicationManagementService"/>.
-/// This class only: validates/maps inputs, calls domain, dispatches events, maps to DTOs.
-/// No repository interfaces are injected here.
+/// Orchestrates patient-side medication workflows, interaction checks, and DTO mapping.
 /// </summary>
 public class MedicationApplicationService : IMedicationApplicationService
 {
@@ -26,6 +22,9 @@ public class MedicationApplicationService : IMedicationApplicationService
     private readonly IMedicationManagementService    _medications;
     private readonly IDomainEventDispatcher          _events;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="MedicationApplicationService"/> class.
+    /// </summary>
     public MedicationApplicationService(
         IMedicationInteractionProvider provider,
         IDrugSearchProvider drugSearch,
@@ -44,8 +43,9 @@ public class MedicationApplicationService : IMedicationApplicationService
         _events             = events;
     }
 
-    // ── Drug interaction checking ─────────────────────────────────────────
-
+    /// <summary>
+    /// Retrieves medication interaction details for the supplied RxCUI identifiers.
+    /// </summary>
     public async Task<IEnumerable<MedicationInteractionDto>> CheckInteractionsAsync(
         IEnumerable<string> rxCuis)
     {
@@ -53,14 +53,18 @@ public class MedicationApplicationService : IMedicationApplicationService
         return interactions.Select(MedicationInteractionMapper.ToDto);
     }
 
+    /// <summary>
+    /// Determines whether the supplied medications include a high-risk interaction.
+    /// </summary>
     public async Task<bool> HasHighRiskInteractionsAsync(IEnumerable<string> rxCuis)
     {
         var interactions = await _provider.GetInteractionsAsync(rxCuis);
         return _interactionService.HasHighRisk(interactions);
     }
 
-    // ── Drug name / RxCUI autocomplete ────────────────────────────────────
-
+    /// <summary>
+    /// Searches medications by name and returns matching RxCUI results.
+    /// </summary>
     public async Task<IEnumerable<DrugSearchResultDto>> SearchDrugsByNameAsync(
         string query, int maxResults = 8, CancellationToken ct = default)
     {
@@ -68,14 +72,18 @@ public class MedicationApplicationService : IMedicationApplicationService
         return results.Select(r => new DrugSearchResultDto(r.Name, r.RxCui));
     }
 
-    // ── CRUD (patient-side, orchestration only) ───────────────────────────
-
+    /// <summary>
+    /// Gets medications for the specified patient.
+    /// </summary>
     public async Task<IEnumerable<MedicationDto>> GetMyMedicationsAsync(Guid patientId)
     {
         var medications = await _medications.GetByPatientAsync(patientId);
         return medications.Select(ToDto);
     }
 
+    /// <summary>
+    /// Adds a medication for the specified patient and dispatches the corresponding domain event.
+    /// </summary>
     public async Task<MedicationDto> AddMedicationAsync(
         Guid patientId, AddMedicationDto dto, AddedByRole addedBy)
     {
@@ -105,12 +113,18 @@ public class MedicationApplicationService : IMedicationApplicationService
         return ToDto(medication);
     }
 
+    /// <summary>
+    /// Soft-deletes a medication and dispatches a deletion event.
+    /// </summary>
     public async Task DeleteMedicationAsync(Guid patientId, Guid medicationId)
     {
         await _medications.SoftDeleteAsync(patientId, medicationId);
         await _events.DispatchAsync(new MedicationDeletedEvent(patientId, medicationId));
     }
 
+    /// <summary>
+    /// Discontinues a medication and dispatches a discontinuation event.
+    /// </summary>
     public async Task DiscontinueMedicationAsync(
         Guid patientId, Guid medicationId, string? reason = null)
     {

@@ -8,12 +8,18 @@ using DigitalTwin.Domain.Interfaces.Providers;
 
 namespace DigitalTwin.Application.Services;
 
+/// <summary>
+/// Provides live and recent vital-sign data for application consumers.
+/// </summary>
 public class VitalsApplicationService : IVitalsApplicationService
 {
     private readonly IHealthDataProvider _healthDataProvider;
     private readonly IVitalSignService _vitalSignService;
     private readonly Dictionary<Domain.Enums.VitalSignType, double> _lastValues = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="VitalsApplicationService"/> class.
+    /// </summary>
     public VitalsApplicationService(
         IHealthDataProvider healthDataProvider,
         IVitalSignService vitalSignService)
@@ -22,6 +28,9 @@ public class VitalsApplicationService : IVitalsApplicationService
         _vitalSignService = vitalSignService;
     }
 
+    /// <summary>
+    /// Gets the live vital-sign stream with per-type trend values applied.
+    /// </summary>
     public IObservable<VitalSignDto> GetLiveVitals()
     {
         return _healthDataProvider.GetLiveVitals()
@@ -38,6 +47,9 @@ public class VitalsApplicationService : IVitalsApplicationService
             });
     }
 
+    /// <summary>
+    /// Gets the latest stored samples for the requested vital-sign type.
+    /// </summary>
     public async Task<IEnumerable<VitalSignDto>> GetLatestSamplesAsync(VitalSignType type, int count = 20)
     {
         var domainType = EnumMapper.ToDomain(type);

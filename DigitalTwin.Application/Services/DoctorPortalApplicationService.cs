@@ -12,11 +12,7 @@ using Microsoft.Extensions.Logging;
 namespace DigitalTwin.Application.Services;
 
 /// <summary>
-/// Thin orchestrator for the Doctor Portal.
-/// All business logic (authorization, assignment factory, ownership guards)
-/// lives in <see cref="IDoctorPortalDomainService"/>.
-/// This service only: validates inputs, delegates to domain, maps to DTOs.
-/// No repository interfaces are injected here.
+/// Orchestrates doctor-portal workflows by delegating authorization and core rules to the domain layer.
 /// </summary>
 public class DoctorPortalApplicationService : IDoctorPortalApplicationService
 {
@@ -26,6 +22,9 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
     private readonly IVitalSignService                       _vitalSignService;
     private readonly ILogger<DoctorPortalApplicationService> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DoctorPortalApplicationService"/> class.
+    /// </summary>
     public DoctorPortalApplicationService(
         IDoctorPortalDomainService domain,
         IMedicationService medicationFactory,
@@ -40,8 +39,9 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
         _logger            = logger;
     }
 
-    // ── Dashboard ────────────────────────────────────────────────────────────
-
+    /// <summary>
+    /// Gets the dashboard summary for the specified doctor.
+    /// </summary>
     public async Task<DoctorDashboardDto> GetDashboardAsync(string doctorEmail)
     {
         User doctor;
@@ -58,8 +58,9 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
         };
     }
 
-    // ── Patient list ─────────────────────────────────────────────────────────
-
+    /// <summary>
+    /// Gets the patients assigned to the specified doctor.
+    /// </summary>
     public async Task<IEnumerable<DoctorPatientSummaryDto>> GetMyPatientsAsync(string doctorEmail)
     {
         User doctor;
@@ -90,8 +91,9 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
         return summaries;
     }
 
-    // ── Patient detail ───────────────────────────────────────────────────────
-
+    /// <summary>
+    /// Gets detailed information for an assigned patient.
+    /// </summary>
     public async Task<DoctorPatientDetailDto?> GetPatientDetailAsync(string doctorEmail, Guid patientId)
     {
         try { await _domain.RequireAuthorizedDoctorIdAsync(doctorEmail, patientId); }
@@ -117,8 +119,9 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
         catch (NotFoundException) { return null; }
     }
 
-    // ── Vitals ───────────────────────────────────────────────────────────────
-
+    /// <summary>
+    /// Gets vital-sign samples for an assigned patient.
+    /// </summary>
     public async Task<IEnumerable<VitalSignDto>> GetPatientVitalsAsync(
         string doctorEmail, Guid patientId,
         string? type = null, DateTime? from = null, DateTime? to = null)
@@ -132,8 +135,9 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
         return vitals.Select(v => VitalSignMapper.ToDto(v));
     }
 
-    // ── Sleep ────────────────────────────────────────────────────────────────
-
+    /// <summary>
+    /// Gets sleep sessions for an assigned patient.
+    /// </summary>
     public async Task<IEnumerable<SleepSessionDto>> GetPatientSleepAsync(
         string doctorEmail, Guid patientId,
         DateTime? from = null, DateTime? to = null)
@@ -151,8 +155,9 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
         });
     }
 
-    // ── Medications ──────────────────────────────────────────────────────────
-
+    /// <summary>
+    /// Gets medications for an assigned patient.
+    /// </summary>
     public async Task<IEnumerable<MedicationDto>> GetPatientMedicationsAsync(
         string doctorEmail, Guid patientId)
     {
@@ -163,6 +168,9 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
         return medications.Select(MedicationToDto);
     }
 
+    /// <summary>
+    /// Adds a doctor-prescribed medication for an assigned patient.
+    /// </summary>
     public async Task<MedicationDto?> AddPatientMedicationAsync(
         string doctorEmail, Guid patientId, AddMedicationDto dto)
     {
@@ -193,6 +201,9 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
         return MedicationToDto(medication);
     }
 
+    /// <summary>
+    /// Soft-deletes a medication for an assigned patient.
+    /// </summary>
     public async Task<bool> DeletePatientMedicationAsync(
         string doctorEmail, Guid patientId, Guid medicationId)
     {
@@ -208,6 +219,9 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
         catch (MedicationOwnershipException) { return false; }
     }
 
+    /// <summary>
+    /// Discontinues a medication for an assigned patient.
+    /// </summary>
     public async Task<bool> DiscontinuePatientMedicationAsync(
         string doctorEmail, Guid patientId, Guid medicationId, string reason)
     {
@@ -223,8 +237,9 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
         catch (MedicationOwnershipException) { return false; }
     }
 
-    // ── Assign / Unassign ────────────────────────────────────────────────────
-
+    /// <summary>
+    /// Assigns a patient to the doctor and returns the resulting patient summary.
+    /// </summary>
     public async Task<DoctorPatientSummaryDto?> AssignPatientAsync(
         string doctorEmail, AssignPatientDto dto)
     {
@@ -257,6 +272,9 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
         }
     }
 
+    /// <summary>
+    /// Removes a patient assignment from the specified doctor.
+    /// </summary>
     public async Task<bool> UnassignPatientAsync(string doctorEmail, Guid patientId)
     {
         try
@@ -269,8 +287,6 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
             return false;
         }
     }
-
-    // ── Private helpers ──────────────────────────────────────────────────────
 
     private static MedicationDto MedicationToDto(Medication m) => new()
     {

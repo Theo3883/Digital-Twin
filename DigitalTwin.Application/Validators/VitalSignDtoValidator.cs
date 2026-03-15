@@ -5,11 +5,13 @@ using DigitalTwin.Application.Enums;
 namespace DigitalTwin.Application.Validators;
 
 /// <summary>
-/// Validates DTO structure. Value range invariants are enforced by
-/// <c>DigitalTwin.Domain.Validators.VitalSignValidator</c> on the domain model.
+/// Validates the application-layer structure of vital-sign DTOs.
 /// </summary>
 public class VitalSignDtoValidator : AbstractValidator<VitalSignDto>
 {
+    /// <summary>
+    /// Initializes validation rules for vital-sign DTOs.
+    /// </summary>
     public VitalSignDtoValidator()
     {
         RuleFor(v => v.Type).IsInEnum();

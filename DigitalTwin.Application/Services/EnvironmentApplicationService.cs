@@ -9,10 +9,7 @@ using Microsoft.Extensions.Logging;
 namespace DigitalTwin.Application.Services;
 
 /// <summary>
-/// Thin orchestrator for environment data.
-/// Persistence strategy (cloud-first / local-fallback) is delegated to
-/// <see cref="IPersistenceGateway{EnvironmentReading}"/> — no repository
-/// interfaces are injected here.
+/// Orchestrates environment retrieval, assessment, persistence, and risk-event projection.
 /// </summary>
 public class EnvironmentApplicationService : IEnvironmentApplicationService
 {
@@ -21,6 +18,9 @@ public class EnvironmentApplicationService : IEnvironmentApplicationService
     private readonly IPersistenceGateway<Domain.Models.EnvironmentReading> _gateway;
     private readonly ILogger<EnvironmentApplicationService>           _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EnvironmentApplicationService"/> class.
+    /// </summary>
     public EnvironmentApplicationService(
         IEnvironmentDataProvider environmentDataProvider,
         IEnvironmentAssessmentService assessmentService,
@@ -33,6 +33,9 @@ public class EnvironmentApplicationService : IEnvironmentApplicationService
         _logger                  = logger;
     }
 
+    /// <summary>
+    /// Gets the stream of risk events generated from assessed environment readings.
+    /// </summary>
     public IObservable<RiskEventDto> RiskEvents =>
         _assessmentService.RiskEvents
             .Select(evt => new RiskEventDto
@@ -42,6 +45,9 @@ public class EnvironmentApplicationService : IEnvironmentApplicationService
                 Timestamp       = evt.Timestamp
             });
 
+    /// <summary>
+    /// Gets the current environment reading after assessment and persistence.
+    /// </summary>
     public async Task<EnvironmentReadingDto> GetCurrentEnvironmentAsync()
     {
         var reading  = await _environmentDataProvider.GetCurrentAsync();
@@ -52,6 +58,9 @@ public class EnvironmentApplicationService : IEnvironmentApplicationService
         return EnvironmentReadingMapper.ToDto(assessed);
     }
 
+    /// <summary>
+    /// Subscribes to assessed environment updates and persists each reading.
+    /// </summary>
     public IObservable<EnvironmentReadingDto> SubscribeToEnvironment()
     {
         return _environmentDataProvider.SubscribeToUpdates()

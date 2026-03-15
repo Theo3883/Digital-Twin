@@ -7,8 +7,7 @@ using Microsoft.Extensions.Logging;
 namespace DigitalTwin.Application.Services;
 
 /// <summary>
-/// Thin orchestrator: delegates context building to the Domain service,
-/// delegates AI call to <see cref="ICoachingProvider"/>, maps to DTO.
+/// Orchestrates personalized coaching advice generation.
 /// </summary>
 public class CoachingApplicationService : ICoachingApplicationService
 {
@@ -16,6 +15,9 @@ public class CoachingApplicationService : ICoachingApplicationService
     private readonly IPatientContextService _patientContextService;
     private readonly ILogger<CoachingApplicationService> _logger;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CoachingApplicationService"/> class.
+    /// </summary>
     public CoachingApplicationService(
         ICoachingProvider coachingProvider,
         IPatientContextService patientContextService,
@@ -26,6 +28,9 @@ public class CoachingApplicationService : ICoachingApplicationService
         _logger                = logger;
     }
 
+    /// <summary>
+    /// Generates coaching advice using the current patient context when available.
+    /// </summary>
     public async Task<CoachingAdviceDto> GetAdviceAsync(CancellationToken ct = default)
     {
         var profile = await _patientContextService.BuildContextAsync(ct);

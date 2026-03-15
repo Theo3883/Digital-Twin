@@ -13,15 +13,7 @@ using Microsoft.Extensions.Logging;
 namespace DigitalTwin.Application.Services;
 
 /// <summary>
-/// Singleton background service with two responsibilities:
-///
-/// 1. TABLE DRAIN — every 60 s (and on connectivity restore) calls every registered
-///    <see cref="ISyncDrainer"/> in sequence. Always runs once authenticated.
-///
-/// 2. VITALS COLLECTION — subscribes to live <see cref="IHealthDataProvider"/> stream,
-///    buffers readings in a lock-free queue, and flushes them every 30 s (or eagerly at
-///    100 items). Only starts when a Patient profile exists. Each flush tries the cloud
-///    DB first; on failure it caches locally with IsDirty=true for the drain cycle.
+/// Synchronizes live and cached health data between local storage and cloud persistence.
 /// </summary>
 public class HealthDataSyncService : IHealthDataSyncService
 {
@@ -48,6 +40,9 @@ public class HealthDataSyncService : IHealthDataSyncService
     private Guid _patientId;
     private bool _vitalsActive;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HealthDataSyncService"/> class.
+    /// </summary>
     public HealthDataSyncService(
         IServiceScopeFactory scopeFactory,
         ILogger<HealthDataSyncService> logger,
@@ -58,8 +53,9 @@ public class HealthDataSyncService : IHealthDataSyncService
         _transientPolicy = transientPolicy;
     }
 
-    // ── Public API ───────────────────────────────────────────────────────────────
-
+    /// <summary>
+    /// Starts background synchronization and begins vitals collection when a patient profile exists.
+    /// </summary>
     public async Task StartSyncAsync()
     {
         StopSync();
@@ -85,6 +81,9 @@ public class HealthDataSyncService : IHealthDataSyncService
         }
     }
 
+    /// <summary>
+    /// Starts live vitals collection for the current patient profile.
+    /// </summary>
     public async Task StartVitalsCollectionAsync()
     {
         if (_vitalsActive)
@@ -107,6 +106,9 @@ public class HealthDataSyncService : IHealthDataSyncService
         StartVitalsInternal(patientId.Value);
     }
 
+    /// <summary>
+    /// Stops active timers, subscriptions, and collection state.
+    /// </summary>
     public void StopSync()
     {
         _flushTimer?.Dispose(); _flushTimer = null;
@@ -117,6 +119,9 @@ public class HealthDataSyncService : IHealthDataSyncService
         _logger.LogInformation("[Sync] Stopped.");
     }
 
+    /// <summary>
+    /// Persists an externally supplied batch of vital signs for the current patient.
+    /// </summary>
     public async Task SyncBatchAsync(IEnumerable<VitalSign> vitals)
     {
         if (_patientId == Guid.Empty)
@@ -129,8 +134,7 @@ public class HealthDataSyncService : IHealthDataSyncService
     }
 
     /// <summary>
-    /// Drains ALL dirty tables to the cloud in registration order.
-    /// Called by the drain timer and by <see cref="ConnectivityMonitor"/> on reconnect.
+    /// Pushes all locally dirty data tables to cloud storage.
     /// </summary>
     public async Task PushToCloudAsync()
     {
@@ -138,8 +142,6 @@ public class HealthDataSyncService : IHealthDataSyncService
         try   { await DrainAllTablesAsync(); }
         finally { _drainGate.Release(); }
     }
-
-    // ── Vitals: start / receive → queue → flush ─────────────────────────────────
 
     private void StartVitalsInternal(Guid patientId)
     {

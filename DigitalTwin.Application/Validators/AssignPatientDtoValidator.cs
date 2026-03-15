@@ -3,8 +3,14 @@ using DigitalTwin.Application.DTOs;
 
 namespace DigitalTwin.Application.Validators;
 
+/// <summary>
+/// Validates requests that assign a patient to a doctor.
+/// </summary>
 public class AssignPatientDtoValidator : AbstractValidator<AssignPatientDto>
 {
+    /// <summary>
+    /// Initializes validation rules for patient assignment requests.
+    /// </summary>
     public AssignPatientDtoValidator()
     {
         RuleFor(a => a.PatientEmail)

@@ -3,8 +3,14 @@ using DigitalTwin.Application.DTOs;
 
 namespace DigitalTwin.Application.Validators;
 
+/// <summary>
+/// Validates medication creation input supplied through <see cref="AddMedicationDto"/>.
+/// </summary>
 public class AddMedicationDtoValidator : AbstractValidator<AddMedicationDto>
 {
+    /// <summary>
+    /// Initializes validation rules for medication creation requests.
+    /// </summary>
     public AddMedicationDtoValidator()
     {
         RuleFor(m => m.Name)

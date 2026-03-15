@@ -3,8 +3,14 @@ using DigitalTwin.Application.DTOs;
 
 namespace DigitalTwin.Application.Validators;
 
+/// <summary>
+/// Validates registration profile-completion input.
+/// </summary>
 public class ProfileCompletionDtoValidator : AbstractValidator<ProfileCompletionDto>
 {
+    /// <summary>
+    /// Initializes validation rules for registration profile completion.
+    /// </summary>
     public ProfileCompletionDtoValidator()
     {
         RuleFor(p => p.FirstName)
