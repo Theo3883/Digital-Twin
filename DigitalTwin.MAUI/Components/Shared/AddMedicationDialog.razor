@@ -55,12 +55,28 @@
                 }
             </div>
 
-            <MudTextField T="string"
-                          Label="Dosage"
-                          Placeholder="e.g. 50mg"
-                          Variant="Variant.Outlined"
-                          Required="true"
-                          @bind-Value="_dosage" />
+            @* Dosage: amount + unit *@
+            <div>
+                <MudText Typo="Typo.caption" Style="color: var(--mud-palette-text-secondary); margin-bottom: 4px; display: block;">Dosage *</MudText>
+                <div style="display: flex; gap: 8px; align-items: flex-start;">
+                    <MudTextField T="string"
+                                  Placeholder="e.g. 50"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  InputType="InputType.Number"
+                                  Style="flex: 1;"
+                                  @bind-Value="_dosageAmount" />
+                    <MudSelect T="string"
+                               Variant="Variant.Outlined"
+                               Style="width: 100px;"
+                               @bind-Value="_dosageUnit">
+                        @foreach (var unit in _dosageUnits)
+                        {
+                            <MudSelectItem Value="@unit">@unit</MudSelectItem>
+                        }
+                    </MudSelect>
+                </div>
+            </div>
 
             <MudTextField T="string"
                           Label="Frequency"
@@ -98,8 +114,11 @@
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 
+    private static readonly string[] _dosageUnits = ["mg", "g", "mcg", "ml", "IU", "units", "%"];
+
     private string _name = string.Empty;
-    private string _dosage = string.Empty;
+    private string _dosageAmount = string.Empty;
+    private string _dosageUnit = "mg";
     private string _frequency = string.Empty;
     private MedicationRoute _route = MedicationRoute.Oral;
     private string _reason = string.Empty;
@@ -110,7 +129,7 @@
     private CancellationTokenSource? _cts;
 
     private bool IsValid =>
-        !string.IsNullOrWhiteSpace(_name) && !string.IsNullOrWhiteSpace(_dosage);
+        !string.IsNullOrWhiteSpace(_name) && !string.IsNullOrWhiteSpace(_dosageAmount);
 
     private async Task OnNameChangedAsync(string value)
     {
@@ -162,7 +181,7 @@
         var dto = new AddMedicationDto
         {
             Name      = _name.Trim(),
-            Dosage    = _dosage.Trim(),
+            Dosage    = $"{_dosageAmount.Trim()} {_dosageUnit}",
             Frequency = string.IsNullOrWhiteSpace(_frequency) ? null : _frequency.Trim(),
             Route     = _route,
             RxCui     = string.IsNullOrWhiteSpace(_rxCui) ? null : _rxCui.Trim(),

@@ -90,9 +90,13 @@ export default function PatientDetailPage() {
   const [vitalType, setVitalType] = useState("HeartRate");
 
   // Prescribe form state
+  const DOSAGE_UNITS = ["mg", "g", "mcg", "ml", "IU", "units", "%"] as const;
+  type DosageUnit = typeof DOSAGE_UNITS[number];
+
   const [showPrescribeForm, setShowPrescribeForm] = useState(false);
   const [prescribeName, setPrescribeName] = useState("");
-  const [prescribeDosage, setPrescribeDosage] = useState("");
+  const [prescribeDosageAmount, setPrescribeDosageAmount] = useState("");
+  const [prescribeDosageUnit, setPrescribeDosageUnit] = useState<DosageUnit>("mg");
   const [prescribeFrequency, setPrescribeFrequency] = useState("");
   const [prescribeRoute, setPrescribeRoute] = useState<0 | 1 | 2 | 3 | 4>(0);
   const [prescribeRxCui, setPrescribeRxCui] = useState("");
@@ -135,12 +139,12 @@ export default function PatientDetailPage() {
   };
 
   const handlePrescribe = async () => {
-    if (!prescribeName.trim() || !prescribeDosage.trim()) return;
+    if (!prescribeName.trim() || !prescribeDosageAmount.trim()) return;
     setPrescribing(true);
     try {
       const dto: AddMedicationRequest = {
         name: prescribeName.trim(),
-        dosage: prescribeDosage.trim(),
+        dosage: `${prescribeDosageAmount.trim()} ${prescribeDosageUnit}`,
         frequency: prescribeFrequency.trim() || undefined,
         route: prescribeRoute,
         rxCui: prescribeRxCui.trim() || undefined,
@@ -150,7 +154,7 @@ export default function PatientDetailPage() {
       const added = await api.addPatientMedication(patientId, dto);
       setMedications((prev) => [added, ...prev]);
       setShowPrescribeForm(false);
-      setPrescribeName(""); setPrescribeDosage(""); setPrescribeFrequency("");
+      setPrescribeName(""); setPrescribeDosageAmount(""); setPrescribeDosageUnit("mg"); setPrescribeFrequency("");
       setPrescribeRoute(0); setPrescribeRxCui(""); setPrescribeReason("");
     } catch (e) {
       console.error("[Prescribe] error:", e);
@@ -497,14 +501,28 @@ export default function PatientDetailPage() {
                     )}
                   </div>
                   <div className="space-y-1">
-                    <label htmlFor="prescribe-dosage" className="text-xs text-muted-foreground font-medium">Dosage *</label>
-                    <input
-                      id="prescribe-dosage"
-                      className="w-full border rounded-md px-3 py-2 text-sm bg-background"
-                      placeholder="e.g. 50mg"
-                      value={prescribeDosage}
-                      onChange={(e) => setPrescribeDosage(e.target.value)}
-                    />
+                    <label className="text-xs text-muted-foreground font-medium">Dosage *</label>
+                    <div className="flex gap-2">
+                      <input
+                        id="prescribe-dosage-amount"
+                        type="number"
+                        min="0"
+                        step="any"
+                        className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                        placeholder="e.g. 50"
+                        value={prescribeDosageAmount}
+                        onChange={(e) => setPrescribeDosageAmount(e.target.value)}
+                      />
+                      <select
+                        className="border rounded-md px-2 py-2 text-sm bg-background shrink-0"
+                        value={prescribeDosageUnit}
+                        onChange={(e) => setPrescribeDosageUnit(e.target.value as DosageUnit)}
+                      >
+                        {DOSAGE_UNITS.map((u) => (
+                          <option key={u} value={u}>{u}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                   <div className="space-y-1">
                     <label htmlFor="prescribe-frequency" className="text-xs text-muted-foreground font-medium">Frequency</label>
@@ -542,7 +560,7 @@ export default function PatientDetailPage() {
                 </div>
                 <Button
                   size="sm"
-                  disabled={prescribing || !prescribeName.trim() || !prescribeDosage.trim()}
+                  disabled={prescribing || !prescribeName.trim() || !prescribeDosageAmount.trim()}
                   onClick={handlePrescribe}
                 >
                   {prescribing ? "Saving..." : "Save Prescription"}

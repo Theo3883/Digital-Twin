@@ -175,7 +175,9 @@ public static class DependencyInjection
             sp.GetRequiredService<IMedicationInteractionService>(),
             sp.GetRequiredService<IMedicationService>(),
             sp.GetRequiredService<IMedicationManagementService>(),
-            sp.GetRequiredService<IDomainEventDispatcher>()));
+            sp.GetRequiredService<IDomainEventDispatcher>(),
+            sp.GetService<IHealthDataSyncService>(),
+            sp.GetService<ILogger<MedicationApplicationService>>()));
         services.AddScoped<IDoctorPortalApplicationService>(sp => new DoctorPortalApplicationService(
             sp.GetRequiredService<IDoctorPortalDomainService>(),
             sp.GetRequiredService<IMedicationService>(),

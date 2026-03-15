@@ -6,6 +6,7 @@ using DigitalTwin.Domain.Events;
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Interfaces.Providers;
 using DigitalTwin.Domain.Interfaces.Services;
+using Microsoft.Extensions.Logging;
 
 namespace DigitalTwin.Application.Services;
 
@@ -21,6 +22,8 @@ public class MedicationApplicationService : IMedicationApplicationService
     private readonly IMedicationService              _medicationService;
     private readonly IMedicationManagementService    _medications;
     private readonly IDomainEventDispatcher          _events;
+    private readonly IHealthDataSyncService?         _sync;
+    private readonly ILogger<MedicationApplicationService>? _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MedicationApplicationService"/> class.
@@ -32,7 +35,9 @@ public class MedicationApplicationService : IMedicationApplicationService
         IMedicationInteractionService interactionService,
         IMedicationService medicationService,
         IMedicationManagementService medications,
-        IDomainEventDispatcher events)
+        IDomainEventDispatcher events,
+        IHealthDataSyncService? sync = null,
+        ILogger<MedicationApplicationService>? logger = null)
     {
         _provider           = provider;
         _drugSearch         = drugSearch;
@@ -41,6 +46,8 @@ public class MedicationApplicationService : IMedicationApplicationService
         _medicationService  = medicationService;
         _medications        = medications;
         _events             = events;
+        _sync               = sync;
+        _logger             = logger;
     }
 
     /// <summary>
@@ -73,10 +80,23 @@ public class MedicationApplicationService : IMedicationApplicationService
     }
 
     /// <summary>
-    /// Gets medications for the specified patient.
+    /// Gets medications for the specified patient, pulling the latest from cloud first
+    /// so doctor-prescribed medications are always visible without manual refresh.
     /// </summary>
     public async Task<IEnumerable<MedicationDto>> GetMyMedicationsAsync(Guid patientId)
     {
+        // Pull cloud → local before returning so any medication a doctor has just
+        // prescribed appears immediately. The gate inside PushToCloudAsync prevents
+        // concurrent runs, so this is safe to call on every page load.
+        if (_sync is not null)
+        {
+            try { await _sync.PushToCloudAsync(); }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "[Medications] Background cloud pull failed — returning local data.");
+            }
+        }
+
         var medications = await _medications.GetByPatientAsync(patientId);
         return medications.Select(ToDto);
     }
