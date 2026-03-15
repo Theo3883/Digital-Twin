@@ -34,6 +34,7 @@ public class HealthDataSyncService : IHealthDataSyncService
 
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<HealthDataSyncService> _logger;
+    private readonly ITransientFailurePolicy _transientPolicy;
 
     // ── State ────────────────────────────────────────────────────────────────────
     private readonly ConcurrentQueue<VitalSign> _queue  = new();
@@ -47,10 +48,14 @@ public class HealthDataSyncService : IHealthDataSyncService
     private Guid _patientId;
     private bool _vitalsActive;
 
-    public HealthDataSyncService(IServiceScopeFactory scopeFactory, ILogger<HealthDataSyncService> logger)
+    public HealthDataSyncService(
+        IServiceScopeFactory scopeFactory,
+        ILogger<HealthDataSyncService> logger,
+        ITransientFailurePolicy transientPolicy)
     {
-        _scopeFactory = scopeFactory;
-        _logger       = logger;
+        _scopeFactory    = scopeFactory;
+        _logger          = logger;
+        _transientPolicy = transientPolicy;
     }
 
     // ── Public API ───────────────────────────────────────────────────────────────
@@ -353,7 +358,7 @@ public class HealthDataSyncService : IHealthDataSyncService
                 if (count > 0 && _logger.IsEnabled(LogLevel.Debug))
                     _logger.LogDebug("[Sync] {Table}: {Count} records drained.", drainer.TableName, count);
             }
-            catch (Exception ex) when (IsTransientCloudFailure(ex))
+            catch (Exception ex) when (_transientPolicy.IsTransient(ex))
             {
                 _logger.LogWarning(ex, "[Sync] {Table}: cloud unavailable — skipping, will retry next cycle.", drainer.TableName);
             }
@@ -364,14 +369,4 @@ public class HealthDataSyncService : IHealthDataSyncService
         }
     }
 
-    private static bool IsTransientCloudFailure(Exception ex)
-    {
-        for (var e = ex; e is not null; e = e.InnerException)
-        {
-            var name = e.GetType().FullName ?? "";
-            if (name.Contains("NpgsqlException") || e is System.Net.Sockets.SocketException)
-                return true;
-        }
-        return false;
-    }
 }

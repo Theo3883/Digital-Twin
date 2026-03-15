@@ -15,4 +15,16 @@ public interface IMedicationService
     /// Does NOT persist — caller must call the repository.
     /// </summary>
     Medication CreateMedication(CreateMedicationRequest request);
+
+    /// <summary>
+    /// Validates that <paramref name="medication"/> belongs to <paramref name="patientId"/>.
+    /// Throws <see cref="Exceptions.MedicationOwnershipException"/> when ownership check fails.
+    /// </summary>
+    void ValidateOwnership(Guid patientId, Medication medication);
+
+    /// <summary>
+    /// Returns a new <see cref="Medication"/> with status set to Discontinued and EndDate/DiscontinuedReason populated.
+    /// Pure function — does NOT persist.
+    /// </summary>
+    Medication Discontinue(Medication medication, string? reason);
 }

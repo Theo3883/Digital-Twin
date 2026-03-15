@@ -1,5 +1,6 @@
 using DigitalTwin.Application.DTOs;
 using DigitalTwin.Application.Interfaces;
+using DigitalTwin.Domain.Exceptions;
 using DigitalTwin.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
 
@@ -95,7 +96,7 @@ public class AuthApplicationService : IAuthApplicationService
 
         var current = await GetCurrentUserAsync();
         if (current is null)
-            throw new InvalidOperationException("No authenticated user. Sign in first.");
+            throw new UnauthorizedException("No authenticated user. Sign in first.");
 
         await _patientService.CreateOrUpdateProfileAsync(
             current.UserId, profile.BloodType, profile.Allergies, profile.MedicalHistoryNotes);
@@ -133,7 +134,7 @@ public class AuthApplicationService : IAuthApplicationService
     {
         var current = await GetCurrentUserAsync();
         if (current is null)
-            throw new InvalidOperationException("No authenticated user found.");
+            throw new UnauthorizedException("No authenticated user found.");
         return current;
     }
 

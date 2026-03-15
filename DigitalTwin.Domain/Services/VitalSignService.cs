@@ -53,4 +53,15 @@ public class VitalSignService : IVitalSignService
             _ => ""
         };
     }
+
+    /// <inheritdoc />
+    public bool TryParseType(string? value, out VitalSignType type)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            type = default;
+            return false;
+        }
+        return Enum.TryParse(value, ignoreCase: true, out type);
+    }
 }

@@ -4,31 +4,33 @@ using DigitalTwin.Application.Interfaces;
 using DigitalTwin.Application.Mappers;
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Interfaces.Providers;
-using DigitalTwin.Domain.Interfaces.Repositories;
 using Microsoft.Extensions.Logging;
 
 namespace DigitalTwin.Application.Services;
 
+/// <summary>
+/// Thin orchestrator for environment data.
+/// Persistence strategy (cloud-first / local-fallback) is delegated to
+/// <see cref="IPersistenceGateway{EnvironmentReading}"/> — no repository
+/// interfaces are injected here.
+/// </summary>
 public class EnvironmentApplicationService : IEnvironmentApplicationService
 {
-    private readonly IEnvironmentDataProvider _environmentDataProvider;
-    private readonly IEnvironmentAssessmentService _assessmentService;
-    private readonly IEnvironmentReadingRepository _repository;
-    private readonly IEnvironmentReadingRepository? _cloudRepository;
-    private readonly ILogger<EnvironmentApplicationService> _logger;
+    private readonly IEnvironmentDataProvider                         _environmentDataProvider;
+    private readonly IEnvironmentAssessmentService                    _assessmentService;
+    private readonly IPersistenceGateway<Domain.Models.EnvironmentReading> _gateway;
+    private readonly ILogger<EnvironmentApplicationService>           _logger;
 
     public EnvironmentApplicationService(
         IEnvironmentDataProvider environmentDataProvider,
         IEnvironmentAssessmentService assessmentService,
-        IEnvironmentReadingRepository repository,
-        ILogger<EnvironmentApplicationService> logger,
-        IEnvironmentReadingRepository? cloudRepository = null)
+        IPersistenceGateway<Domain.Models.EnvironmentReading> gateway,
+        ILogger<EnvironmentApplicationService> logger)
     {
         _environmentDataProvider = environmentDataProvider;
-        _assessmentService = assessmentService;
-        _repository = repository;
-        _logger = logger;
-        _cloudRepository = cloudRepository;
+        _assessmentService       = assessmentService;
+        _gateway                 = gateway;
+        _logger                  = logger;
     }
 
     public IObservable<RiskEventDto> RiskEvents =>
@@ -36,16 +38,16 @@ public class EnvironmentApplicationService : IEnvironmentApplicationService
             .Select(evt => new RiskEventDto
             {
                 AirQualityLevel = EnumMapper.ToApp(evt.AirQualityLevel),
-                Message = evt.Message,
-                Timestamp = evt.Timestamp
+                Message         = evt.Message,
+                Timestamp       = evt.Timestamp
             });
 
     public async Task<EnvironmentReadingDto> GetCurrentEnvironmentAsync()
     {
-        var reading = await _environmentDataProvider.GetCurrentAsync();
+        var reading  = await _environmentDataProvider.GetCurrentAsync();
         var assessed = _assessmentService.AssessReading(reading);
 
-        _ = PersistAsync(assessed);
+        _ = _gateway.PersistAsync(assessed);
 
         return EnvironmentReadingMapper.ToDto(assessed);
     }
@@ -56,34 +58,8 @@ public class EnvironmentApplicationService : IEnvironmentApplicationService
             .Select(reading =>
             {
                 var assessed = _assessmentService.AssessReading(reading);
-                _ = PersistAsync(assessed);
+                _ = _gateway.PersistAsync(assessed);
                 return EnvironmentReadingMapper.ToDto(assessed);
             });
-    }
-
-    private async Task PersistAsync(Domain.Models.EnvironmentReading reading)
-    {
-        var cloudSucceeded = false;
-        if (_cloudRepository != null)
-        {
-            try
-            {
-                await _cloudRepository.AddAsync(reading, markDirty: false);
-                cloudSucceeded = true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "[EnvSync] Cloud persist failed; will sync later.");
-            }
-        }
-
-        try
-        {
-            await _repository.AddAsync(reading, markDirty: !cloudSucceeded);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "[EnvSync] Failed to persist environment reading locally.");
-        }
     }
 }

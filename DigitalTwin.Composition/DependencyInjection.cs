@@ -6,11 +6,14 @@ using DigitalTwin.Domain.Interfaces.Providers;
 using DigitalTwin.Domain.Interfaces.Repositories;
 using DigitalTwin.Domain.Interfaces.Services;
 using DigitalTwin.Domain.Interfaces.Sync;
+using DigitalTwin.Domain.Models;
 using DigitalTwin.Domain.Services;
 using DigitalTwin.Domain.Services.Triage;
 using DigitalTwin.Domain.Sync;
 using DigitalTwin.Domain.Sync.Drainers;
 using DigitalTwin.Infrastructure;
+using DigitalTwin.Infrastructure.Policies;
+using DigitalTwin.Infrastructure.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -61,10 +64,29 @@ public static class DependencyInjection
         services.AddCoreDomainServices();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IPatientService, PatientService>();
+        services.AddScoped<IDoctorPortalDomainService, DoctorPortalDomainService>();
+
+        // ── Infrastructure services ──────────────────────────────────────────
+        services.AddSingleton<ITransientFailurePolicy, NpgsqlTransientFailurePolicy>();
+        services.AddScoped<IDomainEventDispatcher, NoOpDomainEventDispatcher>();
+        services.AddScoped<IMedicationManagementService>(sp => new MedicationManagementService(
+            sp.GetRequiredService<IMedicationRepository>(),
+            sp.GetKeyedService<IMedicationRepository>(Cloud),
+            sp.GetRequiredService<IMedicationService>(),
+            sp.GetRequiredService<ILogger<MedicationManagementService>>()));
+        services.AddScoped<IPersistenceGateway<EnvironmentReading>>(sp =>
+            new EnvironmentReadingPersistenceGateway(
+                sp.GetRequiredService<IEnvironmentReadingRepository>(),
+                sp.GetKeyedService<IEnvironmentReadingRepository>(Cloud),
+                sp.GetRequiredService<ILogger<EnvironmentReadingPersistenceGateway>>()));
 
         // ── Application services ─────────────────────────────────────────────
-        services.AddScoped<IDoctorPortalDataFacade, DoctorPortalDataFacade>();
-        services.AddScoped<IDoctorPortalApplicationService, DoctorPortalApplicationService>();
+        services.AddScoped<IDoctorPortalApplicationService>(sp => new DoctorPortalApplicationService(
+            sp.GetRequiredService<IDoctorPortalDomainService>(),
+            sp.GetRequiredService<IMedicationService>(),
+            sp.GetRequiredService<IRxCuiLookupProvider>(),
+            sp.GetRequiredService<IVitalSignService>(),
+            sp.GetRequiredService<ILogger<DoctorPortalApplicationService>>()));
 
         // ── Validators ───────────────────────────────────────────────────────
         services.AddValidation();
@@ -104,6 +126,7 @@ public static class DependencyInjection
         services.AddScoped<IPatientService, PatientService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IPatientContextService, PatientContextService>();
+        services.AddScoped<IDoctorPortalDomainService, DoctorPortalDomainService>();
 
         // Doctor assignments: prefer cloud repositories when configured.
         services.AddScoped<IDoctorPatientAssignmentService>(sp =>
@@ -119,26 +142,46 @@ public static class DependencyInjection
             return new DoctorPatientAssignmentService(assignments, users);
         });
 
+        // ── Infrastructure services ──────────────────────────────────────────
+        services.AddSingleton<ITransientFailurePolicy, NpgsqlTransientFailurePolicy>();
+        services.AddScoped<IDomainEventDispatcher, NoOpDomainEventDispatcher>();
+        services.AddScoped<IMedicationManagementService>(sp => new MedicationManagementService(
+            sp.GetRequiredService<IMedicationRepository>(),
+            sp.GetKeyedService<IMedicationRepository>(Cloud),
+            sp.GetRequiredService<IMedicationService>(),
+            sp.GetRequiredService<ILogger<MedicationManagementService>>()));
+        services.AddScoped<IPersistenceGateway<EnvironmentReading>>(sp =>
+            new EnvironmentReadingPersistenceGateway(
+                sp.GetRequiredService<IEnvironmentReadingRepository>(),
+                sp.GetKeyedService<IEnvironmentReadingRepository>(Cloud),
+                sp.GetRequiredService<ILogger<EnvironmentReadingPersistenceGateway>>()));
+
         // ── Application services ─────────────────────────────────────────────
         services.AddScoped<IVitalsApplicationService, VitalsApplicationService>();
         services.AddScoped<IEnvironmentApplicationService>(sp => new EnvironmentApplicationService(
             sp.GetRequiredService<IEnvironmentDataProvider>(),
             sp.GetRequiredService<IEnvironmentAssessmentService>(),
-            sp.GetRequiredService<IEnvironmentReadingRepository>(),
-            sp.GetRequiredService<ILogger<EnvironmentApplicationService>>(),
-            sp.GetKeyedService<IEnvironmentReadingRepository>(Cloud)));
+            sp.GetRequiredService<IPersistenceGateway<EnvironmentReading>>(),
+            sp.GetRequiredService<ILogger<EnvironmentApplicationService>>()));
         services.AddScoped<IAuthApplicationService, AuthApplicationService>();
-        services.AddSingleton<IHealthDataSyncService, HealthDataSyncService>();
+        services.AddSingleton<IHealthDataSyncService>(sp => new HealthDataSyncService(
+            sp.GetRequiredService<IServiceScopeFactory>(),
+            sp.GetRequiredService<ILogger<HealthDataSyncService>>(),
+            sp.GetRequiredService<ITransientFailurePolicy>()));
         services.AddScoped<IMedicationApplicationService>(sp => new MedicationApplicationService(
             sp.GetRequiredService<IMedicationInteractionProvider>(),
             sp.GetRequiredService<IDrugSearchProvider>(),
             sp.GetRequiredService<IRxCuiLookupProvider>(),
             sp.GetRequiredService<IMedicationInteractionService>(),
             sp.GetRequiredService<IMedicationService>(),
-            sp.GetRequiredService<IMedicationRepository>(),
-            sp.GetKeyedService<IMedicationRepository>(Cloud)));
-        services.AddScoped<IDoctorPortalDataFacade, DoctorPortalDataFacade>();
-        services.AddScoped<IDoctorPortalApplicationService, DoctorPortalApplicationService>();
+            sp.GetRequiredService<IMedicationManagementService>(),
+            sp.GetRequiredService<IDomainEventDispatcher>()));
+        services.AddScoped<IDoctorPortalApplicationService>(sp => new DoctorPortalApplicationService(
+            sp.GetRequiredService<IDoctorPortalDomainService>(),
+            sp.GetRequiredService<IMedicationService>(),
+            sp.GetRequiredService<IRxCuiLookupProvider>(),
+            sp.GetRequiredService<IVitalSignService>(),
+            sp.GetRequiredService<ILogger<DoctorPortalApplicationService>>()));
         services.AddScoped<IEcgApplicationService, EcgApplicationService>();
         services.AddScoped<IChatBotApplicationService, ChatBotApplicationService>();
         services.AddScoped<ICoachingApplicationService, CoachingApplicationService>();

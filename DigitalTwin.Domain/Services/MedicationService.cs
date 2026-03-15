@@ -1,4 +1,5 @@
 using DigitalTwin.Domain.Enums;
+using DigitalTwin.Domain.Exceptions;
 using DigitalTwin.Domain.Interfaces.Services;
 using DigitalTwin.Domain.Models;
 
@@ -33,5 +34,23 @@ public class MedicationService : IMedicationService
             CreatedAt = now,
             UpdatedAt = now
         };
+    }
+
+    /// <inheritdoc />
+    public void ValidateOwnership(Guid patientId, Medication medication)
+    {
+        if (medication.PatientId != patientId)
+            throw new MedicationOwnershipException(medication.Id, patientId);
+    }
+
+    /// <inheritdoc />
+    public Medication Discontinue(Medication medication, string? reason)
+    {
+        var now = DateTime.UtcNow;
+        medication.Status            = MedicationStatus.Discontinued;
+        medication.EndDate           = now;
+        medication.DiscontinuedReason = reason?.Trim();
+        medication.UpdatedAt         = now;
+        return medication;
     }
 }
