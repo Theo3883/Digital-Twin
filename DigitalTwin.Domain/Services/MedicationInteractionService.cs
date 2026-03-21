@@ -1,26 +1,34 @@
 using DigitalTwin.Domain.Enums;
-using DigitalTwin.Domain.Models;
-
 using DigitalTwin.Domain.Interfaces;
+using DigitalTwin.Domain.Models;
 
 namespace DigitalTwin.Domain.Services;
 
 public class MedicationInteractionService : IMedicationInteractionService
 {
+    /// <summary>
+    /// The minimum severity that constitutes a blocking interaction.
+    /// Centralised here so the threshold is changed in exactly one place.
+    /// </summary>
+    private const InteractionSeverity BlockingThreshold = InteractionSeverity.High;
+
     public InteractionSeverity EvaluateSeverity(MedicationInteraction interaction)
-    {
-        return interaction.Severity;
-    }
+        => interaction.Severity;
 
     public bool HasHighRisk(IEnumerable<MedicationInteraction> interactions)
-    {
-        return interactions.Any(i => i.Severity == InteractionSeverity.High);
-    }
+        => interactions.Any(i => i.Severity == InteractionSeverity.High);
 
     public IEnumerable<MedicationInteraction> FilterByMinSeverity(
         IEnumerable<MedicationInteraction> interactions,
         InteractionSeverity minSeverity)
-    {
-        return interactions.Where(i => i.Severity >= minSeverity);
-    }
+        => interactions.Where(i => i.Severity >= minSeverity);
+
+    /// <inheritdoc/>
+    public bool IsAdditionBlocked(IEnumerable<MedicationInteraction> interactions)
+        => GetBlockingInteractions(interactions).Any();
+
+    /// <inheritdoc/>
+    public IEnumerable<MedicationInteraction> GetBlockingInteractions(
+        IEnumerable<MedicationInteraction> interactions)
+        => interactions.Where(i => i.Severity >= BlockingThreshold);
 }

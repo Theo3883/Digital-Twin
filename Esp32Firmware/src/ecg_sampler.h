@@ -6,9 +6,12 @@
 // Applies a 50 Hz IIR notch filter to remove mains interference.
 // Fills a 1-second buffer (BUFFER_SIZE samples) ready for transmission.
 
-static const int ECG_PIN        = 34;
-static const int SAMPLE_RATE_HZ = 500;
-static const int BUFFER_SIZE    = SAMPLE_RATE_HZ; // 500 samples = 1 second
+static const int ECG_PIN            = 34;
+static const int ECG_LO_PLUS_PIN    = 35;
+static const int ECG_LO_MINUS_PIN   = 32;
+static const int ECG_SDN_PIN        = 25;
+static const int SAMPLE_RATE_HZ     = 500;
+static const int BUFFER_SIZE        = SAMPLE_RATE_HZ; // 500 samples = 1 second
 
 // Notch filter state (50 Hz, fs = 500 Hz)
 // Coefficients generated for a 2nd-order IIR notch (Q=35):
@@ -30,11 +33,30 @@ struct EcgSampler {
 
     void begin() {
         pinMode(ECG_PIN, INPUT);
+        pinMode(ECG_LO_PLUS_PIN, INPUT);
+        pinMode(ECG_LO_MINUS_PIN, INPUT);
+        pinMode(ECG_SDN_PIN, OUTPUT);
+        digitalWrite(ECG_SDN_PIN, HIGH);
+    }
+
+    bool leadOffDetected() const {
+        return digitalRead(ECG_LO_PLUS_PIN) == HIGH || digitalRead(ECG_LO_MINUS_PIN) == HIGH;
     }
 
     // Single ECG sample + filter step.
     // Call from normal task context (not ISR).
     void sample() {
+        if (leadOffDetected()) {
+            buffer[bufIndex++] = 0;
+
+            if (bufIndex >= BUFFER_SIZE) {
+                bufIndex    = 0;
+                bufferReady = true;
+            }
+
+            return;
+        }
+
         float raw = (float)analogRead(ECG_PIN);
         float filtered = NOTCH_B0 * raw + NOTCH_B1 * x1 + NOTCH_B2 * x2
                        - NOTCH_A1 * y1 - NOTCH_A2 * y2;

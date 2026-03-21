@@ -20,7 +20,7 @@ public class HealthDataSyncService : IHealthDataSyncService
     // ── Tuning ───────────────────────────────────────────────────────────────────
     private const int MaxBufferSize  = 5000; 
     private const int FlushThreshold = 100;    // flush eagerly once 100 readings queue up
-    private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(60);  // flush timer every 60 s
+    private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(600);  // flush timer every 60 s
     private static readonly TimeSpan DrainInterval = TimeSpan.FromSeconds(300);
     private static readonly TimeSpan SleepCollectInterval = TimeSpan.FromMinutes(15);
 

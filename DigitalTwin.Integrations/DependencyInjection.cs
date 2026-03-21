@@ -93,17 +93,31 @@ public static class DependencyInjection
 
             services.AddScoped<IChatBotProvider, GeminiChatBotProvider>();
             services.AddScoped<ICoachingProvider, GeminiCoachingProvider>();
-            services.AddScoped<IRxCuiLookupProvider, GeminiRxCuiLookupProvider>();
+
+            // RxNav-first lookup (handles brand names, typos, international names);
+            // Gemini is the fallback for drugs not yet indexed in RxNorm.
+            services.AddScoped<IRxCuiLookupProvider>(sp => new ChainedRxCuiLookupProvider(
+                primary:  sp.GetRequiredService<RxNavRxCuiResolver>(),
+                fallback: sp.GetRequiredService<GeminiRxCuiLookupProvider>()));
+            services.AddScoped<GeminiRxCuiLookupProvider>();
         }
         else
         {
             services.AddScoped<IChatBotProvider, MockChatBotProvider>();
             services.AddScoped<ICoachingProvider, MockCoachingProvider>();
-            services.AddScoped<IRxCuiLookupProvider, NullRxCuiLookupProvider>();
+
+            // No AI configured — RxNav only; returns null if approximateTerm finds nothing.
+            services.AddScoped<IRxCuiLookupProvider>(sp => new ChainedRxCuiLookupProvider(
+                primary:  sp.GetRequiredService<RxNavRxCuiResolver>(),
+                fallback: new NullRxCuiLookupProvider()));
         }
 
-        services.AddHttpClient<IMedicationInteractionProvider, RxNavProvider>();
-        services.AddHttpClient<IDrugSearchProvider, RxNavProvider>();
+        // Medication integrations:
+        // - RxNav for search + RxCUI resolution
+        // - openFDA-backed interaction provider (built from active APIs)
+        services.AddHttpClient<RxNavRxCuiResolver>();
+        services.AddHttpClient<IMedicationInteractionProvider, OpenFdaMedicationInteractionProvider>();
+        services.AddHttpClient<IDrugSearchProvider, RxNavDrugSearchProvider>();
 
         // ECG: direct connection to ESP32 on local network.
         // EcgDeviceUrl is set via ECG_DEVICE_URL env var or entered by the user at runtime.

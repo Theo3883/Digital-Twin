@@ -33,4 +33,30 @@ public class DrugsController : ControllerBase
         var results = await _medicationService.SearchDrugsByNameAsync(q.Trim(), max, ct);
         return Ok(results);
     }
+
+    /// <summary>
+    /// POST /api/drugs/interactions — checks interactions for the supplied RxCUIs.
+    /// </summary>
+    [HttpPost("interactions")]
+    public async Task<ActionResult<IEnumerable<MedicationInteractionDto>>> CheckInteractions(
+        [FromBody] DrugInteractionsRequest request,
+        CancellationToken ct = default)
+    {
+        var rxCuis = request.RxCuis
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Select(c => c.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (rxCuis.Count < 2)
+            return Ok(Array.Empty<MedicationInteractionDto>());
+
+        var interactions = await _medicationService.CheckInteractionsAsync(rxCuis);
+        return Ok(interactions);
+    }
+
+    public sealed class DrugInteractionsRequest
+    {
+        public List<string> RxCuis { get; set; } = [];
+    }
 }

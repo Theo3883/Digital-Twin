@@ -134,6 +134,13 @@ export class ApiClient {
     const q = encodeURIComponent(query);
     return this.request<DrugSearchResult[]>(`/api/drugs/search?q=${q}&max=${max}`);
   }
+
+  async checkDrugInteractions(rxCuis: string[]) {
+    return this.request<MedicationInteraction[]>(`/api/drugs/interactions`, {
+      method: "POST",
+      body: JSON.stringify({ rxCuis }),
+    });
+  }
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -243,6 +250,16 @@ export interface AddMedicationRequest {
 export interface DrugSearchResult {
   name: string;
   rxCui: string;
+}
+
+// 0=None, 1=Low, 2=Medium, 3=High
+export type InteractionSeverity = 0 | 1 | 2 | 3;
+
+export interface MedicationInteraction {
+  drugARxCui: string;
+  drugBRxCui: string;
+  severity: InteractionSeverity;
+  description: string;
 }
 
 export const api = new ApiClient();

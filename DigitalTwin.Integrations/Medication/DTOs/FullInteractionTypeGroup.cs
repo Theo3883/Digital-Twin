@@ -1,3 +1,6 @@
+using System.Text.Json.Serialization;
+
 namespace DigitalTwin.Integrations.Medication.DTOs;
 
-internal sealed record FullInteractionTypeGroup(List<FullInteractionType>? FullInteractionType);
+internal sealed record FullInteractionTypeGroup(
+    [property: JsonPropertyName("fullInteractionType")] List<FullInteractionType>? FullInteractionType);

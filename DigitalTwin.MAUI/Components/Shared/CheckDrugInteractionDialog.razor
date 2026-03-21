@@ -1,0 +1,264 @@
+@using DigitalTwin.Application.DTOs
+@using DigitalTwin.Application.Enums
+@using DigitalTwin.Application.Interfaces
+@using System.Text.RegularExpressions
+@inject IMedicationApplicationService MedicationService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="font-family: var(--font-display); font-weight: 700;">
+            Check Drug Interactions
+        </MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <div style="display: flex; flex-direction: column; gap: 12px; min-width: 300px; padding-top: 4px;">
+            <MudTextField T="string"
+                          Label="Medication 1"
+                          Placeholder="e.g. Ibuprofen"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          @bind-Value="_medication1" />
+
+            <MudSwitch T="bool"
+                       Color="Color.Primary"
+                       Label="Include my active medications"
+                       @bind-Value="_includeActiveMedications" />
+
+            <MudTextField T="string"
+                          Label="Medication 2"
+                          Placeholder="@(_includeActiveMedications ? "Optional when active medications are included" : "e.g. Warfarin")"
+                          Variant="Variant.Outlined"
+                          Required="@(!_includeActiveMedications)"
+                          @bind-Value="_medication2" />
+
+            @if (_isChecking)
+            {
+                <div style="display: flex; align-items: center; gap: 8px; color: var(--text-sec); font-size: 13px;">
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                    Checking interactions...
+                </div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(_error))
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">@_error</MudAlert>
+            }
+
+            @if (_hasChecked && !_isChecking)
+            {
+                @if (_interactions.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Success" Dense="true">No interactions found.</MudAlert>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Warning" Dense="true">
+                        Found @_interactions.Count interaction@(_interactions.Count == 1 ? "" : "s").
+                    </MudAlert>
+
+                    <div style="display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow: auto; padding-right: 4px;">
+                        @foreach (var interaction in _interactions)
+                        {
+                            <div class="glass-card" style="padding: 12px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px;">
+                                    <span style="font-size: 13px; color: var(--text-main);">
+                                        @GetInteractionTitle(interaction)
+                                    </span>
+                                    <MedicationSafetyBadge Severity="@interaction.Severity" />
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-sec);">@interaction.Description</div>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+        </div>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Close</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="CheckAsync"
+                   Disabled="@(!IsValid || _isChecking)">Check</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public List<string> ActiveMedicationRxCuis { get; set; } = [];
+    [Parameter] public Dictionary<string, string> ActiveMedicationNamesByRxCui { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    private string _medication1 = string.Empty;
+    private string _medication2 = string.Empty;
+    private bool _includeActiveMedications;
+    private bool _isChecking;
+    private bool _hasChecked;
+    private string? _error;
+    private List<MedicationInteractionDto> _interactions = [];
+    private readonly Dictionary<string, string> _nameByRxCui = new(StringComparer.OrdinalIgnoreCase);
+    private string _typedMedication1 = string.Empty;
+    private string _typedMedication2 = string.Empty;
+
+    private bool IsValid =>
+        !string.IsNullOrWhiteSpace(_medication1) &&
+        (_includeActiveMedications || !string.IsNullOrWhiteSpace(_medication2));
+
+    private async Task CheckAsync()
+    {
+        if (!IsValid) return;
+
+        _isChecking = true;
+        _hasChecked = false;
+        _error = null;
+        _interactions = [];
+        _typedMedication1 = _medication1.Trim();
+        _typedMedication2 = _medication2.Trim();
+
+        try
+        {
+            var rxCuis = new List<string>();
+
+            var med1 = await ResolveBestMatchAsync(_medication1);
+            if (med1 is null || string.IsNullOrWhiteSpace(med1.RxCui))
+            {
+                _error = $"Could not find RxCUI for '{_medication1}'.";
+                return;
+            }
+            rxCuis.Add(med1.RxCui);
+            _nameByRxCui[med1.RxCui] = med1.Name;
+
+            if (!string.IsNullOrWhiteSpace(_medication2))
+            {
+                var med2 = await ResolveBestMatchAsync(_medication2);
+                if (med2 is null || string.IsNullOrWhiteSpace(med2.RxCui))
+                {
+                    _error = $"Could not find RxCUI for '{_medication2}'.";
+                    return;
+                }
+                rxCuis.Add(med2.RxCui);
+                _nameByRxCui[med2.RxCui] = med2.Name;
+            }
+
+            if (_includeActiveMedications)
+            {
+                rxCuis.AddRange(ActiveMedicationRxCuis);
+                foreach (var kvp in ActiveMedicationNamesByRxCui)
+                    _nameByRxCui[kvp.Key] = kvp.Value;
+            }
+
+            rxCuis = rxCuis
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (rxCuis.Count < 2)
+            {
+                _error = "Need at least two medications with valid RxCUI to check interactions.";
+                return;
+            }
+
+            _interactions = (await MedicationService.CheckInteractionsAsync(rxCuis)).ToList();
+            _hasChecked = true;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isChecking = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task<DrugSearchResultDto?> ResolveBestMatchAsync(string medicationName)
+    {
+        if (string.IsNullOrWhiteSpace(medicationName))
+            return null;
+
+        var input = medicationName.Trim();
+        var normalizedInput = NormalizeForMatch(input);
+
+        var matches = (await MedicationService.SearchDrugsByNameAsync(input, 20)).ToList();
+        if (matches.Count == 0)
+            return null;
+
+        return matches
+            .OrderByDescending(m => GetMatchScore(normalizedInput, NormalizeForMatch(m.Name)))
+            .ThenBy(m => m.Name.Length)
+            .FirstOrDefault();
+    }
+
+    private static string NormalizeForMatch(string value)
+    {
+        var v = value.Trim().ToLowerInvariant();
+        v = Regex.Replace(v, @"[^a-z0-9\s]", " ");
+        v = Regex.Replace(v, @"\s+", " ").Trim();
+        return v;
+    }
+
+    private static int GetMatchScore(string input, string candidate)
+    {
+        if (string.IsNullOrWhiteSpace(input) || string.IsNullOrWhiteSpace(candidate))
+            return 0;
+
+        if (candidate == input) return 100;
+        if (candidate.StartsWith(input + " ", StringComparison.Ordinal)) return 90;
+        if (candidate.Contains(" " + input + " ", StringComparison.Ordinal)
+            || candidate.EndsWith(" " + input, StringComparison.Ordinal)) return 80;
+        if (candidate.Contains(input, StringComparison.Ordinal)) return 60;
+
+        // Fallback token overlap score for cases like "ibuprofen oral tablet".
+        var tokens = input.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var overlap = tokens.Count(t => candidate.Contains(t, StringComparison.Ordinal));
+        return overlap * 10;
+    }
+
+    private string GetInteractionTitle(MedicationInteractionDto interaction)
+    {
+        var (descA, descB) = TryExtractNamesFromDescription(interaction.Description);
+
+        var nameA = ResolveDisplayName(interaction.DrugARxCui, descA, _typedMedication1);
+        var nameB = ResolveDisplayName(interaction.DrugBRxCui, descB, _typedMedication2);
+
+        return $"{nameA} + {nameB}";
+    }
+
+    private string ResolveDisplayName(string rxCui, string? descriptionName, string typedFallback)
+    {
+        if (_nameByRxCui.TryGetValue(rxCui, out var known) && !string.IsNullOrWhiteSpace(known))
+            return known;
+
+        if (ActiveMedicationNamesByRxCui.TryGetValue(rxCui, out var activeName) && !string.IsNullOrWhiteSpace(activeName))
+            return activeName;
+
+        if (!string.IsNullOrWhiteSpace(descriptionName))
+            return descriptionName;
+
+        if (!string.IsNullOrWhiteSpace(typedFallback))
+            return typedFallback;
+
+        return $"Medication ({rxCui})";
+    }
+
+    private static (string? A, string? B) TryExtractNamesFromDescription(string? description)
+    {
+        if (string.IsNullOrWhiteSpace(description))
+            return (null, null);
+
+        var match = Regex.Match(
+            description,
+            @"between\s+(?<a>[a-z0-9\-\s]+)\s+and\s+(?<b>[a-z0-9\-\s]+)\.?",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        if (!match.Success)
+            return (null, null);
+
+        var a = match.Groups["a"].Value.Trim();
+        var b = match.Groups["b"].Value.Trim();
+        return (string.IsNullOrWhiteSpace(a) ? null : a, string.IsNullOrWhiteSpace(b) ? null : b);
+    }
+}

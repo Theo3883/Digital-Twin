@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using DigitalTwin.Application.DTOs;
 using DigitalTwin.Application.Interfaces;
+using DigitalTwin.Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -78,9 +79,20 @@ public class PatientsController : ControllerBase
     [HttpPost("{id:guid}/medications")]
     public async Task<ActionResult<MedicationDto>> AddMedication(Guid id, [FromBody] AddMedicationDto dto)
     {
-        var result = await _service.AddPatientMedicationAsync(DoctorEmail, id, dto);
-        if (result is null) return NotFound(new { error = "Patient not found or not assigned to this doctor." });
-        return Ok(result);
+        try
+        {
+            var result = await _service.AddPatientMedicationAsync(DoctorEmail, id, dto);
+            if (result is null) return NotFound(new { error = "Patient not found or not assigned to this doctor." });
+            return Ok(result);
+        }
+        catch (MedicationInteractionBlockedException ex)
+        {
+            return Conflict(new
+            {
+                error = ex.Message,
+                code = "HIGH_RISK_INTERACTION_BLOCKED"
+            });
+        }
     }
 
     /// <summary>DELETE /api/patients/{id}/medications/{medId} — soft-delete a medication.</summary>

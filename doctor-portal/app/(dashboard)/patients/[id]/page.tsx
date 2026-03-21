@@ -3,7 +3,15 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useApi } from "@/hooks/use-api";
-import type { PatientDetail, VitalSign, SleepSession, Medication, AddMedicationRequest, DrugSearchResult } from "@/lib/api";
+import type {
+  PatientDetail,
+  VitalSign,
+  SleepSession,
+  Medication,
+  AddMedicationRequest,
+  MedicationInteraction,
+  DrugSearchResult,
+} from "@/lib/api";
 import { MedicationStatusLabel, MedicationRouteLabel } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -99,13 +107,22 @@ export default function PatientDetailPage() {
   const [prescribeDosageUnit, setPrescribeDosageUnit] = useState<DosageUnit>("mg");
   const [prescribeFrequency, setPrescribeFrequency] = useState("");
   const [prescribeRoute, setPrescribeRoute] = useState<0 | 1 | 2 | 3 | 4>(0);
-  const [prescribeRxCui, setPrescribeRxCui] = useState("");
   const [prescribeReason, setPrescribeReason] = useState("");
   const [prescribing, setPrescribing] = useState(false);
-  const [drugSuggestions, setDrugSuggestions] = useState<DrugSearchResult[]>([]);
-  const [showDrugSuggestions, setShowDrugSuggestions] = useState(false);
-  const [searchingDrugs, setSearchingDrugs] = useState(false);
-  const drugSearchRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [prescribeError, setPrescribeError] = useState<string | null>(null);
+
+  // Interaction checker dialog state
+  const [showInteractionDialog, setShowInteractionDialog] = useState(false);
+  const [checkMedication1, setCheckMedication1] = useState("");
+  const [checkMedication2, setCheckMedication2] = useState("");
+  const [includeActiveMeds, setIncludeActiveMeds] = useState(false);
+  const [checkingInteractions, setCheckingInteractions] = useState(false);
+  const [hasCheckedInteractions, setHasCheckedInteractions] = useState(false);
+  const [interactionError, setInteractionError] = useState<string | null>(null);
+  const [checkedInteractions, setCheckedInteractions] = useState<MedicationInteraction[]>([]);
+  const [rxCuiNameMap, setRxCuiNameMap] = useState<Record<string, string>>({});
+  const [typedMedication1ForCheck, setTypedMedication1ForCheck] = useState("");
+  const [typedMedication2ForCheck, setTypedMedication2ForCheck] = useState("");
 
   const [endMedDialog, setEndMedDialog] = useState<{ medId: string; medName: string; isDiscontinued: boolean } | null>(null);
   const [endMedReason, setEndMedReason] = useState("");
@@ -141,13 +158,13 @@ export default function PatientDetailPage() {
   const handlePrescribe = async () => {
     if (!prescribeName.trim() || !prescribeDosageAmount.trim()) return;
     setPrescribing(true);
+    setPrescribeError(null);
     try {
       const dto: AddMedicationRequest = {
         name: prescribeName.trim(),
         dosage: `${prescribeDosageAmount.trim()} ${prescribeDosageUnit}`,
         frequency: prescribeFrequency.trim() || undefined,
         route: prescribeRoute,
-        rxCui: prescribeRxCui.trim() || undefined,
         reason: prescribeReason.trim() || undefined,
         startDate: new Date().toISOString(),
       };
@@ -155,11 +172,176 @@ export default function PatientDetailPage() {
       setMedications((prev) => [added, ...prev]);
       setShowPrescribeForm(false);
       setPrescribeName(""); setPrescribeDosageAmount(""); setPrescribeDosageUnit("mg"); setPrescribeFrequency("");
-      setPrescribeRoute(0); setPrescribeRxCui(""); setPrescribeReason("");
+      setPrescribeRoute(0); setPrescribeReason("");
     } catch (e) {
       console.error("[Prescribe] error:", e);
+      setPrescribeError(parseApiError(e));
     } finally {
       setPrescribing(false);
+    }
+  };
+
+  const parseApiError = (err: unknown) => {
+    const raw = err instanceof Error ? err.message : String(err ?? "Unknown error");
+    const prefix = /^API\s+\d+:\s*/i;
+    const body = raw.replace(prefix, "").trim();
+    try {
+      const parsed = JSON.parse(body) as { error?: string };
+      if (parsed?.error) return parsed.error;
+    } catch {
+      // ignore parse failures
+    }
+    return body || "Request failed.";
+  };
+
+  const normalizeForMatch = (value: string) =>
+    value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\s+/g, " ");
+
+  const getMatchScore = (input: string, candidate: string) => {
+    if (!input || !candidate) return 0;
+    if (candidate === input) return 100;
+    if (candidate.startsWith(`${input} `)) return 90;
+    if (candidate.includes(` ${input} `) || candidate.endsWith(` ${input}`)) return 80;
+    if (candidate.includes(input)) return 60;
+    const tokens = input.split(" ").filter(Boolean);
+    const overlap = tokens.filter((t) => candidate.includes(t)).length;
+    return overlap * 10;
+  };
+
+  const resolveBestDrugMatch = async (typedName: string): Promise<DrugSearchResult | null> => {
+    const input = typedName.trim();
+    if (!input) return null;
+
+    const normalizedInput = normalizeForMatch(input);
+    const matches = await api.searchDrugs(input, 20);
+    if (!matches.length) return null;
+
+    const best = [...matches]
+      .sort((a, b) => {
+        const aScore = getMatchScore(normalizedInput, normalizeForMatch(a.name));
+        const bScore = getMatchScore(normalizedInput, normalizeForMatch(b.name));
+        if (aScore !== bScore) return bScore - aScore;
+        return a.name.length - b.name.length;
+      })[0];
+
+    return best ?? null;
+  };
+
+  const tryExtractNamesFromDescription = (description?: string) => {
+    if (!description) return { a: null as string | null, b: null as string | null };
+    const match = description.match(/between\s+([a-z0-9\-\s]+)\s+and\s+([a-z0-9\-\s]+)\.?/i);
+    if (!match) return { a: null as string | null, b: null as string | null };
+    const a = match[1]?.trim() || null;
+    const b = match[2]?.trim() || null;
+    return { a, b };
+  };
+
+  const resolveDisplayName = (
+    rxCui: string,
+    descriptionName: string | null,
+    typedFallback: string,
+  ) => {
+    if (rxCuiNameMap[rxCui]) return rxCuiNameMap[rxCui];
+    if (descriptionName) return descriptionName;
+    if (typedFallback?.trim()) return typedFallback.trim();
+    return `Medication (${rxCui})`;
+  };
+
+  const getInteractionPairDisplay = (interaction: MedicationInteraction) => {
+    const parsed = tryExtractNamesFromDescription(interaction.description);
+    const a = resolveDisplayName(interaction.drugARxCui, parsed.a, typedMedication1ForCheck);
+    const b = resolveDisplayName(interaction.drugBRxCui, parsed.b, typedMedication2ForCheck);
+    return `${a} + ${b}`;
+  };
+
+  const severityLabel = (sev: number) => {
+    if (sev === 3) return "High Risk";
+    if (sev === 2) return "Medium Risk";
+    if (sev === 1) return "Low Risk";
+    return "Unknown";
+  };
+
+  const severityBadgeClass = (sev: number) => {
+    if (sev === 3) return "bg-red-500/20 text-red-300 border-red-500/40";
+    if (sev === 2) return "bg-amber-500/20 text-amber-300 border-amber-500/40";
+    return "bg-yellow-500/20 text-yellow-300 border-yellow-500/40";
+  };
+
+  const openInteractionDialog = () => {
+    setCheckMedication1("");
+    setCheckMedication2("");
+    setIncludeActiveMeds(false);
+    setInteractionError(null);
+    setCheckedInteractions([]);
+    setHasCheckedInteractions(false);
+    setRxCuiNameMap({});
+    setTypedMedication1ForCheck("");
+    setTypedMedication2ForCheck("");
+    setShowInteractionDialog(true);
+  };
+
+  const handleCheckInteractions = async () => {
+    if (!checkMedication1.trim()) return;
+    if (!includeActiveMeds && !checkMedication2.trim()) return;
+
+    setCheckingInteractions(true);
+    setInteractionError(null);
+    setCheckedInteractions([]);
+    setHasCheckedInteractions(false);
+    setTypedMedication1ForCheck(checkMedication1.trim());
+    setTypedMedication2ForCheck(checkMedication2.trim());
+
+    try {
+      const rxCuis: string[] = [];
+      const nameMap: Record<string, string> = {};
+
+      const med1 = await resolveBestDrugMatch(checkMedication1);
+      if (!med1) {
+        setInteractionError(`Could not find medication: "${checkMedication1}".`);
+        return;
+      }
+      rxCuis.push(med1.rxCui);
+      nameMap[med1.rxCui] = med1.name;
+
+      if (checkMedication2.trim()) {
+        const med2 = await resolveBestDrugMatch(checkMedication2);
+        if (!med2) {
+          setInteractionError(`Could not find medication: "${checkMedication2}".`);
+          return;
+        }
+        rxCuis.push(med2.rxCui);
+        nameMap[med2.rxCui] = med2.name;
+      }
+
+      if (includeActiveMeds) {
+        medications
+          .filter((m) => m.status === 0 && !!m.rxCui)
+          .forEach((m) => {
+            if (!m.rxCui) return;
+            rxCuis.push(m.rxCui);
+            nameMap[m.rxCui] = m.name;
+          });
+      }
+
+      const uniqueRxCuis = Array.from(new Set(rxCuis));
+      if (uniqueRxCuis.length < 2) {
+        setInteractionError("Need at least two medications to check interactions.");
+        return;
+      }
+
+      const interactions = await api.checkDrugInteractions(uniqueRxCuis);
+      setRxCuiNameMap(nameMap);
+      setCheckedInteractions(interactions);
+      setHasCheckedInteractions(true);
+    } catch (e) {
+      console.error("[CheckInteractions] error:", e);
+      setInteractionError(parseApiError(e));
+    } finally {
+      setCheckingInteractions(false);
     }
   };
 
@@ -194,34 +376,6 @@ export default function PatientDetailPage() {
     }
   };
 
-  const onPrescribeNameChange = (val: string) => {
-    setPrescribeName(val);
-    setPrescribeRxCui("");
-    if (drugSearchRef.current) clearTimeout(drugSearchRef.current);
-    if (val.length < 3) {
-      setDrugSuggestions([]);
-      setShowDrugSuggestions(false);
-      return;
-    }
-    drugSearchRef.current = setTimeout(() => {
-      setSearchingDrugs(true);
-      api
-        .searchDrugs(val, 8)
-        .then((r) => {
-          setDrugSuggestions(r);
-          setShowDrugSuggestions(r.length > 0);
-        })
-        .catch(() => setDrugSuggestions([]))
-        .finally(() => setSearchingDrugs(false));
-    }, 400);
-  };
-
-  const selectDrug = (d: DrugSearchResult) => {
-    setPrescribeName(d.name);
-    setPrescribeRxCui(d.rxCui);
-    setDrugSuggestions([]);
-    setShowDrugSuggestions(false);
-  };
 
   if (loading) {
     return (
@@ -269,6 +423,93 @@ export default function PatientDetailPage() {
 
   return (
     <div className="space-y-6">
+      <Dialog open={showInteractionDialog} onOpenChange={setShowInteractionDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Check Drug Interactions</DialogTitle>
+            <DialogDescription>
+              Enter one or two medications. Optionally include active medications.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label htmlFor="check-med-1" className="text-xs text-muted-foreground font-medium">Medication 1 *</label>
+              <input
+                id="check-med-1"
+                className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                placeholder="e.g. Ibuprofen"
+                value={checkMedication1}
+                onChange={(e) => setCheckMedication1(e.target.value)}
+              />
+            </div>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={includeActiveMeds}
+                onChange={(e) => setIncludeActiveMeds(e.target.checked)}
+              />
+              Include active medications
+            </label>
+
+            <div className="space-y-1">
+              <label htmlFor="check-med-2" className="text-xs text-muted-foreground font-medium">
+                Medication 2 {includeActiveMeds ? "(optional)" : "*"}
+              </label>
+              <input
+                id="check-med-2"
+                className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                placeholder={includeActiveMeds ? "Optional when active medications are included" : "e.g. Warfarin"}
+                value={checkMedication2}
+                onChange={(e) => setCheckMedication2(e.target.value)}
+              />
+            </div>
+
+            {interactionError && (
+              <div className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+                {interactionError}
+              </div>
+            )}
+
+            {!interactionError && hasCheckedInteractions && checkedInteractions.length === 0 && !checkingInteractions && (
+              <div className="rounded-md border border-green-500/40 bg-green-500/10 px-3 py-2 text-sm text-green-300">
+                No interactions found.
+              </div>
+            )}
+
+            {checkedInteractions.length > 0 && (
+              <div className="space-y-2 max-h-64 overflow-auto pr-1">
+                <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-300">
+                  Found {checkedInteractions.length} interaction{checkedInteractions.length === 1 ? "" : "s"}.
+                </div>
+                {checkedInteractions.map((interaction, idx) => (
+                  <div key={`${interaction.drugARxCui}-${interaction.drugBRxCui}-${idx}`} className="rounded-md border p-3 bg-card/60">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="text-sm font-medium">{getInteractionPairDisplay(interaction)}</div>
+                      <span className={`text-xs border rounded-full px-2 py-0.5 ${severityBadgeClass(interaction.severity)}`}>
+                        {severityLabel(interaction.severity)}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">{interaction.description}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowInteractionDialog(false)}>Close</Button>
+            <Button
+              onClick={handleCheckInteractions}
+              disabled={checkingInteractions || !checkMedication1.trim() || (!includeActiveMeds && !checkMedication2.trim())}
+            >
+              {checkingInteractions ? "Checking..." : "Check"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!endMedDialog} onOpenChange={(open) => !open && setEndMedDialog(null)}>
         <DialogContent>
           <DialogHeader>
@@ -452,10 +693,15 @@ export default function PatientDetailPage() {
             <p className="text-sm text-muted-foreground">
               {medications.length} medication{medications.length === 1 ? "" : "s"}
             </p>
-            <Button size="sm" onClick={() => setShowPrescribeForm((v) => !v)}>
-              <Pill className="mr-1 h-4 w-4" />
-              {showPrescribeForm ? "Cancel" : "Prescribe"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={openInteractionDialog}>
+                Check interactions
+              </Button>
+              <Button size="sm" onClick={() => setShowPrescribeForm((v) => !v)}>
+                <Pill className="mr-1 h-4 w-4" />
+                {showPrescribeForm ? "Cancel" : "Prescribe"}
+              </Button>
+            </div>
           </div>
 
           {showPrescribeForm && (
@@ -465,40 +711,15 @@ export default function PatientDetailPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1 relative">
+                  <div className="space-y-1">
                     <label htmlFor="prescribe-name" className="text-xs text-muted-foreground font-medium">Name *</label>
                     <input
                       id="prescribe-name"
                       className="w-full border rounded-md px-3 py-2 text-sm bg-background"
-                      placeholder="Search by name (e.g. Metoprolol)"
+                      placeholder="e.g. Nurofen, Ibuprofen, Metoprolol…"
                       value={prescribeName}
-                      onChange={(e) => onPrescribeNameChange(e.target.value)}
-                      onBlur={() => setTimeout(() => setShowDrugSuggestions(false), 200)}
-                      onFocus={() => drugSuggestions.length > 0 && setShowDrugSuggestions(true)}
+                      onChange={(e) => setPrescribeName(e.target.value)}
                     />
-                    {searchingDrugs && (
-                      <span className="absolute right-3 top-9 text-xs text-muted-foreground">...</span>
-                    )}
-                    {showDrugSuggestions && drugSuggestions.length > 0 && (
-                      <div className="absolute left-0 right-0 top-full mt-1 border rounded-md bg-background shadow-lg z-10 max-h-48 overflow-auto">
-                        {drugSuggestions.map((d) => (
-                          <button
-                            key={d.rxCui}
-                            type="button"
-                            className="w-full px-3 py-2 text-left text-sm hover:bg-muted"
-                            onClick={() => selectDrug(d)}
-                          >
-                            <span className="font-medium">{d.name}</span>
-                            <span className="text-muted-foreground ml-2">RxCUI {d.rxCui}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    {prescribeRxCui && (
-                      <span className="inline-block mt-1 text-xs text-muted-foreground">
-                        RxCUI: {prescribeRxCui}
-                      </span>
-                    )}
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs text-muted-foreground font-medium">Dosage *</label>
@@ -558,6 +779,11 @@ export default function PatientDetailPage() {
                     />
                   </div>
                 </div>
+                {prescribeError && (
+                  <div className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+                    {prescribeError}
+                  </div>
+                )}
                 <Button
                   size="sm"
                   disabled={prescribing || !prescribeName.trim() || !prescribeDosageAmount.trim()}

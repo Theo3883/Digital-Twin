@@ -55,11 +55,12 @@ var cloudConn = builder.Configuration.GetConnectionString("CloudDb")
     ?? throw new InvalidOperationException("ConnectionStrings:CloudDb is required.");
 builder.Services.AddDigitalTwinForWebApi(cloudConn);
 
-// ── Drug search for doctor portal (RxNav + MedicationApplicationService) ─────
-builder.Services.AddHttpClient<IDrugSearchProvider, RxNavProvider>();
-builder.Services.AddHttpClient<IMedicationInteractionProvider, RxNavProvider>();
+// ── Medication providers ──────────────────────────────────────────────────────
+builder.Services.AddHttpClient<IDrugSearchProvider, RxNavDrugSearchProvider>();
+builder.Services.AddHttpClient<IMedicationInteractionProvider, OpenFdaMedicationInteractionProvider>();
+builder.Services.AddHttpClient<RxNavRxCuiResolver>();
 
-// ── Gemini RxCUI lookup (same logic as patient/MAUI) ─────────────────────────
+// ── RxCUI lookup: RxNav-first (authoritative) with optional Gemini fallback ───
 builder.Services.Configure<GeminiPromptOptions>(_ => { });
 builder.Services.AddHttpClient("GeminiApi", c =>
 {
@@ -74,11 +75,16 @@ if (appConfig.UseGeminiAi)
         sp.GetRequiredService<IOptions<GeminiPromptOptions>>(),
         sp.GetRequiredService<ILogger<GeminiApiClient>>(),
         appConfig.GeminiApiKey!));
-    builder.Services.AddScoped<IRxCuiLookupProvider, GeminiRxCuiLookupProvider>();
+    builder.Services.AddScoped<GeminiRxCuiLookupProvider>();
+    builder.Services.AddScoped<IRxCuiLookupProvider>(sp => new ChainedRxCuiLookupProvider(
+        primary:  sp.GetRequiredService<RxNavRxCuiResolver>(),
+        fallback: sp.GetRequiredService<GeminiRxCuiLookupProvider>()));
 }
 else
 {
-    builder.Services.AddScoped<IRxCuiLookupProvider, NullRxCuiLookupProvider>();
+    builder.Services.AddScoped<IRxCuiLookupProvider>(sp => new ChainedRxCuiLookupProvider(
+        primary:  sp.GetRequiredService<RxNavRxCuiResolver>(),
+        fallback: new NullRxCuiLookupProvider()));
 }
 
 builder.Services.AddScoped<IMedicationApplicationService, MedicationApplicationService>();

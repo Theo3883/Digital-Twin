@@ -8,6 +8,9 @@
 // Reads SpO2 (%) and heart rate (bpm) from the MAX30102 via I2C.
 // Updated every READ_INTERVAL_MS milliseconds (non-blocking poll).
 
+static const int SPO2_SDA_PIN = 21;
+static const int SPO2_SCL_PIN = 22;
+static const int SPO2_INT_PIN = 23;
 static const unsigned long SPO2_READ_INTERVAL_MS = 1500;
 
 struct SpO2Reader {
@@ -28,6 +31,9 @@ struct SpO2Reader {
     int8_t   hrValid    = 0;
 
     bool begin() {
+        Wire.begin(SPO2_SDA_PIN, SPO2_SCL_PIN);
+        pinMode(SPO2_INT_PIN, INPUT);
+
         if (!sensor.begin(Wire, I2C_SPEED_FAST)) {
             Serial.println("[SpO2] MAX30102 not found.");
             return false;

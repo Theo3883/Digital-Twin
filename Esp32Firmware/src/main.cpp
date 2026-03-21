@@ -19,6 +19,7 @@
 static EcgSampler  ecgSampler;
 static SpO2Reader  spO2Reader;
 static EcgServer   ecgServer;
+static const bool SERIAL_PLOTTER_ENABLED = true;
 
 // Hardware timer for 500 Hz ECG sampling
 static hw_timer_t* sampleTimer = nullptr;
@@ -29,6 +30,14 @@ void IRAM_ATTR onSampleTimer() {
     portENTER_CRITICAL_ISR(&sampleTickMux);
     pendingSampleTicks++;
     portEXIT_CRITICAL_ISR(&sampleTickMux);
+}
+
+static void writeSerialPlotterSample(int16_t sample) {
+    if (!SERIAL_PLOTTER_ENABLED) return;
+
+    if (Serial.availableForWrite() >= 8) {
+        Serial.println(sample);
+    }
 }
 
 // ─── Setup ───────────────────────────────────────────────────────────────────
@@ -76,6 +85,7 @@ void loop() {
 
     for (uint32_t i = 0; i < ticksToProcess; i++) {
         ecgSampler.sample();
+        writeSerialPlotterSample(ecgSampler.lastSample);
     }
 
     if (ecgSampler.takeBuffer()) {
