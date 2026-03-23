@@ -1,21 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
     <PropertyGroup>
-        <!-- Exclude Android when ExcludeAndroidBuild=true (e.g. for SonarQube when Android SDK not installed) -->
-        <TargetFrameworks Condition="'$(ExcludeAndroidBuild)' == 'true'">net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
-        <TargetFrameworks Condition="'$(ExcludeAndroidBuild)' != 'true'">net10.0-android;net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
-        <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">
-          $(TargetFrameworks);net10.0-windows10.0.19041.0
-        </TargetFrameworks>
-        <!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
-        <!-- <TargetFrameworks>$(TargetFrameworks);net9.0-tizen</TargetFrameworks> -->
-
-        <!-- Note for MacCatalyst:
-            The default runtime is maccatalyst-x64, except in Release config, in which case the default is maccatalyst-x64;maccatalyst-arm64.
-            When specifying both architectures, use the plural <RuntimeIdentifiers> instead of the singular <RuntimeIdentifier>.
-            The Mac App Store will NOT accept apps with ONLY maccatalyst-arm64 indicated;
-            either BOTH runtimes must be indicated or ONLY macatalyst-x64. -->
-        <!-- For example: <RuntimeIdentifiers>maccatalyst-x64;maccatalyst-arm64</RuntimeIdentifiers> -->
+        <!-- iOS-only MAUI app (add TFMs here if you need Android / Mac Catalyst / Windows again) -->
+        <TargetFrameworks>net10.0-ios</TargetFrameworks>
 
         <OutputType>Exe</OutputType>
         <RootNamespace>DigitalTwin</RootNamespace>
@@ -47,11 +34,6 @@
         <DefineConstants>$(DefineConstants);MOCK_HEALTH</DefineConstants>
 
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
-        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
-        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
-        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
-        <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
-        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -98,6 +80,7 @@
     <ItemGroup>
       <ProjectReference Include="..\DigitalTwin.Composition\DigitalTwin.Composition.csproj" />
       <ProjectReference Include="..\DigitalTwin.Integrations\DigitalTwin.Integrations.csproj" />
+      <ProjectReference Include="..\DigitalTwin.OCR\DigitalTwin.OCR.csproj" />
     </ItemGroup>
 
 </Project>

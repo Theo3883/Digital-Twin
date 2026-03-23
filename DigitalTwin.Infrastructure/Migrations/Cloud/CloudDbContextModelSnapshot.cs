@@ -206,6 +206,65 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                     b.ToTable("Medications");
                 });
 
+            modelBuilder.Entity("DigitalTwin.Infrastructure.Entities.OcrDocumentEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EncryptedVaultPath")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDirty")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("MimeType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("OpaqueInternalName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("PageCount")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SanitizedOcrPreview")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ScannedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Sha256OfNormalized")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("SyncedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDirty");
+
+                    b.HasIndex("PatientId");
+
+                    b.ToTable("OcrDocuments");
+                });
+
             modelBuilder.Entity("DigitalTwin.Infrastructure.Entities.PatientEntity", b =>
                 {
                     b.Property<Guid>("Id")

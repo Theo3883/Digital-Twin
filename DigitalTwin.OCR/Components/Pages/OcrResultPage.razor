@@ -1,0 +1,105 @@
+@inject OcrSessionViewModel ViewModel
+@inject OcrSyncPreparationService SyncPrep
+@inject VaultService Vault
+
+<div class="ocr-page">
+    <div class="glass-card" style="padding: 20px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" />
+            <span style="font-size: 1rem; font-weight: 600; color: var(--text-main);">Document Processed</span>
+        </div>
+
+        @if (ViewModel.SavedRecord is { } rec)
+        {
+            <div style="display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 0.82rem; color: var(--text-secondary);">
+                <span>Type:</span><span style="color: var(--text-main);">@rec.MimeType</span>
+                <span>Pages:</span><span style="color: var(--text-main);">@rec.PageCount</span>
+                <span>Scanned:</span><span style="color: var(--text-main);">@rec.ScannedAt.ToString("dd MMM yyyy, HH:mm")</span>
+                <span>Integrity:</span>
+                <span style="color: var(--text-main); font-family: monospace; font-size: 0.75rem; word-break: break-all;">
+                    @rec.Sha256OfNormalized[..16]…
+                </span>
+            </div>
+        }
+    </div>
+
+    @if (ViewModel.OcrResult is not null)
+    {
+        <SanitizedPreviewPanel SanitizedText="@ViewModel.SanitizedPreview" />
+    }
+
+    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 20px;">
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.CloudUpload"
+                   OnClick="SyncNow"
+                   Style="min-width: 140px; border-radius: 14px;">
+            Sync to Cloud
+        </MudButton>
+
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Error"
+                   StartIcon="@Icons.Material.Filled.Delete"
+                   OnClick="DeleteDocument"
+                   Style="min-width: 140px; border-radius: 14px;">
+            Delete
+        </MudButton>
+    </div>
+
+    @if (_feedbackMessage is not null)
+    {
+        <div style="text-align: center; margin-top: 12px; font-size: 0.85rem; color: @(_feedbackIsError ? "#ff6b6b" : "var(--text-secondary)");">
+            @_feedbackMessage
+        </div>
+    }
+
+    <div style="display: flex; justify-content: center; margin-top: 16px;">
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="Done"
+                   Style="min-width: 160px; border-radius: 14px;">
+            Done
+        </MudButton>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public OcrSessionRequest Request { get; set; } = null!;
+    [Parameter] public EventCallback OnDone { get; set; }
+    [Parameter] public EventCallback OnBack { get; set; }
+
+    private string? _feedbackMessage;
+    private bool _feedbackIsError;
+
+    private async Task SyncNow()
+    {
+        _feedbackMessage = "Sync will run automatically in the background.";
+        _feedbackIsError = false;
+        StateHasChanged();
+    }
+
+    private async Task DeleteDocument()
+    {
+        if (ViewModel.SavedRecord is null) return;
+
+        var deleteResult = await SyncPrep.DeleteAsync(ViewModel.SavedRecord.Id);
+        Vault.DeleteDocument(ViewModel.SavedRecord.Id);
+
+        if (deleteResult.IsSuccess)
+        {
+            _feedbackMessage = "Document deleted locally.";
+            _feedbackIsError = false;
+        }
+        else
+        {
+            _feedbackMessage = $"Delete failed: {deleteResult.Error}";
+            _feedbackIsError = true;
+        }
+        StateHasChanged();
+    }
+
+    private void Done()
+    {
+        ViewModel.CompleteSession();
+    }
+}

@@ -5,6 +5,8 @@ using DigitalTwin.Composition;
 using DigitalTwin.Integrations;
 using DigitalTwin.Integrations.Sync;
 using DigitalTwin.Infrastructure.Data;
+using DigitalTwin.OCR;
+using DigitalTwin.OCR.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 using System.Xml.Linq;
 #if IOS
@@ -51,11 +53,23 @@ public static class MauiProgram
         builder.Services.AddDigitalTwinForMaui(
             localConnectionString: $"Data Source={localDbPath}",
             cloudConnectionString: config.PostgresConnectionString,
-            registerIntegrations: svc => svc.AddIntegrations(config));
+            registerIntegrations: svc =>
+            {
+                svc.AddIntegrations(config);
+                svc.AddDigitalTwinOcr(opts =>
+                {
+#if DEBUG
+                    opts.SecurityMode = SecurityMode.RelaxedDebug;
+#else
+                    opts.SecurityMode = SecurityMode.Strict;
+#endif
+                });
+            });
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();
         builder.Logging.AddDebug();
+        builder.Logging.AddFilter("DigitalTwin.OCR", LogLevel.Debug);
 #endif
 
         var app = builder.Build();

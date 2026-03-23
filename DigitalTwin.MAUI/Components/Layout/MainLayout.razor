@@ -1,5 +1,6 @@
 @inherits LayoutComponentBase
 @using DigitalTwin.Components.Theme
+@using DigitalTwin.OCR.Components
 @inject IAuthApplicationService AuthService
 @inject IHealthDataSyncService SyncService
 @inject IEnvironmentApplicationService EnvironmentService
@@ -8,6 +9,9 @@
 @implements IDisposable
 
 <MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="@MedicalTheme.Instance" />
+
+@* OCR glass sheet overlay — renders above everything else (z-index 9998/9999) *@
+<OcrSheet />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -21,7 +25,7 @@
     <!-- Dark overlay bg-black/40 (digital-twin-health) -->
     <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.4); pointer-events: none; z-index: 0;"></div>
 
-    <div class="page-content" style="position: relative; z-index: 10; @(_showTabBar ? "padding-bottom: 128px; padding-top: 52px;" : "")">
+    <div class="page-content" style="position: relative; z-index: 10; @(_showTabBar ? "padding-bottom: 128px; padding-top: 52px;" : "padding-top: env(safe-area-inset-top, 52px);")">
         @Body
     </div>
 
@@ -123,7 +127,8 @@
     private void UpdatePageState()
     {
         var path = new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/');
-        _showTabBar = !path.Equals("/login", StringComparison.OrdinalIgnoreCase);
+        _showTabBar = !path.Equals("/login", StringComparison.OrdinalIgnoreCase)
+                   && !path.StartsWith("/ocr", StringComparison.OrdinalIgnoreCase);
         _pageTitle = path switch
         {
             "/" or "" => "Digital Twin",

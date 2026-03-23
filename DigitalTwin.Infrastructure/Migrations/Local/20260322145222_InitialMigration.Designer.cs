@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DigitalTwin.Infrastructure.Migrations.Local
 {
     [DbContext(typeof(LocalDbContext))]
-    [Migration("20260314111548_InitialMigration")]
+    [Migration("20260322145222_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -202,6 +202,65 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                     b.HasIndex("PatientId");
 
                     b.ToTable("Medications");
+                });
+
+            modelBuilder.Entity("DigitalTwin.Infrastructure.Entities.OcrDocumentEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EncryptedVaultPath")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsDirty")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("MimeType")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("OpaqueInternalName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("PageCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SanitizedOcrPreview")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ScannedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Sha256OfNormalized")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("SyncedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDirty");
+
+                    b.HasIndex("PatientId");
+
+                    b.ToTable("OcrDocuments");
                 });
 
             modelBuilder.Entity("DigitalTwin.Infrastructure.Entities.PatientEntity", b =>

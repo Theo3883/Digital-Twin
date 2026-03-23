@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;net10.0-ios</TargetFrameworks>
+    <!--
+      Do NOT set UseMaui=true here. That causes Microsoft.AspNetCore.Components.WebView.Maui.targets
+      to import and mark this RCL as a "Root" static-web-assets provider with BasePath "/", which
+      conflicts with the host MAUI app that is already the root.
+      The individual packages below give us everything we need.
+    -->
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DigitalTwin.Domain\DigitalTwin.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Provides Platform.GetCurrentUIViewController(), MainThread, etc. without activating MAUI SDK root targets -->
+    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.1" />
+    <!-- Provides Blazor component infrastructure (ErrorBoundary, ComponentBase, etc.) -->
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.3" />
+    <PackageReference Include="System.Reactive" Version="6.1.0" />
+    <PackageReference Include="MudBlazor" Version="8.5.0" />
+  </ItemGroup>
+
+</Project>

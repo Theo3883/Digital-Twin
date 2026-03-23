@@ -59,6 +59,30 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                 });
 
             migrationBuilder.CreateTable(
+                name: "OcrDocuments",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    PatientId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    OpaqueInternalName = table.Column<string>(type: "TEXT", nullable: false),
+                    MimeType = table.Column<string>(type: "TEXT", nullable: false),
+                    PageCount = table.Column<int>(type: "INTEGER", nullable: false),
+                    Sha256OfNormalized = table.Column<string>(type: "TEXT", nullable: false),
+                    SanitizedOcrPreview = table.Column<string>(type: "TEXT", nullable: false),
+                    EncryptedVaultPath = table.Column<string>(type: "TEXT", nullable: false),
+                    ScannedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    IsDirty = table.Column<bool>(type: "INTEGER", nullable: false),
+                    SyncedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OcrDocuments", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Users",
                 columns: table => new
                 {
@@ -246,6 +270,16 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                 column: "PatientId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_OcrDocuments_IsDirty",
+                table: "OcrDocuments",
+                column: "IsDirty");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OcrDocuments_PatientId",
+                table: "OcrDocuments",
+                column: "PatientId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Patients_UserId",
                 table: "Patients",
                 column: "UserId",
@@ -284,6 +318,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
 
             migrationBuilder.DropTable(
                 name: "Medications");
+
+            migrationBuilder.DropTable(
+                name: "OcrDocuments");
 
             migrationBuilder.DropTable(
                 name: "SleepSessions");

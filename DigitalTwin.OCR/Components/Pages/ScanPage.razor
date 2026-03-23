@@ -1,0 +1,133 @@
+@inject OcrSessionViewModel ViewModel
+@inject SecurityPostureViewModel PostureVm
+
+<div class="ocr-page">
+    <SecurityPostureCard Posture="@_posture" OnUnlock="HandleUnlock" OnInitVault="HandleInitVault" />
+
+    <div class="glass-card" style="margin-top: 16px; padding: 24px; text-align: center;">
+        <div style="font-size: 1.1rem; font-weight: 600; color: var(--text-main); margin-bottom: 8px;">
+            Scan Medical Document
+        </div>
+        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 24px;">
+            Camera scan, pick from Photos, or import PDF / images from Files.
+        </div>
+
+        @if (ViewModel.IsLoading)
+        {
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Style="margin: 16px;" />
+            <div style="color: var(--text-secondary); font-size: 0.85rem;">@ViewModel.StatusMessage</div>
+        }
+        else if (ViewModel.ErrorMessage is { } err)
+        {
+            <div class="glass-chip" style="background: rgba(220,50,50,0.15); color: #ff6b6b; margin-bottom: 16px; padding: 10px 16px; border-radius: 12px;">
+                @err
+            </div>
+            <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="ClearError" Style="margin-bottom:16px;">
+                Try Again
+            </MudButton>
+        }
+        else if (!SecurityReady)
+        {
+            <div class="glass-chip" style="background: rgba(220,50,50,0.12); color: #ff8a8a; margin-bottom: 8px; padding: 14px 16px; border-radius: 12px; text-align: left; font-size: 0.88rem; line-height: 1.45;">
+                <div style="font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                    <MudIcon Icon="@Icons.Material.Filled.GppMaybe" Size="Size.Small" />
+                    Complete security checks first
+                </div>
+                Fix every required item above (passcode, vault initialized, vault unlocked). Face ID is optional.
+            </div>
+        }
+        else
+        {
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.CameraAlt"
+                           OnClick="StartCameraScan"
+                           Style="min-width: 120px; border-radius: 14px;">
+                    Camera
+                </MudButton>
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.PhotoLibrary"
+                           OnClick="StartPhotoLibrary"
+                           Style="min-width: 120px; border-radius: 14px;">
+                    Photos
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Default"
+                           StartIcon="@Icons.Material.Filled.FolderOpen"
+                           OnClick="StartFileImport"
+                           Style="min-width: 120px; border-radius: 14px;">
+                    Files
+                </MudButton>
+            </div>
+        }
+    </div>
+
+    <div style="display: flex; justify-content: center; margin-top: 12px;">
+        <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="@(() => OnDismiss.InvokeAsync())">
+            Cancel
+        </MudButton>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public OcrSessionRequest Request { get; set; } = null!;
+    [Parameter] public EventCallback OnScanned { get; set; }
+    [Parameter] public EventCallback OnImport { get; set; }
+    [Parameter] public EventCallback OnDismiss { get; set; }
+
+    private SecurityPosture? _posture;
+
+    /// <summary>Camera / Photos / Files — only when required rows are green (Face ID optional).</summary>
+    private bool SecurityReady => _posture is { } p && DocumentSecurityPolicy.RequiredOcrRowsSatisfied(p);
+
+    protected override void OnInitialized()
+    {
+        _posture = PostureVm.GetPosture();
+        ViewModel.StateChanged = () => InvokeAsync(StateHasChanged);
+    }
+
+    private async Task HandleInitVault()
+    {
+        await ViewModel.InitVaultAsync();
+        _posture = PostureVm.GetPosture();
+        StateHasChanged();
+    }
+
+    private async Task HandleUnlock()
+    {
+        await ViewModel.UnlockVaultAsync();
+        _posture = PostureVm.GetPosture();
+        StateHasChanged();
+    }
+
+    private async Task StartCameraScan()
+    {
+        await ViewModel.RunCameraSessionAsync(Request.PatientId);
+        if (ViewModel.SavedRecord is not null)
+            await OnScanned.InvokeAsync();
+    }
+
+    private async Task StartPhotoLibrary()
+    {
+        await ViewModel.RunPhotoLibraryImportSessionAsync(Request.PatientId);
+        if (ViewModel.SavedRecord is not null)
+            await OnScanned.InvokeAsync();
+    }
+
+    private async Task StartFileImport()
+    {
+        await ViewModel.RunFileImportSessionAsync(Request.PatientId);
+        if (ViewModel.SavedRecord is not null)
+            await OnScanned.InvokeAsync();
+    }
+
+    private void ClearError()
+    {
+        ViewModel.StateChanged?.Invoke();
+        StateHasChanged();
+    }
+}

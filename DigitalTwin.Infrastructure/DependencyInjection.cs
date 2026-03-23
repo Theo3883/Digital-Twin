@@ -63,6 +63,11 @@ public static class DependencyInjection
             var f = sp.GetRequiredService<IDbContextFactory<LocalDbContext>>();
             return new MedicationRepository(() => f.CreateDbContext());
         });
+        services.AddScoped<IOcrDocumentRepository>(sp =>
+        {
+            var f = sp.GetRequiredService<IDbContextFactory<LocalDbContext>>();
+            return new OcrDocumentRepository(() => f.CreateDbContext());
+        });
 
         return services;
     }
@@ -112,6 +117,11 @@ public static class DependencyInjection
         {
             var f = sp.GetRequiredService<IDbContextFactory<CloudDbContext>>();
             return new MedicationRepository(() => f.CreateDbContext(), markDirtyOnInsert: false);
+        });
+        services.AddKeyedScoped<IOcrDocumentRepository>(Cloud, (sp, _) =>
+        {
+            var f = sp.GetRequiredService<IDbContextFactory<CloudDbContext>>();
+            return new OcrDocumentRepository(() => f.CreateDbContext(), markDirtyOnInsert: false);
         });
 
         return services;
