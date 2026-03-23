@@ -2,39 +2,49 @@ using DigitalTwin.Application.DTOs;
 
 namespace DigitalTwin.Application.Interfaces;
 
+/// <summary>
+/// Defines application-level authentication and patient onboarding operations.
+/// </summary>
 public interface IAuthApplicationService
 {
     /// <summary>
-    /// Step 1: Authenticate with Google and check if user exists in DB.
-    /// Returns the Google profile data and whether the user is new.
-    /// Does NOT create any records for new users.
+    /// Starts Google authentication and reports whether the authenticated user already exists.
     /// </summary>
     Task<GoogleAuthCheckResult> AuthenticateWithGoogleAsync();
 
     /// <summary>
-    /// Step 2 (new users only): Creates User + UserOAuth with the
-    /// Google data from step 1 combined with the profile data from the form.
+    /// Completes registration for a newly authenticated Google user using the supplied profile data.
     /// </summary>
     Task<AuthResultDto> CompleteRegistrationAsync(ProfileCompletionDto profile);
 
     /// <summary>
-    /// Creates or updates a Patient medical profile linked to the current user.
-    /// Called from the Profile page after registration.
+    /// Creates or updates the current user's patient profile.
     /// </summary>
     Task<AuthResultDto> CreatePatientProfileAsync(PatientProfileDto profile);
 
     /// <summary>
-    /// Returns the current user's Patient profile for display, or null if none exists.
+    /// Gets the current user's patient profile for display, if one exists.
     /// </summary>
     Task<PatientDisplayDto?> GetPatientProfileAsync();
 
     /// <summary>
-    /// Full sign-in for returning users (called internally or when user already exists).
+    /// Signs in the current authenticated user when they already exist in the system.
     /// </summary>
     Task<AuthResultDto> SignInExistingUserAsync();
 
+    /// <summary>
+    /// Signs out the current user.
+    /// </summary>
     Task SignOutAsync();
+
+    /// <summary>
+    /// Gets the cached or current authenticated user result, if available.
+    /// </summary>
     Task<AuthResultDto?> GetCurrentUserAsync();
+
+    /// <summary>
+    /// Gets the current user's patient identifier, if a patient profile exists.
+    /// </summary>
     Task<Guid?> GetCurrentPatientIdAsync();
 }
 

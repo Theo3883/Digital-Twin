@@ -27,6 +27,13 @@ public class UserOAuthRepository : IUserOAuthRepository
         return entity is null ? null : ToDomain(entity);
     }
 
+    public async Task<IEnumerable<UserOAuth>> GetByUserIdAsync(Guid userId)
+    {
+        await using var db = _factory();
+        var entities = await db.UserOAuths.Where(o => o.UserId == userId).ToListAsync();
+        return entities.Select(ToDomain);
+    }
+
     public async Task AddAsync(UserOAuth userOAuth)
     {
         await using var db = _factory();

@@ -1,0 +1,98 @@
+@inject OcrSessionViewModel ViewModel
+@inject SecurityPostureViewModel PostureVm
+
+<div class="ocr-page">
+    <div class="glass-card" style="padding: 24px; text-align: center;">
+        <div style="font-size: 1.1rem; font-weight: 600; color: var(--text-main); margin-bottom: 8px;">
+            Import Document
+        </div>
+        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 24px;">
+            Choose a photo from your library, or pick a PDF / image from Files (max 50 MB).
+        </div>
+
+        @if (ViewModel.IsLoading)
+        {
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Style="margin: 16px;" />
+            <div style="color: var(--text-secondary); font-size: 0.85rem;">@ViewModel.StatusMessage</div>
+        }
+        else if (ViewModel.ErrorMessage is { } err)
+        {
+            <div class="glass-chip" style="background: rgba(220,50,50,0.15); color: #ff6b6b; margin-bottom: 16px; padding: 10px 16px; border-radius: 12px;">
+                @err
+            </div>
+        }
+        else if (!SecurityReady)
+        {
+            <div class="glass-chip" style="background: rgba(220,50,50,0.12); color: #ff8a8a; margin-bottom: 8px; padding: 14px 16px; border-radius: 12px; text-align: left; font-size: 0.88rem; line-height: 1.45;">
+                <div style="font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                    <MudIcon Icon="@Icons.Material.Filled.GppMaybe" Size="Size.Small" />
+                    Complete security checks first
+                </div>
+                Go back and fix passcode, vault initialization, and vault unlock on the previous screen. Face ID is optional.
+            </div>
+            <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="@(() => OnBack.InvokeAsync())" Style="margin-top: 8px;">
+                ← Back
+            </MudButton>
+        }
+        else
+        {
+        <div style="display: flex; flex-direction: column; gap: 10px; align-items: stretch; max-width: 320px; margin: 12px auto 0;">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.PhotoLibrary"
+                       OnClick="DoPhotoLibrary"
+                       Style="border-radius: 14px;">
+                Choose from Photos
+            </MudButton>
+
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Secondary"
+                       StartIcon="@Icons.Material.Filled.FolderOpen"
+                       OnClick="DoFileImport"
+                       Style="border-radius: 14px;">
+                Choose from Files
+            </MudButton>
+
+            <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="@(() => OnBack.InvokeAsync())">
+                ← Back
+            </MudButton>
+        </div>
+        }
+    </div>
+
+    <div style="display: flex; justify-content: center; margin-top: 12px;">
+        <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="@(() => OnDismiss.InvokeAsync())">
+            Cancel
+        </MudButton>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public OcrSessionRequest Request { get; set; } = null!;
+    [Parameter] public EventCallback OnImported { get; set; }
+    [Parameter] public EventCallback OnBack { get; set; }
+    [Parameter] public EventCallback OnDismiss { get; set; }
+
+    private SecurityPosture? _posture;
+    private bool SecurityReady => _posture is { } p && DocumentSecurityPolicy.RequiredOcrRowsSatisfied(p);
+
+    protected override void OnInitialized()
+    {
+        _posture = PostureVm.GetPosture();
+        ViewModel.StateChanged = () => InvokeAsync(StateHasChanged);
+    }
+
+    private async Task DoPhotoLibrary()
+    {
+        await ViewModel.RunPhotoLibraryImportSessionAsync(Request.PatientId);
+        if (ViewModel.SavedRecord is not null)
+            await OnImported.InvokeAsync();
+    }
+
+    private async Task DoFileImport()
+    {
+        await ViewModel.RunFileImportSessionAsync(Request.PatientId);
+        if (ViewModel.SavedRecord is not null)
+            await OnImported.InvokeAsync();
+    }
+}

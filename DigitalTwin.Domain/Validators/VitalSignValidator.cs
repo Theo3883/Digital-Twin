@@ -27,5 +27,23 @@ public class VitalSignValidator : AbstractValidator<VitalSign>
         RuleFor(v => v.Value)
             .GreaterThanOrEqualTo(0)
             .When(v => v.Type == VitalSignType.Calories);
+
+        RuleFor(v => v.Value)
+            .GreaterThanOrEqualTo(0)
+            .When(v => v.Type == VitalSignType.ActiveEnergy);
+
+        RuleFor(v => v.Value)
+            .InclusiveBetween(0, 1440)
+            .When(v => v.Type == VitalSignType.ExerciseMinutes)
+            .WithMessage("Exercise minutes must be between 0 and 1440.");
+
+        RuleFor(v => v.Value)
+            .InclusiveBetween(0, 24)
+            .When(v => v.Type == VitalSignType.StandHours)
+            .WithMessage("Stand hours must be between 0 and 24.");
+
+        RuleFor(v => v.Source)
+            .NotEmpty()
+            .WithMessage("Vital sign must have a source.");
     }
 }

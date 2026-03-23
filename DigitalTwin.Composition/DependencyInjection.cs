@@ -1,11 +1,19 @@
 using FluentValidation;
 using DigitalTwin.Application.Interfaces;
 using DigitalTwin.Application.Services;
-using DigitalTwin.Application.Sync.Drainers;
 using DigitalTwin.Domain.Interfaces;
+using DigitalTwin.Domain.Interfaces.Providers;
 using DigitalTwin.Domain.Interfaces.Repositories;
+using DigitalTwin.Domain.Interfaces.Services;
+using DigitalTwin.Domain.Interfaces.Sync;
+using DigitalTwin.Domain.Models;
 using DigitalTwin.Domain.Services;
+using DigitalTwin.Domain.Services.Triage;
+using DigitalTwin.Domain.Sync;
+using DigitalTwin.Domain.Sync.Drainers;
 using DigitalTwin.Infrastructure;
+using DigitalTwin.Infrastructure.Policies;
+using DigitalTwin.Infrastructure.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -49,14 +57,36 @@ public static class DependencyInjection
             sp.GetRequiredKeyedService<IEnvironmentReadingRepository>(Cloud));
         services.AddScoped<IDoctorPatientAssignmentRepository>(sp =>
             sp.GetRequiredKeyedService<IDoctorPatientAssignmentRepository>(Cloud));
+        services.AddScoped<IMedicationRepository>(sp =>
+            sp.GetRequiredKeyedService<IMedicationRepository>(Cloud));
 
         // ── Domain services (only those required by the API) ─────────────────
         services.AddCoreDomainServices();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IPatientService, PatientService>();
+        services.AddScoped<IDoctorPortalDomainService, DoctorPortalDomainService>();
+
+        // ── Infrastructure services ──────────────────────────────────────────
+        services.AddSingleton<ITransientFailurePolicy, NpgsqlTransientFailurePolicy>();
+        services.AddScoped<IDomainEventDispatcher, NoOpDomainEventDispatcher>();
+        services.AddScoped<IMedicationManagementService>(sp => new MedicationManagementService(
+            sp.GetRequiredService<IMedicationRepository>(),
+            sp.GetKeyedService<IMedicationRepository>(Cloud),
+            sp.GetRequiredService<IMedicationService>(),
+            sp.GetRequiredService<ILogger<MedicationManagementService>>()));
+        services.AddScoped<IPersistenceGateway<EnvironmentReading>>(sp =>
+            new EnvironmentReadingPersistenceGateway(
+                sp.GetRequiredService<IEnvironmentReadingRepository>(),
+                sp.GetKeyedService<IEnvironmentReadingRepository>(Cloud),
+                sp.GetRequiredService<ILogger<EnvironmentReadingPersistenceGateway>>()));
 
         // ── Application services ─────────────────────────────────────────────
-        services.AddScoped<IDoctorPortalApplicationService, DoctorPortalApplicationService>();
+        services.AddScoped<IDoctorPortalApplicationService>(sp => new DoctorPortalApplicationService(
+            sp.GetRequiredService<IDoctorPortalDomainService>(),
+            sp.GetRequiredService<IMedicationService>(),
+            sp.GetRequiredService<IRxCuiLookupProvider>(),
+            sp.GetRequiredService<IVitalSignService>(),
+            sp.GetRequiredService<ILogger<DoctorPortalApplicationService>>()));
 
         // ── Validators ───────────────────────────────────────────────────────
         services.AddValidation();
@@ -95,53 +125,137 @@ public static class DependencyInjection
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IPatientService, PatientService>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IPatientContextService, PatientContextService>();
+        services.AddScoped<IDoctorPortalDomainService, DoctorPortalDomainService>();
+
+        // Doctor assignments: prefer cloud repositories when configured.
+        services.AddScoped<IDoctorPatientAssignmentService>(sp =>
+        {
+            var assignments =
+                sp.GetKeyedService<IDoctorPatientAssignmentRepository>(Cloud)
+                ?? sp.GetRequiredService<IDoctorPatientAssignmentRepository>();
+
+            var users =
+                sp.GetKeyedService<IUserRepository>(Cloud)
+                ?? sp.GetRequiredService<IUserRepository>();
+
+            return new DoctorPatientAssignmentService(assignments, users);
+        });
+
+        // ── Infrastructure services ──────────────────────────────────────────
+        services.AddSingleton<ITransientFailurePolicy, NpgsqlTransientFailurePolicy>();
+        services.AddScoped<IDomainEventDispatcher, NoOpDomainEventDispatcher>();
+        services.AddScoped<IMedicationManagementService>(sp => new MedicationManagementService(
+            sp.GetRequiredService<IMedicationRepository>(),
+            sp.GetKeyedService<IMedicationRepository>(Cloud),
+            sp.GetRequiredService<IMedicationService>(),
+            sp.GetRequiredService<ILogger<MedicationManagementService>>()));
+        services.AddScoped<IPersistenceGateway<EnvironmentReading>>(sp =>
+            new EnvironmentReadingPersistenceGateway(
+                sp.GetRequiredService<IEnvironmentReadingRepository>(),
+                sp.GetKeyedService<IEnvironmentReadingRepository>(Cloud),
+                sp.GetRequiredService<ILogger<EnvironmentReadingPersistenceGateway>>()));
 
         // ── Application services ─────────────────────────────────────────────
         services.AddScoped<IVitalsApplicationService, VitalsApplicationService>();
-        services.AddScoped<IEnvironmentApplicationService, EnvironmentApplicationService>();
+        services.AddScoped<IEnvironmentApplicationService>(sp => new EnvironmentApplicationService(
+            sp.GetRequiredService<IEnvironmentDataProvider>(),
+            sp.GetRequiredService<IEnvironmentAssessmentService>(),
+            sp.GetRequiredService<IPersistenceGateway<EnvironmentReading>>(),
+            sp.GetRequiredService<ILogger<EnvironmentApplicationService>>()));
         services.AddScoped<IAuthApplicationService, AuthApplicationService>();
-        services.AddSingleton<IHealthDataSyncService, HealthDataSyncService>();
-        services.AddScoped<IMedicationApplicationService, MedicationApplicationService>();
-        services.AddScoped<IDoctorPortalApplicationService, DoctorPortalApplicationService>();
+        services.AddSingleton<IHealthDataSyncService>(sp => new HealthDataSyncService(
+            sp.GetRequiredService<IServiceScopeFactory>(),
+            sp.GetRequiredService<ILogger<HealthDataSyncService>>(),
+            sp.GetRequiredService<ITransientFailurePolicy>()));
+        services.AddScoped<IMedicationApplicationService>(sp => new MedicationApplicationService(
+            sp.GetRequiredService<IMedicationInteractionProvider>(),
+            sp.GetRequiredService<IDrugSearchProvider>(),
+            sp.GetRequiredService<IRxCuiLookupProvider>(),
+            sp.GetRequiredService<IMedicationInteractionService>(),
+            sp.GetRequiredService<IMedicationService>(),
+            sp.GetRequiredService<IMedicationManagementService>(),
+            sp.GetRequiredService<IDomainEventDispatcher>(),
+            sp.GetService<IHealthDataSyncService>(),
+            sp.GetService<ILogger<MedicationApplicationService>>()));
+        services.AddScoped<IDoctorPortalApplicationService>(sp => new DoctorPortalApplicationService(
+            sp.GetRequiredService<IDoctorPortalDomainService>(),
+            sp.GetRequiredService<IMedicationService>(),
+            sp.GetRequiredService<IRxCuiLookupProvider>(),
+            sp.GetRequiredService<IVitalSignService>(),
+            sp.GetRequiredService<ILogger<DoctorPortalApplicationService>>()));
+        services.AddScoped<IEcgApplicationService, EcgApplicationService>();
+        services.AddScoped<IChatBotApplicationService, ChatBotApplicationService>();
+        services.AddScoped<ICoachingApplicationService, CoachingApplicationService>();
+        services.AddScoped<IDoctorAssignmentApplicationService, DoctorAssignmentApplicationService>();
 
-        // ── Table drainers (local → cloud sync) ─────────────────────────────
-        services.AddScoped<ITableDrainer>(sp => new UserDrainer(
+        // ── Cloud identity resolution (local ↔ cloud use different ID spaces) ──
+        services.AddScoped<ICloudIdentityResolver>(sp => new CloudIdentityResolver(
             sp.GetRequiredService<IUserRepository>(),
             sp.GetKeyedService<IUserRepository>(Cloud),
-            sp.GetRequiredService<ILogger<UserDrainer>>()));
-
-        services.AddScoped<ITableDrainer>(sp => new PatientDrainer(
             sp.GetRequiredService<IPatientRepository>(),
             sp.GetKeyedService<IPatientRepository>(Cloud),
+            sp.GetRequiredService<ILogger<CloudIdentityResolver>>()));
+
+        // ── Sync drainers (bidirectional local ↔ cloud sync) ────────────────
+        services.AddScoped<ISyncDrainer>(sp => new UserSyncDrainer(
             sp.GetRequiredService<IUserRepository>(),
             sp.GetKeyedService<IUserRepository>(Cloud),
-            sp.GetRequiredService<ILogger<PatientDrainer>>()));
+            sp.GetRequiredService<ILogger<UserSyncDrainer>>()));
 
-        services.AddScoped<ITableDrainer>(sp => new UserOAuthDrainer(
+        services.AddScoped<ISyncDrainer>(sp => new PatientSyncDrainer(
+            sp.GetRequiredService<IPatientRepository>(),
+            sp.GetKeyedService<IPatientRepository>(Cloud),
+            sp.GetRequiredService<ICloudIdentityResolver>(),
+            sp.GetRequiredService<ILogger<PatientSyncDrainer>>()));
+
+        services.AddScoped<ISyncDrainer>(sp => new UserOAuthSyncDrainer(
             sp.GetRequiredService<IUserOAuthRepository>(),
             sp.GetKeyedService<IUserOAuthRepository>(Cloud),
             sp.GetRequiredService<IUserRepository>(),
             sp.GetKeyedService<IUserRepository>(Cloud),
-            sp.GetRequiredService<ILogger<UserOAuthDrainer>>()));
+            sp.GetRequiredService<ILogger<UserOAuthSyncDrainer>>()));
 
-        services.AddScoped<ITableDrainer>(sp => new VitalSignDrainer(
+        services.AddScoped<ISyncDrainer>(sp => new VitalSignSyncDrainer(
             sp.GetRequiredService<IVitalSignRepository>(),
             sp.GetKeyedService<IVitalSignRepository>(Cloud),
             sp.GetRequiredService<IPatientRepository>(),
-            sp.GetKeyedService<IPatientRepository>(Cloud),
-            sp.GetRequiredService<ILogger<VitalSignDrainer>>()));
+            sp.GetRequiredService<ICloudIdentityResolver>(),
+            sp.GetRequiredService<ILogger<VitalSignSyncDrainer>>()));
 
-        services.AddScoped<ITableDrainer>(sp => new EnvironmentReadingDrainer(
+        services.AddScoped<ISyncDrainer>(sp => new EnvironmentReadingSyncDrainer(
             sp.GetRequiredService<IEnvironmentReadingRepository>(),
             sp.GetKeyedService<IEnvironmentReadingRepository>(Cloud),
-            sp.GetRequiredService<ILogger<EnvironmentReadingDrainer>>()));
+            sp.GetRequiredService<ILogger<EnvironmentReadingSyncDrainer>>()));
 
-        services.AddScoped<ITableDrainer>(sp => new SleepSessionDrainer(
+        services.AddScoped<ISyncDrainer>(sp => new SleepSessionSyncDrainer(
             sp.GetRequiredService<ISleepSessionRepository>(),
             sp.GetKeyedService<ISleepSessionRepository>(Cloud),
             sp.GetRequiredService<IPatientRepository>(),
-            sp.GetKeyedService<IPatientRepository>(Cloud),
-            sp.GetRequiredService<ILogger<SleepSessionDrainer>>()));
+            sp.GetRequiredService<ICloudIdentityResolver>(),
+            sp.GetRequiredService<ILogger<SleepSessionSyncDrainer>>()));
+
+        services.AddScoped<ISyncDrainer>(sp => new MedicationSyncDrainer(
+            sp.GetRequiredService<IMedicationRepository>(),
+            sp.GetKeyedService<IMedicationRepository>(Cloud),
+            sp.GetRequiredService<IPatientRepository>(),
+            sp.GetRequiredService<ICloudIdentityResolver>(),
+            sp.GetRequiredService<ILogger<MedicationSyncDrainer>>()));
+
+        services.AddScoped<ISyncDrainer>(sp => new DoctorPatientAssignmentSyncDrainer(
+            sp.GetRequiredService<IDoctorPatientAssignmentRepository>(),
+            sp.GetKeyedService<IDoctorPatientAssignmentRepository>(Cloud),
+            sp.GetRequiredService<IPatientRepository>(),
+            sp.GetRequiredService<ICloudIdentityResolver>(),
+            sp.GetRequiredService<ILogger<DoctorPatientAssignmentSyncDrainer>>()));
+
+        // ── OCR document sync (8th drainer) ──────────────────────────────────
+        services.AddScoped<ISyncDrainer>(sp => new OcrDocumentSyncDrainer(
+            sp.GetRequiredService<IOcrDocumentRepository>(),
+            sp.GetKeyedService<IOcrDocumentRepository>(Cloud),
+            sp.GetRequiredService<IPatientRepository>(),
+            sp.GetRequiredService<ICloudIdentityResolver>(),
+            sp.GetRequiredService<ILogger<OcrDocumentSyncDrainer>>()));
 
         // ── Validators ───────────────────────────────────────────────────────
         services.AddValidation();
@@ -164,6 +278,14 @@ public static class DependencyInjection
         services.AddScoped<IVitalSignService, VitalSignService>();
         services.AddScoped<IEnvironmentAssessmentService, EnvironmentAssessmentService>();
         services.AddScoped<IMedicationInteractionService, MedicationInteractionService>();
+        services.AddScoped<IMedicationService, MedicationService>();
+
+        // ECG triage: register rules as IEcgTriageRule and the engine that consumes them
+        services.AddScoped<IEcgTriageRule, SignalQualityRule>();
+        services.AddScoped<IEcgTriageRule, SpO2Rule>();
+        services.AddScoped<IEcgTriageRule, HeartRateActivityRule>();
+        services.AddScoped<EcgTriageEngine>();
+
         return services;
     }
 

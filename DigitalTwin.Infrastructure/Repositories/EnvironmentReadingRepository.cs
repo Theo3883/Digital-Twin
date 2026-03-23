@@ -19,25 +19,37 @@ public class EnvironmentReadingRepository : IEnvironmentReadingRepository
         _markDirtyOnInsert = markDirtyOnInsert;
     }
 
-    public async Task AddAsync(EnvironmentReading reading)
+    public async Task AddAsync(EnvironmentReading reading, bool markDirty = true)
     {
+        var shouldMarkDirty = _markDirtyOnInsert && markDirty;
         await using var db = _factory();
         var entity = ToEntity(reading);
-        entity.IsDirty = _markDirtyOnInsert;
-        if (!_markDirtyOnInsert) entity.SyncedAt = DateTime.UtcNow;
+        entity.IsDirty = shouldMarkDirty;
+        if (!shouldMarkDirty) entity.SyncedAt = DateTime.UtcNow;
         db.EnvironmentReadings.Add(entity);
         await db.SaveChangesAsync();
     }
 
-    public async Task AddRangeAsync(IEnumerable<EnvironmentReading> readings)
+    public async Task AddRangeAsync(IEnumerable<EnvironmentReading> readings, bool markDirty = true)
     {
+        var shouldMarkDirty = _markDirtyOnInsert && markDirty;
         var entities = readings.Select(ToEntity).ToList();
         if (entities.Count == 0) return;
-        foreach (var e in entities) e.IsDirty = _markDirtyOnInsert;
-        if (!_markDirtyOnInsert) foreach (var e in entities) e.SyncedAt = DateTime.UtcNow;
+        foreach (var e in entities) e.IsDirty = shouldMarkDirty;
+        if (!shouldMarkDirty) foreach (var e in entities) e.SyncedAt = DateTime.UtcNow;
         await using var db = _factory();
-        await db.EnvironmentReadings.AddRangeAsync(entities);
-        await db.SaveChangesAsync();
+        await using var tx = await db.Database.BeginTransactionAsync();
+        try
+        {
+            await db.EnvironmentReadings.AddRangeAsync(entities);
+            await db.SaveChangesAsync();
+            await tx.CommitAsync();
+        }
+        catch
+        {
+            await tx.RollbackAsync();
+            throw;
+        }
     }
 
     public async Task<IEnumerable<EnvironmentReading>> GetDirtyAsync()
@@ -48,6 +60,23 @@ public class EnvironmentReadingRepository : IEnvironmentReadingRepository
             .OrderBy(r => r.Timestamp)
             .ToListAsync();
         return entities.Select(ToDomain);
+    }
+
+    public async Task<IEnumerable<EnvironmentReading>> GetSinceAsync(DateTime since, int limit = 200)
+    {
+        await using var db = _factory();
+        var entities = await db.EnvironmentReadings
+            .Where(r => r.Timestamp >= since)
+            .OrderByDescending(r => r.Timestamp)
+            .Take(limit)
+            .ToListAsync();
+        return entities.Select(ToDomain);
+    }
+
+    public async Task<bool> ExistsAsync(DateTime timestamp)
+    {
+        await using var db = _factory();
+        return await db.EnvironmentReadings.AnyAsync(r => r.Timestamp == timestamp);
     }
 
     public async Task MarkSyncedAsync(DateTime beforeOrAtTimestamp)

@@ -1,3 +1,5 @@
+using DigitalTwin.Domain.Enums;
+
 namespace DigitalTwin.Domain.Models;
 
 public class PatientProfile
@@ -7,4 +9,7 @@ public class PatientProfile
     public DateTime DateOfBirth { get; set; }
     public List<Medication> CurrentMedications { get; set; } = [];
     public List<VitalSign> RecentVitals { get; set; } = [];
+
+    /// <summary>Per-type trend: +1 rising, 0 stable, -1 falling.</summary>
+    public Dictionary<VitalSignType, int> VitalTrends { get; set; } = [];
 }

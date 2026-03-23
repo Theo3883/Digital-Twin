@@ -33,6 +33,13 @@ public class UserRepository : IUserRepository
         return entity is null ? null : ToDomain(entity);
     }
 
+    public async Task<IEnumerable<User>> GetAllAsync()
+    {
+        await using var db = _factory();
+        var entities = await db.Users.ToListAsync();
+        return entities.Select(ToDomain);
+    }
+
     public async Task AddAsync(User user)
     {
         await using var db = _factory();

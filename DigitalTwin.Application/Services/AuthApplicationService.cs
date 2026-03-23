@@ -1,14 +1,13 @@
 using DigitalTwin.Application.DTOs;
 using DigitalTwin.Application.Interfaces;
+using DigitalTwin.Domain.Exceptions;
 using DigitalTwin.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace DigitalTwin.Application.Services;
 
 /// <summary>
-/// Thin application layer service for auth. Delegates all business logic to
-/// <see cref="IAuthService"/> and <see cref="IPatientService"/> in the Domain layer.
-/// Responsible only for DTO mapping, validation, caching, and sync triggering.
+/// Orchestrates authentication, onboarding, and patient profile application workflows.
 /// </summary>
 public class AuthApplicationService : IAuthApplicationService
 {
@@ -19,6 +18,9 @@ public class AuthApplicationService : IAuthApplicationService
 
     private AuthResultDto? _cachedUser;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AuthApplicationService"/> class.
+    /// </summary>
     public AuthApplicationService(
         IAuthService authService,
         IPatientService patientService,
@@ -31,6 +33,9 @@ public class AuthApplicationService : IAuthApplicationService
         _logger         = logger;
     }
 
+    /// <summary>
+    /// Starts Google authentication and returns onboarding state for the authenticated user.
+    /// </summary>
     public async Task<GoogleAuthCheckResult> AuthenticateWithGoogleAsync()
     {
         _logger.LogInformation("[Auth] Starting Google authentication...");
@@ -69,6 +74,9 @@ public class AuthApplicationService : IAuthApplicationService
         };
     }
 
+    /// <summary>
+    /// Completes registration for a newly authenticated user.
+    /// </summary>
     public async Task<AuthResultDto> CompleteRegistrationAsync(ProfileCompletionDto profile)
     {
         _logger.LogInformation("[Auth] CompleteRegistrationAsync called.");
@@ -89,13 +97,16 @@ public class AuthApplicationService : IAuthApplicationService
         return authResult;
     }
 
+    /// <summary>
+    /// Creates or updates the current user's patient profile.
+    /// </summary>
     public async Task<AuthResultDto> CreatePatientProfileAsync(PatientProfileDto profile)
     {
         _logger.LogInformation("[Auth] CreatePatientProfileAsync called.");
 
         var current = await GetCurrentUserAsync();
         if (current is null)
-            throw new InvalidOperationException("No authenticated user. Sign in first.");
+            throw new UnauthorizedException("No authenticated user. Sign in first.");
 
         await _patientService.CreateOrUpdateProfileAsync(
             current.UserId, profile.BloodType, profile.Allergies, profile.MedicalHistoryNotes);
@@ -111,6 +122,9 @@ public class AuthApplicationService : IAuthApplicationService
         return authResult;
     }
 
+    /// <summary>
+    /// Gets the current user's patient profile for display.
+    /// </summary>
     public async Task<PatientDisplayDto?> GetPatientProfileAsync()
     {
         var current = await GetCurrentUserAsync();
@@ -129,14 +143,20 @@ public class AuthApplicationService : IAuthApplicationService
         };
     }
 
+    /// <summary>
+    /// Returns the current signed-in user or throws when none is available.
+    /// </summary>
     public async Task<AuthResultDto> SignInExistingUserAsync()
     {
         var current = await GetCurrentUserAsync();
         if (current is null)
-            throw new InvalidOperationException("No authenticated user found.");
+            throw new UnauthorizedException("No authenticated user found.");
         return current;
     }
 
+    /// <summary>
+    /// Signs out the current user and clears the cached authentication result.
+    /// </summary>
     public async Task SignOutAsync()
     {
         _cachedUser = null;
@@ -144,6 +164,9 @@ public class AuthApplicationService : IAuthApplicationService
         _logger.LogInformation("[Auth] Sign out complete.");
     }
 
+    /// <summary>
+    /// Gets the current authenticated user, using the cached result when available.
+    /// </summary>
     public async Task<AuthResultDto?> GetCurrentUserAsync()
     {
         if (_cachedUser is not null) return _cachedUser;
@@ -155,6 +178,9 @@ public class AuthApplicationService : IAuthApplicationService
         return _cachedUser;
     }
 
+    /// <summary>
+    /// Gets the patient identifier associated with the current authenticated user.
+    /// </summary>
     public async Task<Guid?> GetCurrentPatientIdAsync()
     {
         var user = await _authService.GetCurrentUserAsync();

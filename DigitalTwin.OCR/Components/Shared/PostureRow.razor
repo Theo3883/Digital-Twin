@@ -1,0 +1,30 @@
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.82rem; color: var(--text-secondary);">
+    <div style="display: flex; align-items: center; gap: 6px;">
+        <MudIcon Icon="@RowIcon" Size="Size.Small" />
+        @Label
+        @if (Optional)
+        {
+            <span style="font-size: 0.7rem; color: rgba(255,255,255,0.35); margin-left: 2px;">(optional)</span>
+        }
+    </div>
+    @if (Ok)
+    {
+        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Color="Color.Success" />
+    }
+    else if (Optional)
+    {
+        <MudIcon Icon="@Icons.Material.Filled.Info" Size="Size.Small" Color="Color.Default"
+                 Style="opacity: 0.45;" />
+    }
+    else
+    {
+        <MudIcon Icon="@Icons.Material.Filled.Cancel" Size="Size.Small" Color="Color.Error" />
+    }
+</div>
+
+@code {
+    [Parameter] public string Label { get; set; } = string.Empty;
+    [Parameter] public bool Ok { get; set; }
+    [Parameter] public bool Optional { get; set; }
+    [Parameter] public string RowIcon { get; set; } = Icons.Material.Filled.Circle;
+}

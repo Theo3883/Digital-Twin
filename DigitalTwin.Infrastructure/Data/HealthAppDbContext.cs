@@ -32,6 +32,7 @@ public class HealthAppDbContext : DbContext
     public DbSet<MedicationEntity> Medications => Set<MedicationEntity>();
     public DbSet<EnvironmentReadingEntity> EnvironmentReadings => Set<EnvironmentReadingEntity>();
     public DbSet<SleepSessionEntity> SleepSessions => Set<SleepSessionEntity>();
+    public DbSet<OcrDocumentEntity> OcrDocuments => Set<OcrDocumentEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -140,6 +141,17 @@ public class HealthAppDbContext : DbContext
             e.HasKey(s => s.Id);
             e.Property(s => s.QualityScore).HasPrecision(5, 2);
             e.HasQueryFilter(s => s.DeletedAt == null);
+        });
+
+        modelBuilder.Entity<OcrDocumentEntity>(e =>
+        {
+            e.HasKey(d => d.Id);
+            e.HasIndex(d => d.PatientId);
+            e.HasIndex(d => d.IsDirty);
+            e.Property(d => d.OpaqueInternalName).IsRequired();
+            e.Property(d => d.MimeType).IsRequired();
+            e.Property(d => d.Sha256OfNormalized).IsRequired();
+            e.HasQueryFilter(d => d.DeletedAt == null);
         });
     }
 }

@@ -9,6 +9,9 @@ public class User
     public UserRole Role { get; set; }
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
+
+    /// <summary>Computed display name — always use this instead of manual concatenation.</summary>
+    public string FullName => $"{FirstName} {LastName}".Trim();
     public string? PhotoUrl { get; set; }
     public string? Phone { get; set; }
     public string? Address { get; set; }

@@ -103,6 +103,44 @@ export class ApiClient {
       method: "DELETE",
     });
   }
+
+  // ── Medications ───────────────────────────────────────────────────────────
+
+  async getPatientMedications(id: string) {
+    return this.request<Medication[]>(`/api/patients/${id}/medications`);
+  }
+
+  async addPatientMedication(id: string, dto: AddMedicationRequest) {
+    return this.request<Medication>(`/api/patients/${id}/medications`, {
+      method: "POST",
+      body: JSON.stringify(dto),
+    });
+  }
+
+  async deletePatientMedication(id: string, medId: string) {
+    return this.request<void>(`/api/patients/${id}/medications/${medId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async discontinuePatientMedication(id: string, medId: string, reason: string) {
+    return this.request<void>(`/api/patients/${id}/medications/${medId}/discontinue`, {
+      method: "PATCH",
+      body: JSON.stringify({ reason }),
+    });
+  }
+
+  async searchDrugs(query: string, max = 8) {
+    const q = encodeURIComponent(query);
+    return this.request<DrugSearchResult[]>(`/api/drugs/search?q=${q}&max=${max}`);
+  }
+
+  async checkDrugInteractions(rxCuis: string[]) {
+    return this.request<MedicationInteraction[]>(`/api/drugs/interactions`, {
+      method: "POST",
+      body: JSON.stringify({ rxCuis }),
+    });
+  }
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -156,6 +194,72 @@ export interface VitalsParams {
   type?: string;
   from?: string;
   to?: string;
+}
+
+// 0=Active, 1=Discontinued, 2=Scheduled, 3=Completed
+export type MedicationStatus = 0 | 1 | 2 | 3;
+// 0=Oral, 1=IV, 2=Topical, 3=Subcutaneous, 4=Other
+export type MedicationRoute = 0 | 1 | 2 | 3 | 4;
+// 0=Patient, 1=Doctor
+export type AddedByRole = 0 | 1;
+
+export const MedicationStatusLabel: Record<MedicationStatus, string> = {
+  0: "Active",
+  1: "Discontinued",
+  2: "Scheduled",
+  3: "Completed",
+};
+
+export const MedicationRouteLabel: Record<MedicationRoute, string> = {
+  0: "Oral",
+  1: "IV",
+  2: "Topical",
+  3: "Subcutaneous",
+  4: "Other",
+};
+
+export interface Medication {
+  id: string;
+  name: string;
+  dosage: string;
+  frequency: string | null;
+  route: MedicationRoute;
+  status: MedicationStatus;
+  rxCui: string | null;
+  instructions: string | null;
+  reason: string | null;
+  prescribedByUserId: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  discontinuedReason: string | null;
+  addedByRole: AddedByRole;
+  createdAt: string;
+}
+
+export interface AddMedicationRequest {
+  name: string;
+  dosage: string;
+  frequency?: string;
+  route: MedicationRoute;
+  rxCui?: string;
+  instructions?: string;
+  reason?: string;
+  startDate?: string;
+}
+
+export interface DrugSearchResult {
+  name: string;
+  rxCui: string;
+}
+
+// 0=None, 1=Low, 2=Medium, 3=High
+export type InteractionSeverity = 0 | 1 | 2 | 3;
+
+export interface MedicationInteraction {
+  drugARxCui: string;
+  drugBRxCui: string;
+  severity: InteractionSeverity;
+  description: string;
 }
 
 export const api = new ApiClient();

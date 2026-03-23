@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Reactive.Disposables;
 using DigitalTwin.Application.Interfaces;
-using DigitalTwin.Application.Sync.Drainers;
+using DigitalTwin.Domain.Interfaces.Sync;
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Models;
 using System.Linq;
@@ -13,27 +13,20 @@ using Microsoft.Extensions.Logging;
 namespace DigitalTwin.Application.Services;
 
 /// <summary>
-/// Singleton background service with two responsibilities:
-///
-/// 1. TABLE DRAIN — every 60 s (and on connectivity restore) calls every registered
-///    <see cref="ITableDrainer"/> in sequence. Always runs once authenticated.
-///
-/// 2. VITALS COLLECTION — subscribes to live <see cref="IHealthDataProvider"/> stream,
-///    buffers readings in a lock-free queue, and flushes them every 30 s (or eagerly at
-///    100 items). Only starts when a Patient profile exists. Each flush tries the cloud
-///    DB first; on failure it caches locally with IsDirty=true for the drain cycle.
+/// Synchronizes live and cached health data between local storage and cloud persistence.
 /// </summary>
 public class HealthDataSyncService : IHealthDataSyncService
 {
     // ── Tuning ───────────────────────────────────────────────────────────────────
-    private const int MaxBufferSize  = 500;
-    private const int FlushThreshold = 100;
-    private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(30);
-    private static readonly TimeSpan DrainInterval = TimeSpan.FromSeconds(10);
+    private const int MaxBufferSize  = 5000; 
+    private const int FlushThreshold = 100;    // flush eagerly once 100 readings queue up
+    private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(600);  // flush timer every 60 s
+    private static readonly TimeSpan DrainInterval = TimeSpan.FromSeconds(300);
     private static readonly TimeSpan SleepCollectInterval = TimeSpan.FromMinutes(15);
 
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<HealthDataSyncService> _logger;
+    private readonly ITransientFailurePolicy _transientPolicy;
 
     // ── State ────────────────────────────────────────────────────────────────────
     private readonly ConcurrentQueue<VitalSign> _queue  = new();
@@ -47,14 +40,22 @@ public class HealthDataSyncService : IHealthDataSyncService
     private Guid _patientId;
     private bool _vitalsActive;
 
-    public HealthDataSyncService(IServiceScopeFactory scopeFactory, ILogger<HealthDataSyncService> logger)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HealthDataSyncService"/> class.
+    /// </summary>
+    public HealthDataSyncService(
+        IServiceScopeFactory scopeFactory,
+        ILogger<HealthDataSyncService> logger,
+        ITransientFailurePolicy transientPolicy)
     {
-        _scopeFactory = scopeFactory;
-        _logger       = logger;
+        _scopeFactory    = scopeFactory;
+        _logger          = logger;
+        _transientPolicy = transientPolicy;
     }
 
-    // ── Public API ───────────────────────────────────────────────────────────────
-
+    /// <summary>
+    /// Starts background synchronization and begins vitals collection when a patient profile exists.
+    /// </summary>
     public async Task StartSyncAsync()
     {
         StopSync();
@@ -80,6 +81,9 @@ public class HealthDataSyncService : IHealthDataSyncService
         }
     }
 
+    /// <summary>
+    /// Starts live vitals collection for the current patient profile.
+    /// </summary>
     public async Task StartVitalsCollectionAsync()
     {
         if (_vitalsActive)
@@ -102,6 +106,9 @@ public class HealthDataSyncService : IHealthDataSyncService
         StartVitalsInternal(patientId.Value);
     }
 
+    /// <summary>
+    /// Stops active timers, subscriptions, and collection state.
+    /// </summary>
     public void StopSync()
     {
         _flushTimer?.Dispose(); _flushTimer = null;
@@ -112,6 +119,9 @@ public class HealthDataSyncService : IHealthDataSyncService
         _logger.LogInformation("[Sync] Stopped.");
     }
 
+    /// <summary>
+    /// Persists an externally supplied batch of vital signs for the current patient.
+    /// </summary>
     public async Task SyncBatchAsync(IEnumerable<VitalSign> vitals)
     {
         if (_patientId == Guid.Empty)
@@ -124,8 +134,7 @@ public class HealthDataSyncService : IHealthDataSyncService
     }
 
     /// <summary>
-    /// Drains ALL dirty tables to the cloud in registration order.
-    /// Called by the drain timer and by <see cref="ConnectivityMonitor"/> on reconnect.
+    /// Pushes all locally dirty data tables to cloud storage.
     /// </summary>
     public async Task PushToCloudAsync()
     {
@@ -133,8 +142,6 @@ public class HealthDataSyncService : IHealthDataSyncService
         try   { await DrainAllTablesAsync(); }
         finally { _drainGate.Release(); }
     }
-
-    // ── Vitals: start / receive → queue → flush ─────────────────────────────────
 
     private void StartVitalsInternal(Guid patientId)
     {
@@ -187,9 +194,16 @@ public class HealthDataSyncService : IHealthDataSyncService
     }
 
     /// <summary>
-    /// Cloud-first: write directly to the cloud DB; on any failure cache locally
-    /// with IsDirty=true so the drain timer picks it up on the next cycle.
-    /// Maps local PatientId → cloud PatientId via UserId (local and cloud use different ID spaces).
+    /// Writes <paramref name="batch"/> to local SQLite always, and to the cloud when reachable.
+    ///
+    /// Strategy:
+    ///   1. Try cloud write — if it succeeds, mark the local copy as synced (IsDirty=false)
+    ///      so the drain timer does not push the same records again.
+    ///   2. If cloud is unreachable/fails, write locally with IsDirty=true so the drain
+    ///      timer picks them up on the next cycle.
+    ///
+    /// This guarantees the local DB always holds the complete vital-sign history,
+    /// which is required for offline access and for the Home page history charts.
     /// </summary>
     private async Task PersistAsync(List<VitalSign> batch)
     {
@@ -199,50 +213,69 @@ public class HealthDataSyncService : IHealthDataSyncService
             return;
         }
 
+        var cloudSucceeded = await TryWriteToCloudAsync(batch);
+
+        // Always persist locally. If cloud already stored them, mark as synced
+        // (IsDirty=false) so the drain timer won't push duplicates.
+        await WriteLocallyAsync(batch, markDirty: !cloudSucceeded);
+    }
+
+    private async Task<bool> TryWriteToCloudAsync(List<VitalSign> batch)
+    {
         try
         {
-            using var scope = _scopeFactory.CreateScope();
-            var cloud = scope.ServiceProvider.GetKeyedService<IVitalSignRepository>("Cloud");
-            var localPatient = scope.ServiceProvider.GetRequiredService<IPatientRepository>();
-            var cloudPatient = scope.ServiceProvider.GetKeyedService<IPatientRepository>("Cloud");
+            using var scope       = _scopeFactory.CreateScope();
+            var cloud             = scope.ServiceProvider.GetKeyedService<IVitalSignRepository>("Cloud");
+            var localPatientRepo  = scope.ServiceProvider.GetRequiredService<IPatientRepository>();
+            var cloudPatientRepo  = scope.ServiceProvider.GetKeyedService<IPatientRepository>("Cloud");
 
-            if (cloud is not null && cloudPatient is not null)
+            if (cloud is null || cloudPatientRepo is null)
+                return false;
+
+            var patient = await localPatientRepo.GetByIdAsync(_patientId);
+            if (patient is null)
+                return false;
+
+            var resolver    = scope.ServiceProvider.GetRequiredService<ICloudIdentityResolver>();
+            var cloudUserId = await resolver.ResolveCloudUserIdAsync(patient.UserId);
+            var cloudP      = cloudUserId is not null
+                ? await cloudPatientRepo.GetByUserIdAsync(cloudUserId.Value)
+                : null;
+
+            if (cloudP is null)
+                return false;
+
+            var cloudBatch = batch.Select(v => new VitalSign
             {
-                var patient = await localPatient.GetByIdAsync(_patientId);
-                if (patient is not null)
-                {
-                    var cloudP = await cloudPatient.GetByUserIdAsync(patient.UserId);
-                    if (cloudP is not null)
-                    {
-                        var cloudBatch = batch.Select(v => new VitalSign
-                        {
-                            PatientId = cloudP.Id,
-                            Type = v.Type,
-                            Value = v.Value,
-                            Unit = v.Unit,
-                            Source = v.Source,
-                            Timestamp = v.Timestamp
-                        }).ToList();
-                        await cloud.AddRangeAsync(cloudBatch);
-                        if (_logger.IsEnabled(LogLevel.Debug))
-                            _logger.LogDebug("[Sync] {Count} vitals written directly to cloud.", batch.Count);
-                        return;
-                    }
-                }
-            }
+                PatientId = cloudP.Id,
+                Type      = v.Type,
+                Value     = v.Value,
+                Unit      = v.Unit,
+                Source    = v.Source,
+                Timestamp = v.Timestamp
+            }).ToList();
+
+            await cloud.AddRangeAsync(cloudBatch);
+            if (_logger.IsEnabled(LogLevel.Debug))
+                _logger.LogDebug("[Sync] {Count} vitals written directly to cloud.", batch.Count);
+            return true;
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "[Sync] Cloud write failed for {Count} vitals; caching locally.", batch.Count);
+            return false;
         }
+    }
 
+    private async Task WriteLocallyAsync(List<VitalSign> batch, bool markDirty = true)
+    {
         try
         {
             using var scope = _scopeFactory.CreateScope();
             var local = scope.ServiceProvider.GetRequiredService<IVitalSignRepository>();
-            await local.AddRangeAsync(batch);
+            await local.AddRangeAsync(batch, markDirty);
             if (_logger.IsEnabled(LogLevel.Debug))
-                _logger.LogDebug("[Sync] {Count} vitals cached locally (dirty=true).", batch.Count);
+                _logger.LogDebug("[Sync] {Count} vitals saved locally (dirty={Dirty}).", batch.Count, markDirty);
         }
         catch (Exception ex)
         {
@@ -272,6 +305,7 @@ public class HealthDataSyncService : IHealthDataSyncService
             using var scope = _scopeFactory.CreateScope();
             var provider = scope.ServiceProvider.GetRequiredService<IHealthDataProvider>();
             var repo = scope.ServiceProvider.GetRequiredService<ISleepSessionRepository>();
+            var cloudRepo = scope.ServiceProvider.GetKeyedService<ISleepSessionRepository>("Cloud");
 
             var to = DateTime.UtcNow;
             var from = to.AddDays(-3); // look back 3 days to catch late-arriving data
@@ -286,7 +320,18 @@ public class HealthDataSyncService : IHealthDataSyncService
                 if (await repo.ExistsAsync(s.PatientId, s.StartTime))
                     continue;
 
-                await repo.AddAsync(s);
+                var cloudSucceeded = false;
+                if (cloudRepo != null)
+                {
+                    try
+                    {
+                        await cloudRepo.AddAsync(s, markDirty: false);
+                        cloudSucceeded = true;
+                    }
+                    catch { /* will sync via drainer */ }
+                }
+
+                await repo.AddAsync(s, markDirty: !cloudSucceeded);
                 inserted++;
             }
 
@@ -304,7 +349,7 @@ public class HealthDataSyncService : IHealthDataSyncService
     private async Task DrainAllTablesAsync(CancellationToken ct = default)
     {
         using var scope   = _scopeFactory.CreateScope();
-        var drainers = scope.ServiceProvider.GetServices<ITableDrainer>().OrderBy(d => d.Order);
+        var drainers = scope.ServiceProvider.GetServices<ISyncDrainer>().OrderBy(d => d.Order);
 
         foreach (var drainer in drainers)
         {
@@ -315,7 +360,7 @@ public class HealthDataSyncService : IHealthDataSyncService
                 if (count > 0 && _logger.IsEnabled(LogLevel.Debug))
                     _logger.LogDebug("[Sync] {Table}: {Count} records drained.", drainer.TableName, count);
             }
-            catch (Exception ex) when (IsTransientCloudFailure(ex))
+            catch (Exception ex) when (_transientPolicy.IsTransient(ex))
             {
                 _logger.LogWarning(ex, "[Sync] {Table}: cloud unavailable — skipping, will retry next cycle.", drainer.TableName);
             }
@@ -326,14 +371,4 @@ public class HealthDataSyncService : IHealthDataSyncService
         }
     }
 
-    private static bool IsTransientCloudFailure(Exception ex)
-    {
-        for (var e = ex; e is not null; e = e.InnerException)
-        {
-            var name = e.GetType().FullName ?? "";
-            if (name.Contains("NpgsqlException") || e is System.Net.Sockets.SocketException)
-                return true;
-        }
-        return false;
-    }
 }

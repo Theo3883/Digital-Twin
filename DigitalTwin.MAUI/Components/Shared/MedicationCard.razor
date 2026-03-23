@@ -1,0 +1,75 @@
+@using DigitalTwin.Application.DTOs
+@using DigitalTwin.Domain.Enums
+
+<div class="glass-card"
+     @onclick="HandleTap"
+     style="padding: 16px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; cursor: pointer; @(Medication.Status == MedicationStatus.Discontinued ? "opacity: 0.75;" : "")">
+
+    @* Left: main info *@
+    <div style="flex: 1; min-width: 0;">
+        <div style="font-weight: 600; font-size: 15px; color: @(Medication.Status == MedicationStatus.Discontinued ? "var(--text-sec)" : "var(--text-main)");">
+            @Medication.Name
+            <span style="font-weight: 400; color: var(--text-sec); margin-left: 4px;">@Medication.Dosage</span>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Medication.Frequency))
+        {
+            <div style="font-size: 12px; color: var(--text-sec); margin-top: 4px;">@Medication.Frequency</div>
+        }
+
+        @if (!string.IsNullOrEmpty(Medication.Reason))
+        {
+            <div style="font-size: 11px; color: var(--text-tert); margin-top: 2px; opacity: 0.8;">@Medication.Reason</div>
+        }
+
+        @if (Medication.Status == MedicationStatus.Discontinued && Medication.EndDate.HasValue)
+        {
+            <div style="font-size: 11px; color: var(--text-tert); margin-top: 4px;">
+                Ended @Medication.EndDate.Value.ToString("MMM d, yyyy")
+            </div>
+        }
+    </div>
+
+    @* Right: chips + chevron *@
+    <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+        @if (Medication.Status == MedicationStatus.Discontinued)
+        {
+            <span class="glass-chip" style="font-size: 10px; color: var(--text-tert); border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); padding: 3px 8px; white-space: nowrap;">
+                Ended
+            </span>
+        }
+        else
+        {
+            <span class="glass-chip" style="font-size: 10px; color: var(--teal-primary); border-color: rgba(0,212,200,0.2); background: rgba(0,212,200,0.05); padding: 4px 10px; white-space: nowrap;">
+                @Medication.Route
+            </span>
+        }
+
+        <span class="glass-chip" style="font-size: 10px; color: @AddedByColor; border-color: @AddedByBorderColor; background: @AddedByBg; padding: 3px 8px; white-space: nowrap;">
+            @AddedByLabel
+        </span>
+
+        <MudIcon Icon="@Icons.Material.Filled.ChevronRight"
+                 Style="color: var(--text-tert); flex-shrink: 0;"
+                 Size="Size.Small" />
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public MedicationDto Medication { get; set; } = null!;
+    [Parameter] public EventCallback<MedicationDto> OnTap { get; set; }
+
+    private string AddedByLabel =>
+        Medication.AddedByRole == AddedByRole.Doctor ? "Doctor" : "Self";
+
+    private string AddedByColor =>
+        Medication.AddedByRole == AddedByRole.Doctor ? "#a855f7" : "var(--teal-primary)";
+
+    private string AddedByBorderColor =>
+        Medication.AddedByRole == AddedByRole.Doctor ? "rgba(168,85,247,0.2)" : "rgba(0,212,200,0.2)";
+
+    private string AddedByBg =>
+        Medication.AddedByRole == AddedByRole.Doctor ? "rgba(168,85,247,0.05)" : "rgba(0,212,200,0.05)";
+
+    private Task HandleTap() => OnTap.InvokeAsync(Medication);
+}

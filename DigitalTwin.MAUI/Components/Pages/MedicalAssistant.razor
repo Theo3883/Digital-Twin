@@ -1,0 +1,74 @@
+@page "/assistant"
+@inject IChatBotApplicationService ChatBotService
+
+<RequireAuth>
+<div class="page-enter chat-page">
+
+    @* Top Bar — DTH AssistantScreen *@
+    <div style="padding: 16px 20px; display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+        <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #60a5fa, #a855f7); display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.2);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+        </div>
+        <div style="display: flex; flex-direction: column;">
+            <span style="font-size: 18px; font-weight: 600; letter-spacing: -0.3px; color: var(--text-main);">MedAssist AI</span>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <div style="width: 8px; height: 8px; background: var(--green-positive); border-radius: 50%; animation: radial-pulse 2s ease-in-out infinite;"></div>
+                <span style="font-size: 12px; font-weight: 500; color: var(--text-sec);">Online</span>
+            </div>
+        </div>
+    </div>
+
+    <div style="flex: 1; min-height: 0; overflow: hidden;">
+        <ChatBotWindow
+            Messages="@_messages"
+            IsLoading="@_isLoading"
+            OnSendMessage="HandleSendMessage" />
+    </div>
+</div>
+</RequireAuth>
+
+@code {
+    private readonly List<ChatMessageDto> _messages = [];
+    private bool _isLoading;
+
+    private async Task HandleSendMessage(string userMessage)
+    {
+        // Add user message to the list immediately.
+        _messages.Add(new ChatMessageDto
+        {
+            Content   = userMessage,
+            IsUser    = true,
+            Timestamp = DateTime.UtcNow
+        });
+
+        _isLoading = true;
+        // Fire-and-forget render — queues a re-render without blocking the current thread.
+        // DO NOT await InvokeAsync here: awaiting it would block this method until the
+        // WebView's main thread processes the message, which can be delayed under load
+        // and prevents the AI call from starting. The render will happen asynchronously.
+        StateHasChanged();
+
+        ChatMessageDto response;
+        try
+        {
+            // Run the full AI pipeline on a thread-pool thread so the Blazor renderer
+            // and MAUI main thread remain free to process UI events during the wait.
+            response = await Task.Run(() => ChatBotService.SendMessageAsync(userMessage));
+        }
+        catch
+        {
+            response = new ChatMessageDto
+            {
+                Content   = "I'm sorry, something went wrong. Please try again.",
+                IsUser    = false,
+                Timestamp = DateTime.UtcNow
+            };
+        }
+
+        _messages.Add(response);
+        _isLoading = false;
+        // After Task.Run we are on a thread-pool thread — use InvokeAsync to marshal
+        // the final state update back onto the Blazor renderer's sync context.
+        await InvokeAsync(StateHasChanged);
+    }
+}

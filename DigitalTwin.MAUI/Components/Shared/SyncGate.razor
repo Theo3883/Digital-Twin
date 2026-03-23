@@ -1,0 +1,106 @@
+@* SyncGate.razor — Full-screen loading overlay shown while the local DB syncs with the cloud.
+   The app content is not rendered until SyncComplete is true. *@
+
+@if (!SyncComplete)
+{
+    <div class="sync-gate-root aurora-bg">
+
+        <!-- Gradient orbs (liquid-glass wallpaper feel) -->
+        <div class="sync-orb sync-orb-1"></div>
+        <div class="sync-orb sync-orb-2"></div>
+        <div class="sync-orb sync-orb-3"></div>
+
+        <div class="sync-gate-center">
+
+            <!-- Logo card -->
+            <div class="glass-card sync-logo-card page-enter">
+
+                <!-- Heartbeat icon -->
+                <div class="sync-icon-ring pulse-glow">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24"
+                         fill="var(--red-critical)" stroke="var(--red-critical)" stroke-width="1.5"
+                         class="animate-heartbeat">
+                        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                    </svg>
+                </div>
+
+                <!-- Title -->
+                <h1 class="sync-title">Digital Twin</h1>
+                <p class="sync-subtitle">Your personal health companion</p>
+
+                <!-- Divider -->
+                <div class="sync-divider"></div>
+
+                <!-- Sync status message -->
+                <div class="sync-status-row">
+                    <div class="sync-spinner"></div>
+                    <span class="sync-status-text">@_statusMessage</span>
+                </div>
+
+                <!-- Progress bar -->
+                <div class="sync-progress-track">
+                    <div class="sync-progress-fill" style="width: @(_progress)%;"></div>
+                </div>
+
+                <!-- Step indicators -->
+                <div class="sync-steps">
+                    @for (int i = 0; i < _steps.Length; i++)
+                    {
+                        var idx = i;
+                        <div class="sync-step @(idx < _stepIndex ? "step-done" : idx == _stepIndex ? "step-active" : "step-pending")">
+                            @if (idx < _stepIndex)
+                            {
+                                <!-- checkmark -->
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+                            }
+                            else if (idx == _stepIndex)
+                            {
+                                <div class="step-dot-pulse"></div>
+                            }
+                            else
+                            {
+                                <div class="step-dot-idle"></div>
+                            }
+                            <span>@_steps[idx]</span>
+                        </div>
+                    }
+                </div>
+
+            </div>
+
+            <!-- Subtle tagline -->
+            <p class="sync-tagline">Securing your data end-to-end</p>
+
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool SyncComplete { get; set; }
+    [Parameter] public string? CurrentStatus { get; set; }
+
+    private readonly string[] _steps =
+    [
+        "Authenticating",
+        "Pulling health records",
+        "Merging local data",
+        "Ready"
+    ];
+
+    private string _statusMessage = "Connecting to cloud…";
+    private int _progress = 5;
+    private int _stepIndex = 0;
+
+    protected override void OnParametersSet()
+    {
+        // Drive the step / progress from the CurrentStatus string the parent passes in.
+        (_stepIndex, _progress, _statusMessage) = CurrentStatus switch
+        {
+            "auth"    => (0, 15,  "Authenticating…"),
+            "pull"    => (1, 40, "Pulling health records…"),
+            "merge"   => (2, 75, "Merging local data…"),
+            "ready"   => (3, 100, "All done!"),
+            _         => (0, 5,   CurrentStatus ?? "Connecting to cloud…")
+        };
+    }
+}

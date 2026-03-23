@@ -2,7 +2,9 @@ using DigitalTwin.Application.Configuration;
 using DigitalTwin.Application.Interfaces;
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Interfaces.Providers;
+using DigitalTwin.Integrations.AI;
 using DigitalTwin.Integrations.Auth;
+using DigitalTwin.Integrations.Ecg;
 using DigitalTwin.Integrations.Environment;
 using DigitalTwin.Integrations.Medication;
 using DigitalTwin.Integrations.Mocks;
@@ -11,6 +13,7 @@ using DigitalTwin.Integrations.Sync;
 #endif
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 #if IOS || MACCATALYST
 using DigitalTwin.Integrations.HealthKit;
 #endif
@@ -69,11 +72,57 @@ public static class DependencyInjection
             config.Latitude,
             config.Longitude));
 
-        services.AddScoped<ICoachingProvider, MockCoachingProvider>();
+        // ── Gemini AI: chatbot + coaching ────────────────────────────────────
+        services.Configure<GeminiPromptOptions>(_ => { }); // Register with defaults
 
-        services.AddHttpClient<IMedicationInteractionProvider, RxNavProvider>();
+        services.AddHttpClient("GeminiApi", client =>
+        {
+            // 30 s is generous for Gemini flash-lite; keeps max total wait
+            // (timeout × MaxRetries) under 1 minute instead of 2.
+            client.Timeout = TimeSpan.FromSeconds(30);
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+        });
+
+        if (config.UseGeminiAi)
+        {
+            services.AddSingleton<IGeminiApiClient>(sp => new GeminiApiClient(
+                sp.GetRequiredService<IHttpClientFactory>(),
+                sp.GetRequiredService<IOptions<GeminiPromptOptions>>(),
+                sp.GetRequiredService<ILogger<GeminiApiClient>>(),
+                config.GeminiApiKey!));
+
+            services.AddScoped<IChatBotProvider, GeminiChatBotProvider>();
+            services.AddScoped<ICoachingProvider, GeminiCoachingProvider>();
+
+            // RxNav-first lookup (handles brand names, typos, international names);
+            // Gemini is the fallback for drugs not yet indexed in RxNorm.
+            services.AddScoped<IRxCuiLookupProvider>(sp => new ChainedRxCuiLookupProvider(
+                primary:  sp.GetRequiredService<RxNavRxCuiResolver>(),
+                fallback: sp.GetRequiredService<GeminiRxCuiLookupProvider>()));
+            services.AddScoped<GeminiRxCuiLookupProvider>();
+        }
+        else
+        {
+            services.AddScoped<IChatBotProvider, MockChatBotProvider>();
+            services.AddScoped<ICoachingProvider, MockCoachingProvider>();
+
+            // No AI configured — RxNav only; returns null if approximateTerm finds nothing.
+            services.AddScoped<IRxCuiLookupProvider>(sp => new ChainedRxCuiLookupProvider(
+                primary:  sp.GetRequiredService<RxNavRxCuiResolver>(),
+                fallback: new NullRxCuiLookupProvider()));
+        }
+
+        // Medication integrations:
+        // - RxNav for search + RxCUI resolution
+        // - openFDA-backed interaction provider (built from active APIs)
+        services.AddHttpClient<RxNavRxCuiResolver>();
+        services.AddHttpClient<IMedicationInteractionProvider, OpenFdaMedicationInteractionProvider>();
+        services.AddHttpClient<IDrugSearchProvider, RxNavDrugSearchProvider>();
+
+        // ECG: direct connection to ESP32 on local network.
+        // EcgDeviceUrl is set via ECG_DEVICE_URL env var or entered by the user at runtime.
+        services.AddSingleton<IEcgStreamProvider, EcgStreamClient>();
 
         return services;
     }
 }
-

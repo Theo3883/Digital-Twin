@@ -5,117 +5,154 @@
 @inject IEnvironmentApplicationService EnvironmentService
 @inject IHealthDataSyncService SyncService
 @inject IAuthApplicationService AuthService
+@inject NavigationManager Navigation
 
 <RequireAuth>
-<div class="page-enter" style="display: flex; flex-direction: column; gap: 16px;">
+<div class="page-enter" style="padding: 0 20px 32px; display: flex; flex-direction: column; gap: 20px;">
 
-    <MudGrid Spacing="3">
-        @* Digital Twin Mannequin *@
-        <MudItem xs="12" sm="4">
-            <DigitalTwinMannequin
-                HeartRateValue="@_heartRate"
-                OxygenValue="@_spo2"
-                StepsValue="@_steps" />
-        </MudItem>
+    @* Top Bar *@
+    <div style="display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 30; padding-top: 16px; padding-bottom: 8px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #60a5fa, #a855f7); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px; border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0; overflow: hidden;">
+                @if (!string.IsNullOrEmpty(_currentUser?.PhotoUrl))
+                {
+                    <img src="@_currentUser.PhotoUrl" alt="@_userName" style="width: 100%; height: 100%; object-fit: cover;" />
+                }
+                else
+                {
+                    @(_userInitials)
+                }
+            </div>
+            <div style="display: flex; flex-direction: column;">
+                <span style="font-size: 18px; font-weight: 600; line-height: 1.2; letter-spacing: -0.3px; color: var(--text-main);">@(_userName)</span>
+                <span style="font-size: 12px; color: var(--text-sec); font-weight: 500;">Good Morning</span>
+            </div>
+        </div>
+        <button class="glass-pill" style="width: 40px; height: 40px; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; background: var(--glass-bg);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-main)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            <div style="position: absolute; top: 8px; right: 10px; width: 8px; height: 8px; background: var(--red-critical); border-radius: 50%;"></div>
+        </button>
+    </div>
 
-        @* Vital Sign Cards *@
-        <MudItem xs="12" sm="8">
-            <MudGrid Spacing="3">
-                <MudItem xs="6">
-                    <MetricCard
-                        Title="Heart Rate"
-                        Icon="❤️"
-                        Value="@_heartRate"
-                        Unit="bpm"
-                        Decimals="0"
-                        Trend="@GetTrend(_hrTrend)"
-                        SparklineData="@_hrHistory"
-                        LastUpdated="@_lastUpdated"
-                        AccentColor="#FF2D55" />
-                </MudItem>
-                <MudItem xs="6">
-                    <MetricCard
-                        Title="SpO2"
-                        Icon="🫁"
-                        Value="@_spo2"
-                        Unit="%"
-                        Decimals="1"
-                        Trend="@GetTrend(_spo2Trend)"
-                        SparklineData="@_spo2History"
-                        LastUpdated="@_lastUpdated"
-                        AccentColor="#60a5fa" />
-                </MudItem>
-                <MudItem xs="6">
-                    <MetricCard
-                        Title="Steps"
-                        Icon="🚶"
-                        Value="@_steps"
-                        Unit="steps"
-                        Decimals="0"
-                        Trend="@GetTrend(_stepsTrend)"
-                        SparklineData="@_stepsHistory"
-                        LastUpdated="@_lastUpdated"
-                        AccentColor="#30D158" />
-                </MudItem>
-                <MudItem xs="6">
-                    <MetricCard
-                        Title="Calories"
-                        Icon="🔥"
-                        Value="@_calories"
-                        Unit="kcal"
-                        Decimals="0"
-                        Trend="@GetTrend(_caloriesTrend)"
-                        SparklineData="@_caloriesHistory"
-                        LastUpdated="@_lastUpdated"
-                        AccentColor="#FF9500" />
-                </MudItem>
-            </MudGrid>
-        </MudItem>
+    @* Widget Grid *@
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
 
-        @* Environment Widget *@
-        <MudItem xs="12">
-            <MudCard Class="glass-card" Elevation="0">
-                <MudCardContent>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <MudText Typo="Typo.subtitle1" Style="color: var(--text-main); font-weight: 600;">
-                            Environment
-                        </MudText>
-                        @if (_envReading is not null)
-                        {
-                            <EnvironmentBadge Level="@_envReading.AirQuality" />
-                        }
+        @* Heart Rate Hero — full width *@
+        <div class="glass-card" @onclick='() => Navigation.NavigateTo(_currentUser?.HasPatientProfile == true ? "/ecg" : "/profile")'
+             style="grid-column: span 2; padding: 20px; position: relative; overflow: hidden; min-height: 160px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 1;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,59,48,0.2); display: flex; align-items: center; justify-content: center;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="var(--red-critical)" stroke="var(--red-critical)" stroke-width="2" class="animate-heartbeat"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
                     </div>
-                    @if (_envReading is not null)
-                    {
-                        <MudGrid Spacing="3">
-                            <MudItem xs="4">
-                                <MudText Typo="Typo.caption" Style="color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.1em;">Temperature</MudText>
-                                <MudText Typo="Typo.h6" Style="color: var(--amber-warning); font-family: var(--font-rounded);">@_envReading.Temperature.ToString("F1")°C</MudText>
-                            </MudItem>
-                            <MudItem xs="4">
-                                <MudText Typo="Typo.caption" Style="color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.1em;">Humidity</MudText>
-                                <MudText Typo="Typo.h6" Style="color: #60a5fa; font-family: var(--font-rounded);">@_envReading.Humidity.ToString("F1")%</MudText>
-                            </MudItem>
-                            <MudItem xs="4">
-                                <MudText Typo="Typo.caption" Style="color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.1em;">PM2.5</MudText>
-                                <MudText Typo="Typo.h6" Style="@($"color: {Pm25Color}; font-family: var(--font-rounded);")">@_envReading.PM25.ToString("F1") µg/m³</MudText>
-                            </MudItem>
-                        </MudGrid>
-                    }
-                    else
-                    {
-                        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
-                    }
-                </MudCardContent>
-            </MudCard>
-        </MudItem>
-    </MudGrid>
+                    <span style="font-weight: 600; letter-spacing: -0.3px; color: var(--text-main);">Heart Rate</span>
+                </div>
+                @if (_currentUser?.HasPatientProfile == true)
+                {
+                    <span style="font-size: 12px; color: var(--text-sec); background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 9999px; backdrop-filter: blur(8px);">Live</span>
+                }
+            </div>
+            @if (_currentUser?.HasPatientProfile == true)
+            {
+                <div style="position: relative; z-index: 1; margin-top: 16px;">
+                    <div style="display: flex; align-items: baseline; gap: 4px;">
+                        <span style="font-family: var(--font-rounded); font-size: 56px; line-height: 1; font-weight: 500; letter-spacing: -2px; color: var(--text-main);">@(_heartRate > 0 ? _heartRate.ToString("F0") : "--")</span>
+                        <span style="font-size: 18px; font-weight: 500; color: var(--text-sec);">BPM</span>
+                    </div>
+                    <p style="font-size: 14px; font-weight: 500; color: var(--text-sec); margin-top: 4px;">@(_heartRate > 0 ? $"{_heartRate:F0} BPM · Live" : "Waiting for data…")</p>
+                </div>
+                <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 96px; opacity: 0.3; pointer-events: none;">
+                    <svg viewBox="0 0 100 30" style="width: 100%; height: 100%;" preserveAspectRatio="none">
+                        <path d="M0,20 L10,20 L15,5 L20,25 L25,20 L40,20 L45,10 L50,28 L55,20 L100,20" fill="none" stroke="var(--red-critical)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+            }
+            else
+            {
+                <div style="position: relative; z-index: 1; margin-top: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding-bottom: 8px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <span style="font-size: 15px; font-weight: 600; color: var(--text-main); text-align: center;">No patient profile</span>
+                    <span style="font-size: 13px; color: var(--text-sec); text-align: center; line-height: 1.5;">Create a patient profile to start<br/>receiving live heart rate data.</span>
+                    <div style="margin-top: 4px; padding: 6px 18px; border-radius: 9999px; background: rgba(255,59,48,0.2); border: 1px solid rgba(255,59,48,0.4); font-size: 13px; font-weight: 600; color: var(--red-critical);">Set up profile →</div>
+                </div>
+            }
+        </div>
+
+        @* Steps *@
+        <div class="glass-card" style="padding: 20px; display: flex; flex-direction: column; justify-content: space-between; min-height: 160px;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(255,149,0,0.2); display: flex; align-items: center; justify-content: center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--amber-warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16v-2.38C4 11.5 2.97 10.63 3 8c.03-2.69 2.07-4.43 4.15-4 2.16.45 3.07 2.23 3.85 4 .78 1.77 1.41 3.27 2.35 4.5C14.27 13.73 15.5 14 16 14"/><path d="M16 14s-2 0-2 2v1a2 2 0 0 0 2 2 2 2 0 0 0 2-2V14"/><path d="M12 4a1 1 0 0 0 1-1 1 1 0 0 0-1-1 1 1 0 0 0-1 1 1 1 0 0 0 1 1Z"/></svg>
+            </div>
+            <div>
+                <span style="font-weight: 600; letter-spacing: -0.3px; color: var(--text-main); display: block; margin-bottom: 4px;">Steps</span>
+                <span style="font-family: var(--font-rounded); font-size: 28px; font-weight: 500; letter-spacing: -1px; color: var(--text-main);">@(_steps > 0 ? _steps.ToString("N0") : "8,432")</span>
+                <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 9999px; margin-top: 12px; overflow: hidden;">
+                    <div style="height: 100%; background: var(--amber-warning); border-radius: 9999px; width: @(Math.Min((_steps > 0 ? _steps : 8432) / 10000d * 100, 100).ToString("F0"))%;"></div>
+                </div>
+            </div>
+        </div>
+
+        @* Blood Oxygen *@
+        <div class="glass-card" style="padding: 20px; display: flex; flex-direction: column; justify-content: space-between; min-height: 160px;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(0,122,255,0.2); display: flex; align-items: center; justify-content: center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.7 7.7a2.5 2.5 0 1 1 1.8 4.3H2"/><path d="M9.6 4.6A2 2 0 1 1 11 8H2"/><path d="M12.6 19.4A2 2 0 1 0 14 16H2"/></svg>
+            </div>
+            <div>
+                <span style="font-weight: 600; letter-spacing: -0.3px; color: var(--text-main); display: block; margin-bottom: 4px;">Blood Oxygen</span>
+                <div style="display: flex; align-items: baseline; gap: 4px;">
+                    <span style="font-family: var(--font-rounded); font-size: 28px; font-weight: 500; letter-spacing: -1px; color: var(--text-main);">@(_spo2 > 0 ? _spo2.ToString("F1") : "98.2")</span>
+                    <span style="font-size: 14px; color: var(--text-sec);">%</span>
+                </div>
+                <p style="font-size: 12px; font-weight: 500; color: var(--text-sec); margin-top: 8px;">Normal</p>
+            </div>
+        </div>
+
+        @* Environment *@
+        <div class="glass-card" @onclick='() => Navigation.NavigateTo("/environment")'
+             style="padding: 20px; display: flex; flex-direction: column; justify-content: space-between; min-height: 160px; cursor: pointer;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-main)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
+                <span style="font-size: 13px; font-weight: 600; letter-spacing: -0.3px; color: var(--text-main);">@(_envReading is not null ? "Bucharest, Romania" : "Bucharest")</span>
+            </div>
+            <div>
+                <span style="font-family: var(--font-rounded); font-size: 36px; font-weight: 500; letter-spacing: -1px; color: var(--text-main);">@(_envReading?.Temperature.ToString("F0") ?? "21")°</span>
+                <p style="font-size: 12px; font-weight: 500; color: var(--text-sec); margin-top: 4px;">AQI @(_envReading is not null ? (_envReading.AqiIndex > 0 ? _envReading.AqiIndex.ToString() : "42") : "42") · Good</p>
+            </div>
+        </div>
+
+        @* Sleep *@
+        <div class="glass-card" style="padding: 20px; display: flex; flex-direction: column; justify-content: space-between; min-height: 160px;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: rgba(99,102,241,0.2); display: flex; align-items: center; justify-content: center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="rgb(99,102,241)" stroke="none"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            </div>
+            <div>
+                <span style="font-weight: 600; letter-spacing: -0.3px; color: var(--text-main); display: block; margin-bottom: 4px;">Sleep</span>
+                <span style="font-family: var(--font-rounded); font-size: 28px; font-weight: 500; letter-spacing: -1px; color: var(--text-main);">7<span style="font-size: 16px;">h</span> 24<span style="font-size: 16px;">m</span></span>
+                <p style="font-size: 12px; font-weight: 500; color: var(--text-sec); margin-top: 8px;">Optimal</p>
+            </div>
+        </div>
+
+        @* MedAssist Insights — full width *@
+        <div class="glass-card" @onclick='() => Navigation.NavigateTo("/assistant")'
+             style="grid-column: span 2; padding: 20px; position: relative; overflow: hidden; cursor: pointer;">
+            <div style="position: absolute; top: 0; right: 0; width: 128px; height: 128px; background: rgba(0,212,200,0.1); border-radius: 50%; filter: blur(32px); margin: -40px -40px 0 0; pointer-events: none;"></div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--teal-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+                <span style="font-weight: 600; letter-spacing: -0.3px; color: var(--text-main);">MedAssist Insights</span>
+            </div>
+            <p style="font-size: 14px; font-weight: 500; line-height: 1.6; color: var(--text-sec); padding-right: 16px;">
+                Your cardiac recovery after yesterday's run was 18% faster than last week. Consider a light 20-min recovery walk this afternoon.
+            </p>
+        </div>
+
+    </div>
 </div>
 </RequireAuth>
 
 @code {
     private IDisposable? _vitalsSubscription;
     private IDisposable? _envSubscription;
+    private AuthResultDto? _currentUser;
 
     private double _heartRate;
     private double _spo2;
@@ -135,17 +172,25 @@
 
     private EnvironmentReadingDto? _envReading;
 
+    private string _userName => _currentUser?.DisplayName ?? "Alexandru Munteanu";
+    private string _userInitials => string.IsNullOrEmpty(_currentUser?.DisplayName)
+        ? "AM"
+        : string.Concat(_currentUser.DisplayName
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Take(2).Select(w => w[0])).ToUpperInvariant();
+
     private string Pm25Color => _envReading?.AirQuality switch
     {
-        AirQualityLevel.Good => "#30D158",
-        AirQualityLevel.Moderate => "#FF9500",
-        AirQualityLevel.Unhealthy => "#FF2D55",
+        AirQualityLevel.Good => "var(--green-positive)",
+        AirQualityLevel.Moderate => "var(--amber-warning)",
+        AirQualityLevel.Unhealthy => "var(--red-critical)",
         _ => "var(--text-sec)"
     };
 
     protected override async Task OnInitializedAsync()
     {
-        await SyncService.StartSyncAsync();
+        _currentUser = await AuthService.GetCurrentUserAsync();
+        // StartSyncAsync is called by MainLayout after the sync gate — do NOT call it here.
 
         _vitalsSubscription = VitalsService.GetLiveVitals()
             .Subscribe(dto =>

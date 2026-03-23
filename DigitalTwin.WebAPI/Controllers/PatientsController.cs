@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using DigitalTwin.Application.DTOs;
 using DigitalTwin.Application.Interfaces;
+using DigitalTwin.Domain.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -64,6 +65,55 @@ public class PatientsController : ControllerBase
     {
         var sessions = await _service.GetPatientSleepAsync(DoctorEmail, id, from, to);
         return Ok(sessions);
+    }
+
+    /// <summary>GET /api/patients/{id}/medications — list all medications for an assigned patient.</summary>
+    [HttpGet("{id:guid}/medications")]
+    public async Task<ActionResult<IEnumerable<MedicationDto>>> GetMedications(Guid id)
+    {
+        var medications = await _service.GetPatientMedicationsAsync(DoctorEmail, id);
+        return Ok(medications);
+    }
+
+    /// <summary>POST /api/patients/{id}/medications — prescribe a medication for an assigned patient.</summary>
+    [HttpPost("{id:guid}/medications")]
+    public async Task<ActionResult<MedicationDto>> AddMedication(Guid id, [FromBody] AddMedicationDto dto)
+    {
+        try
+        {
+            var result = await _service.AddPatientMedicationAsync(DoctorEmail, id, dto);
+            if (result is null) return NotFound(new { error = "Patient not found or not assigned to this doctor." });
+            return Ok(result);
+        }
+        catch (MedicationInteractionBlockedException ex)
+        {
+            return Conflict(new
+            {
+                error = ex.Message,
+                code = "HIGH_RISK_INTERACTION_BLOCKED"
+            });
+        }
+    }
+
+    /// <summary>DELETE /api/patients/{id}/medications/{medId} — soft-delete a medication.</summary>
+    [HttpDelete("{id:guid}/medications/{medId:guid}")]
+    public async Task<IActionResult> DeleteMedication(Guid id, Guid medId)
+    {
+        var removed = await _service.DeletePatientMedicationAsync(DoctorEmail, id, medId);
+        if (!removed) return NotFound();
+        return NoContent();
+    }
+
+    /// <summary>PATCH /api/patients/{id}/medications/{medId}/discontinue — end a medication with reason.</summary>
+    [HttpPatch("{id:guid}/medications/{medId:guid}/discontinue")]
+    public async Task<IActionResult> DiscontinueMedication(Guid id, Guid medId, [FromBody] DiscontinueMedicationRequest? request)
+    {
+        var reason = request?.Reason?.Trim() ?? "";
+        if (string.IsNullOrEmpty(reason))
+            return BadRequest(new { error = "Reason is required." });
+        var ok = await _service.DiscontinuePatientMedicationAsync(DoctorEmail, id, medId, reason);
+        if (!ok) return NotFound();
+        return NoContent();
     }
 
     /// <summary>POST /api/patients/assign — assign a patient by email.</summary>

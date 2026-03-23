@@ -9,9 +9,9 @@ public interface ISleepSessionRepository
         DateTime? from = null,
         DateTime? to = null);
 
-    Task AddAsync(SleepSession session);
+    Task AddAsync(SleepSession session, bool markDirty = true);
 
-    Task AddRangeAsync(IEnumerable<SleepSession> sessions);
+    Task AddRangeAsync(IEnumerable<SleepSession> sessions, bool markDirty = true);
 
     Task<bool> ExistsAsync(Guid patientId, DateTime startTime);
 

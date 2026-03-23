@@ -2,30 +2,33 @@ using DigitalTwin.Domain.Models;
 
 namespace DigitalTwin.Application.Interfaces;
 
+/// <summary>
+/// Defines background health data synchronization operations.
+/// </summary>
 public interface IHealthDataSyncService
 {
     /// <summary>
-    /// Starts the drain timer (always) and optionally the live vitals subscription
-    /// if a Patient profile exists for the current user.
+    /// Starts background synchronization and begins live vitals collection when a patient profile exists.
     /// </summary>
     Task StartSyncAsync();
 
     /// <summary>
-    /// Starts vitals collection after a Patient profile has been created.
-    /// Call this from the Profile page after CreatePatientProfileAsync succeeds.
-    /// Does nothing if vitals are already being collected.
+    /// Starts live vitals collection for the current patient profile.
     /// </summary>
     Task StartVitalsCollectionAsync();
 
-    /// <summary>Stops the subscription and timers. Safe to call multiple times.</summary>
+    /// <summary>
+    /// Stops all active sync subscriptions and timers.
+    /// </summary>
     void StopSync();
 
-    /// <summary>Manually push a batch of vitals (e.g. from iOS background fetch).</summary>
+    /// <summary>
+    /// Persists a supplied batch of vital-sign readings.
+    /// </summary>
     Task SyncBatchAsync(IEnumerable<VitalSign> vitals);
 
-    /// <summary> 
-    /// Drains any dirty records from the local SQLite cache to the cloud DB.
-    /// Called automatically by the drain timer and by ConnectivityMonitor on reconnect.
+    /// <summary>
+    /// Pushes locally cached dirty records to the cloud store.
     /// </summary>
     Task PushToCloudAsync();
 }

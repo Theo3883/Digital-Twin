@@ -3,8 +3,14 @@ using DigitalTwin.Application.DTOs;
 
 namespace DigitalTwin.Application.Validators;
 
+/// <summary>
+/// Validates environment reading DTO values at the application boundary.
+/// </summary>
 public class EnvironmentReadingDtoValidator : AbstractValidator<EnvironmentReadingDto>
 {
+    /// <summary>
+    /// Initializes validation rules for environment readings.
+    /// </summary>
     public EnvironmentReadingDtoValidator()
     {
         RuleFor(e => e.PM25).GreaterThanOrEqualTo(0);

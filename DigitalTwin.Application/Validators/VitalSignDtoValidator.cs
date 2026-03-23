@@ -4,23 +4,17 @@ using DigitalTwin.Application.Enums;
 
 namespace DigitalTwin.Application.Validators;
 
+/// <summary>
+/// Validates the application-layer structure of vital-sign DTOs.
+/// </summary>
 public class VitalSignDtoValidator : AbstractValidator<VitalSignDto>
 {
+    /// <summary>
+    /// Initializes validation rules for vital-sign DTOs.
+    /// </summary>
     public VitalSignDtoValidator()
     {
         RuleFor(v => v.Type).IsInEnum();
         RuleFor(v => v.Unit).NotEmpty();
-
-        RuleFor(v => v.Value)
-            .GreaterThanOrEqualTo(20).LessThanOrEqualTo(300)
-            .When(v => v.Type == VitalSignType.HeartRate);
-
-        RuleFor(v => v.Value)
-            .GreaterThanOrEqualTo(0).LessThanOrEqualTo(100)
-            .When(v => v.Type == VitalSignType.SpO2);
-
-        RuleFor(v => v.Value)
-            .GreaterThanOrEqualTo(0)
-            .When(v => v.Type is VitalSignType.Steps or VitalSignType.Calories);
     }
 }

@@ -16,6 +16,9 @@ public class MedicationEntity
     public DateTime? EndDate { get; set; }
     public int Status { get; set; }
     public string? DiscontinuedReason { get; set; }
+    public int AddedByRole { get; set; }
+    public bool IsDirty { get; set; }
+    public DateTime? SyncedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? DeletedAt { get; set; }

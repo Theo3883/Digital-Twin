@@ -1,0 +1,89 @@
+@using DigitalTwin.OCR.Policies
+
+<div class="glass-card" style="padding: 16px;">
+    <div style="font-size: 0.9rem; font-weight: 600; color: var(--text-main); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+        <MudIcon Icon="@Icons.Material.Filled.Security" Size="Size.Small" Color="@OverallColor" />
+        Security
+    </div>
+
+    @if (Posture is { } p)
+    {
+        <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;">
+            <PostureRow Label="Passcode" Ok="@p.IsPasscodeSet" RowIcon="@Icons.Material.Filled.Pin" />
+            <PostureRow Label="@BiometryLabel(p)" Ok="@p.IsBiometryAvailable" Optional="true" RowIcon="@Icons.Material.Filled.Fingerprint" />
+            <PostureRow Label="Vault Initialized" Ok="@p.IsVaultInitialized" RowIcon="@Icons.Material.Filled.Lock" />
+            <PostureRow Label="Vault Unlocked" Ok="@p.IsVaultUnlocked" RowIcon="@Icons.Material.Filled.LockOpen" />
+        </div>
+
+        @* ── Action buttons for every failing item ───────────────────────────── *@
+
+        @if (!p.IsPasscodeSet)
+        {
+            <div style="margin-bottom: 8px; padding: 10px 12px; border-radius: 12px; background: rgba(255,100,0,0.08); border: 1px solid rgba(255,100,0,0.2); font-size: 12px; color: rgba(255,180,80,1); line-height: 1.4;">
+                A device passcode is required. Set one in iOS Settings → Face ID &amp; Passcode.
+            </div>
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Warning"
+                       StartIcon="@Icons.Material.Filled.Settings"
+                       FullWidth="true"
+                       Style="margin-bottom: 8px; border-radius: 12px;"
+                       OnClick="OpenSettings">
+                Open Settings
+            </MudButton>
+        }
+
+        @* Face ID is optional — only show a soft hint, not a blocking action *@
+        @if (!p.IsBiometryAvailable && p.IsPasscodeSet)
+        {
+            <div style="margin-bottom: 8px; padding: 8px 12px; border-radius: 10px; background: rgba(255,255,255,0.04); font-size: 11px; color: rgba(255,255,255,0.4); line-height: 1.4;">
+                Face ID / Touch ID unavailable — passcode will be used instead.
+            </div>
+        }
+
+        @if (!p.IsVaultInitialized)
+        {
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Lock"
+                       FullWidth="true"
+                       Style="margin-bottom: 8px; border-radius: 12px;"
+                       OnClick="@(() => OnInitVault.InvokeAsync())">
+                Initialize Secure Vault
+            </MudButton>
+        }
+        else if (!p.IsVaultUnlocked)
+        {
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Fingerprint"
+                       FullWidth="true"
+                       Style="margin-bottom: 8px; border-radius: 12px;"
+                       OnClick="@(() => OnUnlock.InvokeAsync())">
+                Unlock Vault
+            </MudButton>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public SecurityPosture? Posture { get; set; }
+    [Parameter] public EventCallback OnUnlock { get; set; }
+    [Parameter] public EventCallback OnInitVault { get; set; }
+
+    /// <summary>Green when all <b>required</b> rows pass; Face ID alone does not turn this red.</summary>
+    private Color OverallColor => Posture is { } p && DocumentSecurityPolicy.RequiredOcrRowsSatisfied(p)
+        ? Color.Success : Color.Warning;
+
+    private static string BiometryLabel(SecurityPosture p)
+        => p.BiometryType is "None" or "" ? "Biometrics" : p.BiometryType;
+
+    private void OpenSettings()
+    {
+#if IOS || MACCATALYST
+        var url = Foundation.NSUrl.FromString(UIKit.UIApplication.OpenSettingsUrlString);
+        if (url is not null && UIKit.UIApplication.SharedApplication.CanOpenUrl(url))
+            UIKit.UIApplication.SharedApplication.OpenUrl(url,
+                new UIKit.UIApplicationOpenUrlOptions(), null);
+#endif
+    }
+}

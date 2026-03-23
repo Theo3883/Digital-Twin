@@ -1,7 +1,6 @@
 namespace DigitalTwin.Application;
 
 /// <summary>
-/// Assembly marker. All DI wiring lives in
-/// <c>DigitalTwin.Composition.DependencyInjection</c>.
+/// Marks the application assembly for discovery from composition and infrastructure code.
 /// </summary>
 public interface IApplicationAssemblyMarker;
