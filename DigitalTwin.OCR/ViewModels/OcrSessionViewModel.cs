@@ -12,6 +12,7 @@ namespace DigitalTwin.OCR.ViewModels;
 /// </summary>
 public sealed class OcrSessionViewModel
 {
+    private const string CancelledMarker = "cancelled";
     private readonly DocumentScannerService _scanner;
     private readonly FileImportService _fileImport;
     private readonly PhotoLibraryImportService _photoLibrary;
@@ -22,6 +23,7 @@ public sealed class OcrSessionViewModel
     private readonly LocalOcrService _ocr;
     private readonly SensitiveDataSanitizer _sanitizer;
     private readonly OcrSyncPreparationService _syncPrep;
+    private readonly MedicalHistoryAutoAppendService _historyAutoAppend;
     private readonly OcrSheetService _sheetService;
     private readonly OcrOptions _options;
     private readonly ILogger<OcrSessionViewModel> _logger;
@@ -46,6 +48,7 @@ public sealed class OcrSessionViewModel
         LocalOcrService ocr,
         SensitiveDataSanitizer sanitizer,
         OcrSyncPreparationService syncPrep,
+        MedicalHistoryAutoAppendService historyAutoAppend,
         OcrSheetService sheetService,
         OcrOptions options,
         ILogger<OcrSessionViewModel> logger)
@@ -60,6 +63,7 @@ public sealed class OcrSessionViewModel
         _ocr = ocr;
         _sanitizer = sanitizer;
         _syncPrep = syncPrep;
+        _historyAutoAppend = historyAutoAppend;
         _sheetService = sheetService;
         _options = options;
         _logger = logger;
@@ -108,11 +112,12 @@ public sealed class OcrSessionViewModel
     /// <summary>Full pipeline: scan via camera.</summary>
     public async Task RunCameraSessionAsync(Guid patientId, CancellationToken ct = default)
     {
+        ResetSessionState();
         SetLoading("Opening camera…");
         var scanResult = await _scanner.ScanAsync(ct);
         if (!scanResult.IsSuccess)
         {
-            SetError(scanResult.Error!);
+            HandleFailure(scanResult.Error);
             return;
         }
 
@@ -122,11 +127,12 @@ public sealed class OcrSessionViewModel
     /// <summary>Full pipeline: import from file picker (PDF / images from Files).</summary>
     public async Task RunFileImportSessionAsync(Guid patientId, CancellationToken ct = default)
     {
+        ResetSessionState();
         SetLoading("Selecting file…");
         var pickResult = await _fileImport.PickAndImportAsync(ct);
         if (!pickResult.IsSuccess)
         {
-            SetError(pickResult.Error!);
+            HandleFailure(pickResult.Error);
             return;
         }
 
@@ -137,11 +143,12 @@ public sealed class OcrSessionViewModel
     /// <summary>Full pipeline: pick an image from the Photos library (PHPicker), then same pipeline as file import.</summary>
     public async Task RunPhotoLibraryImportSessionAsync(Guid patientId, CancellationToken ct = default)
     {
+        ResetSessionState();
         SetLoading("Opening Photos…");
         var pickResult = await _photoLibrary.PickAndImportAsync(ct);
         if (!pickResult.IsSuccess)
         {
-            SetError(pickResult.Error!);
+            HandleFailure(pickResult.Error);
             return;
         }
 
@@ -207,6 +214,8 @@ public sealed class OcrSessionViewModel
             var saveResult = await _syncPrep.SaveAsync(record, ct);
             if (!saveResult.IsSuccess)
                 _logger.LogWarning("[OCR VM] Sync record save failed: {Msg}", saveResult.Error);
+            else
+                await _historyAutoAppend.AppendAsync(patientId, record.Id, SanitizedPreview, ct);
 
             SavedRecord = record;
             ClearLoading();
@@ -232,6 +241,20 @@ public sealed class OcrSessionViewModel
         _sheetService.Complete(result);
     }
 
+    /// <summary>
+    /// Clears transient UI/session state so the user can retry import/scan after cancellation or errors.
+    /// </summary>
+    public void ResetSessionState()
+    {
+        IsLoading = false;
+        StatusMessage = null;
+        ErrorMessage = null;
+        OcrResult = null;
+        SanitizedPreview = null;
+        SavedRecord = null;
+        StateChanged?.Invoke();
+    }
+
     private void SetLoading(string message)
     {
         IsLoading = true;
@@ -254,6 +277,24 @@ public sealed class OcrSessionViewModel
         StatusMessage = null;
         StateChanged?.Invoke();
     }
+
+    private void HandleFailure(string? error)
+    {
+        if (IsUserCancellation(error))
+        {
+            IsLoading = false;
+            StatusMessage = null;
+            ErrorMessage = "Upload cancelled. You can try again.";
+            StateChanged?.Invoke();
+            return;
+        }
+
+        SetError(error ?? "Operation failed.");
+    }
+
+    private static bool IsUserCancellation(string? error)
+        => !string.IsNullOrWhiteSpace(error)
+           && error.Contains(CancelledMarker, StringComparison.OrdinalIgnoreCase);
 }
 
 internal static class StringExtensions

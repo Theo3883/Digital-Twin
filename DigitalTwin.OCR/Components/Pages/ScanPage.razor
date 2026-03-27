@@ -127,7 +127,7 @@
 
     private void ClearError()
     {
-        ViewModel.StateChanged?.Invoke();
+        ViewModel.ResetSessionState();
         StateHasChanged();
     }
 }

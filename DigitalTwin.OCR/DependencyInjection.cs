@@ -25,6 +25,7 @@ public static class OcrServiceCollectionExtensions
         services.AddSingleton<DocumentEncryptionService>();
         services.AddSingleton<HashingService>();
         services.AddSingleton<SensitiveDataSanitizer>();
+        services.AddSingleton<MedicalHistoryExtractionService>();
 
         // ── iOS-backed services (gracefully no-op on non-iOS) ────────────────
         services.AddSingleton<KeychainKeyStore>();
@@ -42,6 +43,7 @@ public static class OcrServiceCollectionExtensions
 
         // ── Scoped (per OCR session) ──────────────────────────────────────────
         services.AddScoped<OcrSyncPreparationService>();
+        services.AddScoped<MedicalHistoryAutoAppendService>();
         services.AddScoped<OcrSessionViewModel>();
         services.AddScoped<SecurityPostureViewModel>();
 

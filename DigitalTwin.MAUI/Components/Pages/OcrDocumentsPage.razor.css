@@ -1,0 +1,47 @@
+.ocr-docs-page {
+    min-height: 100dvh;
+}
+
+.ocr-docs-header {
+    margin: 0 16px 16px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ocr-docs-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.ocr-docs-back {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    border: none;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ocr-docs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ocr-doc-item {
+    padding: 14px;
+}
+
+.ocr-doc-meta {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: grid;
+    gap: 4px;
+}

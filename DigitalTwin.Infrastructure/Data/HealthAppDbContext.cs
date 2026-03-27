@@ -33,6 +33,7 @@ public class HealthAppDbContext : DbContext
     public DbSet<EnvironmentReadingEntity> EnvironmentReadings => Set<EnvironmentReadingEntity>();
     public DbSet<SleepSessionEntity> SleepSessions => Set<SleepSessionEntity>();
     public DbSet<OcrDocumentEntity> OcrDocuments => Set<OcrDocumentEntity>();
+    public DbSet<MedicalHistoryEntryEntity> MedicalHistoryEntries => Set<MedicalHistoryEntryEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -152,6 +153,23 @@ public class HealthAppDbContext : DbContext
             e.Property(d => d.MimeType).IsRequired();
             e.Property(d => d.Sha256OfNormalized).IsRequired();
             e.HasQueryFilter(d => d.DeletedAt == null);
+        });
+
+        modelBuilder.Entity<MedicalHistoryEntryEntity>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => x.PatientId);
+            e.HasIndex(x => x.SourceDocumentId);
+            e.HasIndex(x => x.IsDirty);
+            e.Property(x => x.Title).IsRequired();
+            e.Property(x => x.MedicationName).IsRequired();
+            e.Property(x => x.Dosage).IsRequired();
+            e.Property(x => x.Frequency).IsRequired();
+            e.Property(x => x.Duration).IsRequired();
+            e.Property(x => x.Notes).IsRequired();
+            e.Property(x => x.Summary).IsRequired();
+            e.Property(x => x.Confidence).HasPrecision(5, 4);
+            e.HasQueryFilter(x => x.DeletedAt == null);
         });
     }
 }

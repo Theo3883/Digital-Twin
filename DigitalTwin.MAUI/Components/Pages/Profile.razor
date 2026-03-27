@@ -2,6 +2,7 @@
 @inject IAuthApplicationService AuthService
 @inject IDoctorAssignmentApplicationService DoctorAssignments
 @inject IHealthDataSyncService SyncService
+@inject IMedicalHistoryEntryRepository MedicalHistoryRepo
 @inject NavigationManager Navigation
 @* OcrSheet removed — OCR is now a full-screen page at /ocr/{source} *@
 
@@ -157,7 +158,21 @@
         @* Medical History Timeline *@
         <div class="glass-card" style="padding: 16px;">
             <h3 style="font-size: 14px; font-weight: 600; color: var(--text-main); margin-bottom: 16px;">Medical History</h3>
-            @if (!string.IsNullOrEmpty(_patient?.MedicalHistoryNotes))
+            @if (_ocrHistory.Count > 0)
+            {
+                <div style="position: relative; border-left: 1px solid rgba(255,255,255,0.1); margin-left: 8px; display: flex; flex-direction: column; gap: 18px; padding-bottom: 8px;">
+                    @foreach (var item in _ocrHistory.Take(8))
+                    {
+                        <div style="position: relative; padding-left: 16px;">
+                            <div style="position: absolute; left: -6px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--teal-primary); box-shadow: 0 0 10px rgba(0,212,200,0.5);"></div>
+                            <div style="font-size: 12px; color: var(--teal-primary); font-weight: 500; margin-bottom: 4px;">@item.EventDate.ToLocalTime().ToString("dd MMM yyyy")</div>
+                            <div style="font-size: 14px; color: rgba(255,255,255,0.95);">@item.Summary</div>
+                            <div style="font-size: 11px; color: var(--text-sec); margin-top: 2px;">@item.Title</div>
+                        </div>
+                    }
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(_patient?.MedicalHistoryNotes))
             {
                 <p style="font-size: 14px; color: var(--text-sec); line-height: 1.6;">@_patient.MedicalHistoryNotes</p>
             }
@@ -196,11 +211,18 @@
                 </div>
             </div>
 
-            <button type="button" @onclick="OpenImportDocumentsAsync"
-                    style="width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(0,212,200,0.4); background: rgba(0,212,200,0.1); color: var(--teal-primary); font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                <MudIcon Icon="@Icons.Material.Filled.Article" Style="color: var(--teal-primary);" Size="Size.Small" />
-                <span>Import Documents</span>
-            </button>
+            <div style="display:grid; gap:8px;">
+                <button type="button" @onclick="OpenImportDocumentsAsync"
+                        style="width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(0,212,200,0.4); background: rgba(0,212,200,0.1); color: var(--teal-primary); font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <MudIcon Icon="@Icons.Material.Filled.Article" Style="color: var(--teal-primary);" Size="Size.Small" />
+                    <span>Import Documents</span>
+                </button>
+                <button type="button" @onclick="OpenViewDocumentsAsync"
+                        style="width: 100%; padding: 11px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.04); color: var(--text-main); font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <MudIcon Icon="@Icons.Material.Filled.FolderShared" Style="color: var(--text-main);" Size="Size.Small" />
+                    <span>View Documents</span>
+                </button>
+            </div>
         </div>
 
         @* Sign Out *@
@@ -217,6 +239,7 @@
     private AuthResultDto? _currentUser;
     private PatientDisplayDto? _patient;
     private List<AssignedDoctorDto> _assignedDoctors = new();
+    private List<DigitalTwin.Domain.Models.MedicalHistoryEntry> _ocrHistory = new();
     private bool _showForm;
     private bool _isSaving;
     private string? _formError;
@@ -239,6 +262,10 @@
         {
             _patient = await AuthService.GetPatientProfileAsync();
             _assignedDoctors = (await DoctorAssignments.GetAssignedDoctorsAsync(_currentUser.Email)).ToList();
+            if (_patient is not null)
+                _ocrHistory = (await MedicalHistoryRepo.GetByPatientAsync(_patient.PatientId))
+                    .OrderByDescending(x => x.EventDate)
+                    .ToList();
         }
         RebuildChecklist();
     }
@@ -309,6 +336,11 @@
     private void OpenImportDocumentsAsync()
     {
         Navigation.NavigateTo("/ocr/camera");
+    }
+
+    private void OpenViewDocumentsAsync()
+    {
+        Navigation.NavigateTo("/ocr/documents");
     }
 
     private static string GetInitials(string fullName)

@@ -257,6 +257,13 @@ public static class DependencyInjection
             sp.GetRequiredService<ICloudIdentityResolver>(),
             sp.GetRequiredService<ILogger<OcrDocumentSyncDrainer>>()));
 
+        services.AddScoped<ISyncDrainer>(sp => new MedicalHistoryEntrySyncDrainer(
+            sp.GetRequiredService<IMedicalHistoryEntryRepository>(),
+            sp.GetKeyedService<IMedicalHistoryEntryRepository>(Cloud),
+            sp.GetRequiredService<IPatientRepository>(),
+            sp.GetRequiredService<ICloudIdentityResolver>(),
+            sp.GetRequiredService<ILogger<MedicalHistoryEntrySyncDrainer>>()));
+
         // ── Validators ───────────────────────────────────────────────────────
         services.AddValidation();
 

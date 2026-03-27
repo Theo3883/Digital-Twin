@@ -143,7 +143,24 @@ public sealed class VaultService
             if (descriptor is null)
                 return OcrResult<byte[]>.Fail("Manifest is corrupt.");
 
-            var ciphertext = await File.ReadAllBytesAsync(descriptor.VaultPath);
+            if (string.IsNullOrWhiteSpace(descriptor.VaultPath))
+                return OcrResult<byte[]>.Fail("Manifest is missing vault path.");
+
+            var cipherPath = descriptor.VaultPath;
+            if (!File.Exists(cipherPath))
+            {
+                // Compatibility: older builds can persist paths that include duplicated
+                // ".../Library/Library/Application Support/..." segments on iOS simulators.
+                // If the healed path exists, use it instead of failing hard.
+                var healed = HealVaultPath(cipherPath);
+                if (!string.IsNullOrWhiteSpace(healed) && File.Exists(healed))
+                    cipherPath = healed;
+            }
+
+            if (!File.Exists(cipherPath))
+                return OcrResult<byte[]>.Fail("Encrypted file missing (vault metadata out of sync).");
+
+            var ciphertext = await File.ReadAllBytesAsync(cipherPath);
             var plaintext = _encryption.Decrypt(ciphertext, descriptor, _masterKey);
             return OcrResult<byte[]>.Ok(plaintext);
         }
@@ -215,4 +232,19 @@ public sealed class VaultService
     public string TempPath(string opaqueName) => VaultPath($"temp/{opaqueName}");
 
     private string VaultPath(string relative) => Path.Combine(_vaultRoot, relative);
+
+    private static string? HealVaultPath(string path)
+    {
+        // Example broken path:
+        // /.../Library/Library/Application Support/DigitalTwin.OcrVault/encrypted/<id>.enc
+        // Example healed path:
+        // /.../Library/Application Support/DigitalTwin.OcrVault/encrypted/<id>.enc
+        var broken = "/Library/Library/Application Support/";
+        var healed = "/Library/Application Support/";
+
+        if (path.Contains(broken, StringComparison.Ordinal))
+            return path.Replace(broken, healed, StringComparison.Ordinal);
+
+        return null;
+    }
 }

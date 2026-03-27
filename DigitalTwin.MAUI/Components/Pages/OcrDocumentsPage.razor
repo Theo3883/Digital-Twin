@@ -1,0 +1,202 @@
+@page "/ocr/documents"
+@using DigitalTwin.OCR.Models
+@using DigitalTwin.OCR.Services
+@inject NavigationManager Navigation
+@inject IAuthApplicationService AuthService
+@inject OcrSyncPreparationService OcrSyncPreparation
+@inject LocalAuthenticationService LocalAuth
+@inject VaultService Vault
+@inject FileProtectionService FileProtection
+
+@implements IDisposable
+<div class="ocr-docs-page page-enter">
+    <div class="ocr-docs-header glass-card">
+        <button class="ocr-docs-back" @onclick="GoBack">
+            <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Small" />
+        </button>
+        <span class="ocr-docs-title">Uploaded Documents</span>
+        <div style="width: 28px;"></div>
+    </div>
+
+    <div style="padding: 0 16px 28px;">
+        @if (_isLoading)
+        {
+            <div class="glass-card" style="padding: 20px; text-align: center;">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                <div style="margin-top: 8px; color: var(--text-secondary);">Loading documents...</div>
+            </div>
+        }
+        else if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <div class="glass-card" style="padding: 16px; color: #ff8a8a;">@_error</div>
+        }
+        else if (_documents.Count == 0)
+        {
+            <div class="glass-card" style="padding: 20px; text-align: center;">
+                <MudIcon Icon="@Icons.Material.Filled.FolderOff" Color="Color.Default" />
+                <div style="margin-top: 8px; color: var(--text-secondary);">No OCR documents yet.</div>
+            </div>
+        }
+        else
+        {
+            <div class="ocr-docs-list">
+                @foreach (var doc in _documents)
+                {
+                    <div class="glass-card ocr-doc-item">
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                            <div style="display:flex; flex-direction:column;">
+                                <span style="font-weight:600; color:var(--text-main);">@(doc.MimeType.ToUpperInvariant())</span>
+                                <span style="font-size:12px; color:var(--text-secondary);">@doc.ScannedAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</span>
+                            </div>
+                            <span style="font-size:11px; color:var(--text-secondary); border:1px solid rgba(255,255,255,0.16); border-radius:999px; padding:4px 8px;">
+                                @($"{doc.PageCount} page(s)")
+                            </span>
+                        </div>
+                        <div class="ocr-doc-meta">
+                            <div><strong>Doc ref:</strong> @SafeRef(doc.Id)</div>
+                            <div><strong>Hash:</strong> @ShortHash(doc.Sha256OfNormalized)</div>
+                        </div>
+                        <div style="margin-top:10px; display:flex; justify-content:flex-end;">
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Primary"
+                                       Disabled="@_openingIds.Contains(doc.Id)"
+                                       OnClick="@(() => OpenSecurelyAsync(doc))">
+                                @(_openingIds.Contains(doc.Id) ? "Opening..." : "Unlock & Open")
+                            </MudButton>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private readonly List<OcrDocumentSyncRecord> _documents = [];
+    private readonly HashSet<Guid> _openingIds = [];
+    private readonly List<string> _tempFiles = [];
+    private bool _isLoading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var user = await AuthService.GetCurrentUserAsync();
+            if (user is null)
+            {
+                _error = "Could not load user profile.";
+                return;
+            }
+
+            var docs = await OcrSyncPreparation.GetByPatientAsync(user.UserId);
+            _documents.Clear();
+            _documents.AddRange(docs.OrderByDescending(d => d.ScannedAt));
+        }
+        catch
+        {
+            _error = "Could not load OCR documents.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void GoBack() => Navigation.NavigateTo("/profile");
+
+    private static string SafeRef(Guid id) => id.ToString("N")[..8].ToUpperInvariant();
+    private static string ShortHash(string hash) => string.IsNullOrWhiteSpace(hash) ? "-" : hash[..Math.Min(16, hash.Length)];
+
+    private async Task OpenSecurelyAsync(OcrDocumentSyncRecord doc)
+    {
+        if (!_openingIds.Add(doc.Id))
+            return;
+
+        _error = null;
+        StateHasChanged();
+
+        try
+        {
+            var auth = await LocalAuth.AuthenticateAsync("Unlock this medical document");
+            if (!auth.IsSuccess)
+            {
+                _error = auth.Error ?? "Authentication failed.";
+                return;
+            }
+
+            var unlock = Vault.Unlock();
+            if (!unlock.IsSuccess)
+            {
+                _error = unlock.Error ?? "Could not unlock secure vault.";
+                return;
+            }
+
+            var plain = await Vault.RetrieveDocumentAsync(doc.Id);
+            if (!plain.IsSuccess || plain.Value is null)
+            {
+                _error = plain.Error ?? "Could not decrypt document.";
+                return;
+            }
+
+            var ext = MimeToExtension(doc.MimeType);
+            var tempPath = Path.Combine(FileSystem.CacheDirectory, $"ocr-open-{doc.Id:N}{ext}");
+            await File.WriteAllBytesAsync(tempPath, plain.Value);
+            FileProtection.ApplyCompleteProtection(tempPath);
+            _tempFiles.Add(tempPath);
+
+            await Launcher.Default.OpenAsync(new OpenFileRequest("Medical Document", new ReadOnlyFile(tempPath)));
+        }
+        finally
+        {
+            Vault.Lock();
+            _openingIds.Remove(doc.Id);
+            await CleanupStaleTempFilesAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task CleanupStaleTempFilesAsync()
+    {
+        foreach (var file in _tempFiles.ToArray())
+        {
+            try
+            {
+                if (File.Exists(file))
+                    File.Delete(file);
+            }
+            catch
+            {
+                await Task.Delay(0);
+            }
+            _tempFiles.Remove(file);
+        }
+    }
+
+    private static string MimeToExtension(string mime)
+    {
+        if (mime.Contains("pdf", StringComparison.OrdinalIgnoreCase))
+            return ".pdf";
+        if (mime.Contains("png", StringComparison.OrdinalIgnoreCase))
+            return ".png";
+        return ".jpg";
+    }
+
+    public void Dispose()
+    {
+        Vault.Lock();
+        foreach (var file in _tempFiles.ToArray())
+        {
+            try
+            {
+                if (File.Exists(file))
+                    File.Delete(file);
+            }
+            catch
+            {
+                // best effort cleanup
+            }
+            _tempFiles.Remove(file);
+        }
+    }
+}

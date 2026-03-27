@@ -20,6 +20,9 @@
             <div class="glass-chip" style="background: rgba(220,50,50,0.15); color: #ff6b6b; margin-bottom: 16px; padding: 10px 16px; border-radius: 12px;">
                 @err
             </div>
+            <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="TryAgain" Style="margin-bottom:12px;">
+                Try Again
+            </MudButton>
         }
         else if (!SecurityReady)
         {
@@ -94,5 +97,11 @@
         await ViewModel.RunFileImportSessionAsync(Request.PatientId);
         if (ViewModel.SavedRecord is not null)
             await OnImported.InvokeAsync();
+    }
+
+    private void TryAgain()
+    {
+        ViewModel.ResetSessionState();
+        StateHasChanged();
     }
 }
