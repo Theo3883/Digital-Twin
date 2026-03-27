@@ -59,6 +59,8 @@ public static class DependencyInjection
             sp.GetRequiredKeyedService<IDoctorPatientAssignmentRepository>(Cloud));
         services.AddScoped<IMedicationRepository>(sp =>
             sp.GetRequiredKeyedService<IMedicationRepository>(Cloud));
+        services.AddScoped<IMedicalHistoryEntryRepository>(sp =>
+            sp.GetRequiredKeyedService<IMedicalHistoryEntryRepository>(Cloud));
 
         // ── Domain services (only those required by the API) ─────────────────
         services.AddCoreDomainServices();
@@ -86,6 +88,8 @@ public static class DependencyInjection
             sp.GetRequiredService<IMedicationService>(),
             sp.GetRequiredService<IRxCuiLookupProvider>(),
             sp.GetRequiredService<IVitalSignService>(),
+            sp.GetRequiredService<IMedicalHistoryEntryRepository>(),
+            sp.GetRequiredService<IMedicationInteractionProvider>(),
             sp.GetRequiredService<ILogger<DoctorPortalApplicationService>>()));
 
         // ── Validators ───────────────────────────────────────────────────────
@@ -183,6 +187,8 @@ public static class DependencyInjection
             sp.GetRequiredService<IMedicationService>(),
             sp.GetRequiredService<IRxCuiLookupProvider>(),
             sp.GetRequiredService<IVitalSignService>(),
+            sp.GetRequiredService<IMedicalHistoryEntryRepository>(),
+            sp.GetRequiredService<IMedicationInteractionProvider>(),
             sp.GetRequiredService<ILogger<DoctorPortalApplicationService>>()));
         services.AddScoped<IEcgApplicationService, EcgApplicationService>();
         services.AddScoped<IChatBotApplicationService, ChatBotApplicationService>();

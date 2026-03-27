@@ -26,8 +26,26 @@ export class ApiClient {
     });
 
     if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      throw new Error(`API ${res.status}: ${body}`);
+      const bodyText = await res.text().catch(() => "");
+
+      // Prefer a safe, user-facing error message; don't leak unknown server internals.
+      let message = "";
+      try {
+        const parsed = bodyText ? (JSON.parse(bodyText) as { error?: string }) : null;
+        message = parsed?.error ? String(parsed.error) : "";
+      } catch {
+        // ignore JSON parse failures
+      }
+
+      if (!message) {
+        if (res.status >= 500) message = "Server error. Please try again.";
+        else if (res.status === 401) message = "Unauthorized.";
+        else if (res.status === 403) message = "Forbidden.";
+        else if (res.status === 404) message = "Not found.";
+        else message = "Request failed.";
+      }
+
+      throw new Error(`API ${res.status}: ${message}`);
     }
 
     if (res.status === 204) return undefined as T;
@@ -110,6 +128,18 @@ export class ApiClient {
     return this.request<Medication[]>(`/api/patients/${id}/medications`);
   }
 
+  async getPatientMedicalHistory(id: string, limit = 50) {
+    return this.request<MedicalHistoryEntry[]>(
+      `/api/patients/${id}/medical-history?limit=${encodeURIComponent(String(limit))}`
+    );
+  }
+
+  async getPatientMedicationInteractions(id: string) {
+    return this.request<MedicationInteraction[]>(
+      `/api/patients/${id}/medications/interactions`
+    );
+  }
+
   async addPatientMedication(id: string, dto: AddMedicationRequest) {
     return this.request<Medication>(`/api/patients/${id}/medications`, {
       method: "POST",
@@ -171,6 +201,23 @@ export interface PatientDetail {
   bloodType: string | null;
   allergies: string | null;
   medicalHistoryNotes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MedicalHistoryEntry {
+  id: string;
+  patientId: string;
+  sourceDocumentId: string;
+  title: string;
+  medicationName: string;
+  dosage: string;
+  frequency: string;
+  duration: string;
+  notes: string;
+  summary: string;
+  confidence: number;
+  eventDate: string;
   createdAt: string;
   updatedAt: string;
 }

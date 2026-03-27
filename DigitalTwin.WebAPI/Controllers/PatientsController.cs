@@ -75,6 +75,24 @@ public class PatientsController : ControllerBase
         return Ok(medications);
     }
 
+    /// <summary>GET /api/patients/{id}/medications/interactions — interactions for ACTIVE meds.</summary>
+    [HttpGet("{id:guid}/medications/interactions")]
+    public async Task<ActionResult<IEnumerable<MedicationInteractionDto>>> GetMedicationInteractions(Guid id)
+    {
+        var interactions = await _service.GetPatientMedicationInteractionsAsync(DoctorEmail, id);
+        return Ok(interactions);
+    }
+
+    /// <summary>GET /api/patients/{id}/medical-history — structured OCR history entries.</summary>
+    [HttpGet("{id:guid}/medical-history")]
+    public async Task<ActionResult<IEnumerable<MedicalHistoryEntryDto>>> GetMedicalHistory(
+        Guid id,
+        [FromQuery] int limit = 50)
+    {
+        var history = await _service.GetPatientMedicalHistoryAsync(DoctorEmail, id, limit);
+        return Ok(history);
+    }
+
     /// <summary>POST /api/patients/{id}/medications — prescribe a medication for an assigned patient.</summary>
     [HttpPost("{id:guid}/medications")]
     public async Task<ActionResult<MedicationDto>> AddMedication(Guid id, [FromBody] AddMedicationDto dto)

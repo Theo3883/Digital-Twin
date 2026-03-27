@@ -6,6 +6,7 @@ using DigitalTwin.Domain.Exceptions;
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Interfaces.Providers;
 using DigitalTwin.Domain.Interfaces.Services;
+using DigitalTwin.Domain.Interfaces.Repositories;
 using DigitalTwin.Domain.Models;
 using Microsoft.Extensions.Logging;
 
@@ -20,6 +21,8 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
     private readonly IMedicationService                      _medicationFactory;
     private readonly IRxCuiLookupProvider                    _rxCuiLookup;
     private readonly IVitalSignService                       _vitalSignService;
+    private readonly IMedicalHistoryEntryRepository          _history;
+    private readonly IMedicationInteractionProvider          _interactionsProvider;
     private readonly ILogger<DoctorPortalApplicationService> _logger;
 
     /// <summary>
@@ -30,12 +33,16 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
         IMedicationService medicationFactory,
         IRxCuiLookupProvider rxCuiLookup,
         IVitalSignService vitalSignService,
+        IMedicalHistoryEntryRepository history,
+        IMedicationInteractionProvider interactionsProvider,
         ILogger<DoctorPortalApplicationService> logger)
     {
         _domain            = domain;
         _medicationFactory = medicationFactory;
         _rxCuiLookup       = rxCuiLookup;
         _vitalSignService  = vitalSignService;
+        _history           = history;
+        _interactionsProvider = interactionsProvider;
         _logger            = logger;
     }
 
@@ -166,6 +173,60 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
 
         var medications = await _domain.GetPatientMedicationsAsync(patientId);
         return medications.Select(MedicationToDto);
+    }
+
+    public async Task<IEnumerable<MedicalHistoryEntryDto>> GetPatientMedicalHistoryAsync(
+        string doctorEmail, Guid patientId, int limit = 50)
+    {
+        try { await _domain.RequireAuthorizedDoctorIdAsync(doctorEmail, patientId); }
+        catch (UnauthorizedException) { return []; }
+
+        // Structured OCR history entries (cloud-only in WebAPI host).
+        var entries = (await _history.GetByPatientAsync(patientId))
+            .Where(x => x.DeletedAt is null)
+            .OrderByDescending(x => x.EventDate)
+            .Take(Math.Clamp(limit, 1, 200))
+            .Select(x => new MedicalHistoryEntryDto
+            {
+                Id = x.Id,
+                PatientId = x.PatientId,
+                SourceDocumentId = x.SourceDocumentId,
+                Title = x.Title,
+                MedicationName = x.MedicationName,
+                Dosage = x.Dosage,
+                Frequency = x.Frequency,
+                Duration = x.Duration,
+                Notes = x.Notes,
+                Summary = x.Summary,
+                Confidence = x.Confidence,
+                EventDate = x.EventDate,
+                CreatedAt = x.CreatedAt,
+                UpdatedAt = x.UpdatedAt
+            });
+
+        return entries;
+    }
+
+    public async Task<IEnumerable<MedicationInteractionDto>> GetPatientMedicationInteractionsAsync(
+        string doctorEmail, Guid patientId)
+    {
+        try { await _domain.RequireAuthorizedDoctorIdAsync(doctorEmail, patientId); }
+        catch (UnauthorizedException) { return []; }
+
+        var meds = await _domain.GetPatientMedicationsAsync(patientId);
+        var rxCuis = meds
+            .Where(m => m.Status == MedicationStatus.Active)
+            .Select(m => m.RxCui)
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Select(c => c!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (rxCuis.Count < 2)
+            return [];
+
+        var interactions = await _interactionsProvider.GetInteractionsAsync(rxCuis);
+        return interactions.Select(MedicationInteractionMapper.ToDto);
     }
 
     /// <summary>

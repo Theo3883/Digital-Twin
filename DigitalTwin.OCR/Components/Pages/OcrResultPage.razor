@@ -28,20 +28,16 @@
         <SanitizedPreviewPanel SanitizedText="@ViewModel.SanitizedPreview" />
     }
 
-    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 20px;">
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.CloudUpload"
-                   OnClick="SyncNow"
-                   Style="min-width: 140px; border-radius: 14px;">
-            Sync to Cloud
-        </MudButton>
+    <div style="display: flex; flex-direction: column; gap: 10px; align-items: center; margin-top: 20px;">
+        <div style="font-size: 0.85rem; color: var(--text-secondary); text-align: center;">
+            Sync runs automatically in the background.
+        </div>
 
         <MudButton Variant="Variant.Outlined"
                    Color="Color.Error"
                    StartIcon="@Icons.Material.Filled.Delete"
                    OnClick="DeleteDocument"
-                   Style="min-width: 140px; border-radius: 14px;">
+                   Style="min-width: 160px; border-radius: 14px;">
             Delete
         </MudButton>
     </div>
@@ -70,13 +66,6 @@
 
     private string? _feedbackMessage;
     private bool _feedbackIsError;
-
-    private async Task SyncNow()
-    {
-        _feedbackMessage = "Sync will run automatically in the background.";
-        _feedbackIsError = false;
-        StateHasChanged();
-    }
 
     private async Task DeleteDocument()
     {

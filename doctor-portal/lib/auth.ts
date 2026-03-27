@@ -15,7 +15,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // Handle client-side session.update() calls (e.g. after registration).
       if (trigger === "update") {
         const incoming = session as { apiToken?: string; apiTokenExpires?: string };
-        console.log("[NextAuth jwt] update trigger | incoming apiToken present:", !!incoming?.apiToken);
         if (incoming?.apiToken) {
           token.apiToken = incoming.apiToken;
           token.apiTokenExpires = incoming.apiTokenExpires;
@@ -54,7 +53,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       (session as any).registrationRequired = token.registrationRequired ?? false;
       (session as any).googleIdToken = token.googleIdToken;
       (session as any).pendingEmail = token.pendingEmail;
-      console.log("[NextAuth session] apiToken present:", !!(token as any).apiToken, "| registrationRequired:", token.registrationRequired);
       return session;
     },
   },

@@ -11,6 +11,7 @@ import type {
   AddMedicationRequest,
   MedicationInteraction,
   DrugSearchResult,
+  MedicalHistoryEntry,
 } from "@/lib/api";
 import { MedicationStatusLabel, MedicationRouteLabel } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -94,6 +95,8 @@ export default function PatientDetailPage() {
   const [vitals, setVitals] = useState<VitalSign[]>([]);
   const [sleep, setSleep] = useState<SleepSession[]>([]);
   const [medications, setMedications] = useState<Medication[]>([]);
+  const [historyEntries, setHistoryEntries] = useState<MedicalHistoryEntry[]>([]);
+  const [autoInteractions, setAutoInteractions] = useState<MedicationInteraction[]>([]);
   const [loading, setLoading] = useState(true);
   const [vitalType, setVitalType] = useState("HeartRate");
 
@@ -138,8 +141,17 @@ export default function PatientDetailPage() {
       api.getPatientVitals(patientId, { type: "HeartRate" }),
       api.getPatientSleep(patientId),
       api.getPatientMedications(patientId),
+      api.getPatientMedicalHistory(patientId, 80),
+      api.getPatientMedicationInteractions(patientId),
     ])
-      .then(([p, v, s, m]) => { setPatient(p); setVitals(v); setSleep(s); setMedications(m); })
+      .then(([p, v, s, m, h, interactions]) => {
+        setPatient(p);
+        setVitals(v);
+        setSleep(s);
+        setMedications(m);
+        setHistoryEntries(h);
+        setAutoInteractions(interactions);
+      })
       .catch((e) => console.error("[PatientDetail] error:", e))
       .finally(() => setLoading(false));
   }, [api, patientId, ready]);
@@ -170,6 +182,7 @@ export default function PatientDetailPage() {
       };
       const added = await api.addPatientMedication(patientId, dto);
       setMedications((prev) => [added, ...prev]);
+      try { setAutoInteractions(await api.getPatientMedicationInteractions(patientId)); } catch { }
       setShowPrescribeForm(false);
       setPrescribeName(""); setPrescribeDosageAmount(""); setPrescribeDosageUnit("mg"); setPrescribeFrequency("");
       setPrescribeRoute(0); setPrescribeReason("");
@@ -368,6 +381,7 @@ export default function PatientDetailPage() {
           )
         );
       }
+      try { setAutoInteractions(await api.getPatientMedicationInteractions(patientId)); } catch { }
       setEndMedDialog(null);
     } catch (e) {
       console.error("[EndMed] error:", e);
@@ -598,6 +612,45 @@ export default function PatientDetailPage() {
         </Card>
       )}
 
+  {/* Structured Medical History (OCR) */}
+  {historyEntries.length > 0 && (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">Medical History (Structured)</CardTitle>
+        <CardDescription>Extracted from uploaded medical documents</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className={`space-y-3 ${historyEntries.length > 3 ? "max-h-64 overflow-auto pr-1" : ""}`}>
+          {historyEntries.map((e) => (
+            <div key={e.id} className="rounded-md border p-3 bg-card/60">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium">{e.summary || e.title}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {format(new Date(e.eventDate), "MMM d, yyyy")} • {e.title}
+                  </div>
+                </div>
+                <span className="text-[11px] text-muted-foreground border rounded-full px-2 py-0.5">
+                  {(e.confidence * 100).toFixed(0)}%
+                </span>
+              </div>
+              {(e.medicationName || e.dosage || e.frequency || e.duration) && (
+                <div className="mt-2 text-xs text-muted-foreground">
+                  {[e.medicationName, e.dosage, e.frequency, e.duration].filter(Boolean).join(" • ")}
+                </div>
+              )}
+              {e.notes && (
+                <div className="mt-2 text-xs text-muted-foreground whitespace-pre-wrap">
+                  {e.notes}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  )}
+
       {/* Tabs: Vitals / Sleep */}
       <Tabs defaultValue="vitals">
         <TabsList>
@@ -689,6 +742,32 @@ export default function PatientDetailPage() {
 
         {/* Medications Tab */}
         <TabsContent value="medications" className="space-y-4">
+          {autoInteractions.length > 0 && (
+            <Card className="border-amber-500/40 bg-amber-500/5">
+              <CardHeader>
+                <CardTitle className="text-sm">Interaction Warning</CardTitle>
+                <CardDescription>
+                  Detected {autoInteractions.length} interaction{autoInteractions.length === 1 ? "" : "s"} among active medications.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 max-h-48 overflow-auto pr-1">
+                  {autoInteractions.map((interaction, idx) => (
+                    <div key={`${interaction.drugARxCui}-${interaction.drugBRxCui}-${idx}`} className="rounded-md border p-3 bg-card/60">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <div className="text-sm font-medium">{interaction.drugARxCui} + {interaction.drugBRxCui}</div>
+                        <span className={`text-xs border rounded-full px-2 py-0.5 ${severityBadgeClass(interaction.severity)}`}>
+                          {severityLabel(interaction.severity)}
+                        </span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">{interaction.description}</div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">
               {medications.length} medication{medications.length === 1 ? "" : "s"}

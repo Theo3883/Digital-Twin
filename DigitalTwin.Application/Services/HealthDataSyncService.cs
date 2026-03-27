@@ -26,7 +26,7 @@ public class HealthDataSyncService : IHealthDataSyncService
 
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<HealthDataSyncService> _logger;
-    private readonly ITransientFailurePolicy _transientPolicy;
+    private readonly ITransientFailurePolicy _transientPolicy;  
 
     // ── State ────────────────────────────────────────────────────────────────────
     private readonly ConcurrentQueue<VitalSign> _queue  = new();

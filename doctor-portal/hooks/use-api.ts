@@ -14,7 +14,7 @@ export function useApi(): UseApiReturn {
   const { data: session, status } = useSession();
   const token = (session as any)?.apiToken as string | undefined;
 
-  console.log("[useApi] status:", status, "| token present:", !!token, "| token preview:", token?.slice(0, 20));
+  console.log("[useApi] status:", status, "| token present:", !!token);
 
   const api = useMemo(() => {
     const client = new ApiClient();

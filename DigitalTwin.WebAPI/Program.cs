@@ -9,6 +9,7 @@ using DigitalTwin.Integrations.Medication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using DigitalTwin.WebAPI.Middleware;
 
 // ── Load .env.local before the host builder reads configuration ───────────────
 var envFile = Path.Combine(Directory.GetCurrentDirectory(), ".env.local");
@@ -96,6 +97,31 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
     app.MapOpenApi();
+
+// Global error boundary (keeps responses safe/consistent)
+app.UseMiddleware<GlobalExceptionMiddleware>();
+
+// ── Transport security ───────────────────────────────────────────────────────
+// In production, enforce HTTPS and HSTS so browsers pin HTTPS for this origin.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+    app.UseHttpsRedirection();
+}
+
+// ── Security headers (baseline) ──────────────────────────────────────────────
+app.Use(async (ctx, next) =>
+{
+    // Avoid MIME sniffing
+    ctx.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    // Clickjacking protection
+    ctx.Response.Headers["X-Frame-Options"] = "DENY";
+    // Reduce referrer leakage
+    ctx.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    // Lock down powerful browser features by default (portal should allow explicitly if needed)
+    ctx.Response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
+    await next();
+});
 
 app.UseCors();
 app.UseAuthentication();

@@ -42,6 +42,18 @@ public interface IDoctorPortalApplicationService
     Task<IEnumerable<MedicationDto>> GetPatientMedicationsAsync(string doctorEmail, Guid patientId);
 
     /// <summary>
+    /// Gets structured medical-history entries for an assigned patient.
+    /// </summary>
+    Task<IEnumerable<MedicalHistoryEntryDto>> GetPatientMedicalHistoryAsync(
+        string doctorEmail, Guid patientId, int limit = 50);
+
+    /// <summary>
+    /// Gets medication interactions for the patient's ACTIVE medications.
+    /// </summary>
+    Task<IEnumerable<MedicationInteractionDto>> GetPatientMedicationInteractionsAsync(
+        string doctorEmail, Guid patientId);
+
+    /// <summary>
     /// Adds a doctor-prescribed medication for an assigned patient.
     /// </summary>
     Task<MedicationDto?> AddPatientMedicationAsync(string doctorEmail, Guid patientId, AddMedicationDto dto);
