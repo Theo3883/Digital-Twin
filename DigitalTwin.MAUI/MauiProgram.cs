@@ -7,6 +7,7 @@ using DigitalTwin.Integrations.Sync;
 using DigitalTwin.Infrastructure.Data;
 using DigitalTwin.OCR;
 using DigitalTwin.OCR.Models.Enums;
+using DigitalTwin.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Xml.Linq;
 #if IOS
@@ -64,6 +65,8 @@ public static class MauiProgram
                     opts.SecurityMode = SecurityMode.Strict;
 #endif
                 });
+                
+                svc.AddDocumentPreviewService();
             });
 
 #if DEBUG

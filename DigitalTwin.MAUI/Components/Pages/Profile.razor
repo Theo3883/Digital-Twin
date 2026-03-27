@@ -160,8 +160,9 @@
             <h3 style="font-size: 14px; font-weight: 600; color: var(--text-main); margin-bottom: 16px;">Medical History</h3>
             @if (_ocrHistory.Count > 0)
             {
-                <div style="position: relative; border-left: 1px solid rgba(255,255,255,0.1); margin-left: 8px; display: flex; flex-direction: column; gap: 18px; padding-bottom: 8px;">
-                    @foreach (var item in _ocrHistory.Take(8))
+                var hasScroll = _ocrHistory.Count > 3;
+                <div style="position: relative; border-left: 1px solid rgba(255,255,255,0.1); margin-left: 8px; display: flex; flex-direction: column; gap: 18px; padding-bottom: 8px; @(hasScroll ? "overflow-y:auto; max-height: 270px; padding-right: 6px;" : "")">
+                    @foreach (var item in _ocrHistory)
                     {
                         <div style="position: relative; padding-left: 16px;">
                             <div style="position: absolute; left: -6px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--teal-primary); box-shadow: 0 0 10px rgba(0,212,200,0.5);"></div>

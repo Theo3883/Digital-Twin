@@ -1,12 +1,13 @@
 @page "/ocr/documents"
 @using DigitalTwin.OCR.Models
 @using DigitalTwin.OCR.Services
+@using DigitalTwin.Services
 @inject NavigationManager Navigation
 @inject IAuthApplicationService AuthService
 @inject OcrSyncPreparationService OcrSyncPreparation
 @inject LocalAuthenticationService LocalAuth
 @inject VaultService Vault
-@inject FileProtectionService FileProtection
+@inject IDocumentPreviewService PreviewService
 
 @implements IDisposable
 <div class="ocr-docs-page page-enter">
@@ -74,7 +75,6 @@
 @code {
     private readonly List<OcrDocumentSyncRecord> _documents = [];
     private readonly HashSet<Guid> _openingIds = [];
-    private readonly List<string> _tempFiles = [];
     private bool _isLoading = true;
     private string? _error;
 
@@ -139,64 +139,26 @@
                 return;
             }
 
-            var ext = MimeToExtension(doc.MimeType);
-            var tempPath = Path.Combine(FileSystem.CacheDirectory, $"ocr-open-{doc.Id:N}{ext}");
-            await File.WriteAllBytesAsync(tempPath, plain.Value);
-            FileProtection.ApplyCompleteProtection(tempPath);
-            _tempFiles.Add(tempPath);
+            var preview = await PreviewService.PreviewAsync(
+                documentId: doc.Id,
+                mimeType: doc.MimeType,
+                plaintextBytes: plain.Value);
 
-            await Launcher.Default.OpenAsync(new OpenFileRequest("Medical Document", new ReadOnlyFile(tempPath)));
+            if (!preview.IsSuccess)
+            {
+                _error = preview.Error ?? "Could not preview document.";
+            }
         }
         finally
         {
             Vault.Lock();
             _openingIds.Remove(doc.Id);
-            await CleanupStaleTempFilesAsync();
             StateHasChanged();
         }
-    }
-
-    private async Task CleanupStaleTempFilesAsync()
-    {
-        foreach (var file in _tempFiles.ToArray())
-        {
-            try
-            {
-                if (File.Exists(file))
-                    File.Delete(file);
-            }
-            catch
-            {
-                await Task.Delay(0);
-            }
-            _tempFiles.Remove(file);
-        }
-    }
-
-    private static string MimeToExtension(string mime)
-    {
-        if (mime.Contains("pdf", StringComparison.OrdinalIgnoreCase))
-            return ".pdf";
-        if (mime.Contains("png", StringComparison.OrdinalIgnoreCase))
-            return ".png";
-        return ".jpg";
     }
 
     public void Dispose()
     {
         Vault.Lock();
-        foreach (var file in _tempFiles.ToArray())
-        {
-            try
-            {
-                if (File.Exists(file))
-                    File.Delete(file);
-            }
-            catch
-            {
-                // best effort cleanup
-            }
-            _tempFiles.Remove(file);
-        }
     }
 }
