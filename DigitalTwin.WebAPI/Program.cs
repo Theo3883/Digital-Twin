@@ -3,10 +3,13 @@ using DigitalTwin.Application.Configuration;
 using DigitalTwin.Application.Interfaces;
 using DigitalTwin.Application.Services;
 using DigitalTwin.Composition;
+using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Interfaces.Providers;
+using DigitalTwin.Domain.Interfaces.Services;
 using DigitalTwin.Integrations.AI;
 using DigitalTwin.Integrations.Medication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using DigitalTwin.WebAPI.Middleware;
@@ -88,7 +91,17 @@ else
         fallback: new NullRxCuiLookupProvider()));
 }
 
-builder.Services.AddScoped<IMedicationApplicationService, MedicationApplicationService>();
+builder.Services.AddScoped<IMedicationApplicationService>(sp => new MedicationApplicationService(
+    sp.GetRequiredService<IMedicationInteractionProvider>(),
+    sp.GetRequiredService<IDrugSearchProvider>(),
+    sp.GetRequiredService<IRxCuiLookupProvider>(),
+    sp.GetRequiredService<IMedicationInteractionService>(),
+    sp.GetRequiredService<IMedicationService>(),
+    sp.GetRequiredService<IMedicationManagementService>(),
+    sp.GetRequiredService<IDomainEventDispatcher>(),
+    sync: null,
+    prefs: null,
+    logger: sp.GetService<ILogger<MedicationApplicationService>>()));
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();

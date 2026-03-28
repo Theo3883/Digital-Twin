@@ -25,6 +25,7 @@ public class MedicationApplicationService : IMedicationApplicationService
     private readonly IMedicationManagementService    _medications;
     private readonly IDomainEventDispatcher          _events;
     private readonly IHealthDataSyncService?         _sync;
+    private readonly IPreferencesJsonCache?            _prefs;
     private readonly ILogger<MedicationApplicationService>? _logger;
 
     public MedicationApplicationService(
@@ -36,6 +37,7 @@ public class MedicationApplicationService : IMedicationApplicationService
         IMedicationManagementService medications,
         IDomainEventDispatcher events,
         IHealthDataSyncService? sync = null,
+        IPreferencesJsonCache? prefs = null,
         ILogger<MedicationApplicationService>? logger = null)
     {
         _interactionProvider = interactionProvider;
@@ -46,6 +48,7 @@ public class MedicationApplicationService : IMedicationApplicationService
         _medications         = medications;
         _events              = events;
         _sync                = sync;
+        _prefs               = prefs;
         _logger              = logger;
     }
 
@@ -73,22 +76,16 @@ public class MedicationApplicationService : IMedicationApplicationService
     }
 
     /// <inheritdoc/>
-    public async Task<IEnumerable<MedicationDto>> GetMyMedicationsAsync(Guid patientId)
+    public async Task<MedicationListCache> GetMyMedicationsAsync(Guid patientId, bool forceRefresh = false)
     {
-        // Pull cloud → local first so doctor-prescribed medications are always visible
-        // without requiring a manual refresh. The gate inside PushToCloudAsync prevents
-        // concurrent runs.
-        if (_sync is not null)
+        if (!forceRefresh && _prefs is not null)
         {
-            try { await _sync.PushToCloudAsync(); }
-            catch (Exception ex)
-            {
-                _logger?.LogWarning(ex, "[Medications] Background cloud pull failed — returning local data.");
-            }
+            var cached = TryGetValidCache(patientId);
+            if (cached is not null)
+                return cached;
         }
 
-        var medications = await _medications.GetByPatientAsync(patientId);
-        return medications.Select(ToDto);
+        return await LoadFullAndPersistAsync(patientId).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -103,17 +100,13 @@ public class MedicationApplicationService : IMedicationApplicationService
     public async Task<MedicationDto> AddMedicationAsync(
         Guid patientId, AddMedicationDto dto, AddedByRole addedBy)
     {
-        // 1. Resolve RxCUI — prefer the value already picked from autocomplete,
-        //    otherwise run the chained lookup (RxNav approximateTerm → Gemini fallback).
         var rxCui = dto.RxCui;
         if (string.IsNullOrWhiteSpace(rxCui) && !string.IsNullOrWhiteSpace(dto.Name))
             rxCui = await _rxCuiLookup.LookupRxCuiAsync(dto.Name.Trim());
 
-        // 2. Interaction safety check — only possible when we have an RxCUI.
         if (!string.IsNullOrWhiteSpace(rxCui))
             await EnforceInteractionSafetyAsync(patientId, rxCui);
 
-        // 3. Build and persist the medication.
         var medication = _medicationService.CreateMedication(new Domain.Models.CreateMedicationRequest(
             PatientId:          patientId,
             Name:               dto.Name,
@@ -132,6 +125,8 @@ public class MedicationApplicationService : IMedicationApplicationService
         await _events.DispatchAsync(
             new MedicationAddedEvent(patientId, medication.Id, medication.Name));
 
+        await RebuildMedicationCacheFromLocalAsync(patientId).ConfigureAwait(false);
+
         return ToDto(medication);
     }
 
@@ -140,6 +135,7 @@ public class MedicationApplicationService : IMedicationApplicationService
     {
         await _medications.SoftDeleteAsync(patientId, medicationId);
         await _events.DispatchAsync(new MedicationDeletedEvent(patientId, medicationId));
+        await RebuildMedicationCacheFromLocalAsync(patientId).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -149,16 +145,101 @@ public class MedicationApplicationService : IMedicationApplicationService
         await _medications.DiscontinueAsync(patientId, medicationId, reason);
         await _events.DispatchAsync(
             new MedicationDiscontinuedEvent(patientId, medicationId, reason));
+        await RebuildMedicationCacheFromLocalAsync(patientId).ConfigureAwait(false);
+    }
+
+    // ── Cache helpers ─────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Skipping PushToCloud on cache-valid reads can delay doctor-prescribed updates from cloud until TTL or force refresh.
+    /// </summary>
+    private MedicationListCache? TryGetValidCache(Guid patientId)
+    {
+        if (_prefs is null)
+            return null;
+
+        var cached = _prefs.Get<MedicationListCache>(MedicationListCachePreferences.Key);
+        if (cached is null)
+            return null;
+        if (cached.PatientId != patientId)
+            return null;
+        if (DateTime.UtcNow - cached.CachedAtUtc > MedicationListCachePreferences.Ttl)
+            return null;
+
+        return cached;
+    }
+
+    private async Task<MedicationListCache> LoadFullAndPersistAsync(Guid patientId)
+    {
+        if (_sync is not null)
+        {
+            try { await _sync.PushToCloudAsync().ConfigureAwait(false); }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "[Medications] Background cloud pull failed — using local data for cache.");
+            }
+        }
+
+        var medications = await _medications.GetByPatientAsync(patientId).ConfigureAwait(false);
+        var medDtos = medications.Select(ToDto).ToList();
+        var auto = await ComputeAutoInteractionsAsync(medDtos).ConfigureAwait(false);
+
+        var snapshot = new MedicationListCache
+        {
+            PatientId = patientId,
+            CachedAtUtc = DateTime.UtcNow,
+            Medications = medDtos,
+            AutoInteractions = auto
+        };
+
+        _prefs?.Set(MedicationListCachePreferences.Key, snapshot);
+        return snapshot;
+    }
+
+    private async Task RebuildMedicationCacheFromLocalAsync(Guid patientId)
+    {
+        if (_prefs is null)
+            return;
+
+        var medications = await _medications.GetByPatientAsync(patientId).ConfigureAwait(false);
+        var medDtos = medications.Select(ToDto).ToList();
+        var auto = await ComputeAutoInteractionsAsync(medDtos).ConfigureAwait(false);
+
+        _prefs.Set(MedicationListCachePreferences.Key, new MedicationListCache
+        {
+            PatientId = patientId,
+            CachedAtUtc = DateTime.UtcNow,
+            Medications = medDtos,
+            AutoInteractions = auto
+        });
+    }
+
+    private async Task<List<MedicationInteractionDto>> ComputeAutoInteractionsAsync(
+        List<MedicationDto> medDtos)
+    {
+        var rxCuis = medDtos
+            .Where(m => !string.IsNullOrWhiteSpace(m.RxCui))
+            .Select(m => m.RxCui!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (rxCuis.Count < 2)
+            return [];
+
+        try
+        {
+            var interactions = await _interactionProvider.GetInteractionsAsync(rxCuis).ConfigureAwait(false);
+            return interactions.Select(MedicationInteractionMapper.ToDto).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogDebug(ex, "[Medications] Auto interaction check failed.");
+            return [];
+        }
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Fetches the patient's active medications that have an RxCUI, checks interactions
-    /// between the candidate CUI and every existing CUI in a single batch call, then
-    /// throws <see cref="MedicationInteractionBlockedException"/> if any blocking
-    /// interactions are found.
-    /// </summary>
     private async Task EnforceInteractionSafetyAsync(Guid patientId, string newRxCui)
     {
         var existing = await _medications.GetByPatientAsync(patientId);
@@ -173,7 +254,6 @@ public class MedicationApplicationService : IMedicationApplicationService
         if (existingCuis.Count == 0)
             return;
 
-        // Build full list: new drug + all existing active ingredient CUIs.
         var allCuis = existingCuis
             .Append(newRxCui)
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -181,8 +261,6 @@ public class MedicationApplicationService : IMedicationApplicationService
 
         var allInteractions = await _interactionProvider.GetInteractionsAsync(allCuis);
 
-        // Keep only interactions that involve the new drug — we don't want to block
-        // addition because of pre-existing interactions between already-approved meds.
         var newDrugInteractions = allInteractions
             .Where(i => i.DrugARxCui.Equals(newRxCui, StringComparison.OrdinalIgnoreCase)
                      || i.DrugBRxCui.Equals(newRxCui, StringComparison.OrdinalIgnoreCase))

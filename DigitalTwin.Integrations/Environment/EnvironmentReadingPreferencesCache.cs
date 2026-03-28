@@ -1,42 +1,25 @@
-using System.Text.Json;
 using DigitalTwin.Application.DTOs;
 using DigitalTwin.Application.Interfaces;
-using Microsoft.Maui.Storage;
 
 namespace DigitalTwin.Integrations.Environment;
 
 /// <summary>
-/// Stores the last environment snapshot as JSON in MAUI preferences.
+/// Stores the last environment snapshot via <see cref="IPreferencesJsonCache"/>.
 /// </summary>
 public sealed class EnvironmentReadingPreferencesCache : IEnvironmentReadingCache
 {
-    private const string Key = "env_reading_snapshot_json_v1";
+    public const string Key = "env_reading_snapshot_json_v1";
 
-    private static readonly JsonSerializerOptions JsonOptions = new()
+    private readonly IPreferencesJsonCache _prefs;
+
+    public EnvironmentReadingPreferencesCache(IPreferencesJsonCache prefs)
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = false
-    };
-
-    public EnvironmentReadingDto? GetLastOrDefault()
-    {
-        var json = Preferences.Get(Key, string.Empty);
-        if (string.IsNullOrWhiteSpace(json))
-            return null;
-
-        try
-        {
-            return JsonSerializer.Deserialize<EnvironmentReadingDto>(json, JsonOptions);
-        }
-        catch
-        {
-            return null;
-        }
+        _prefs = prefs;
     }
 
-    public void Save(EnvironmentReadingDto reading)
-    {
-        var json = JsonSerializer.Serialize(reading, JsonOptions);
-        Preferences.Set(Key, json);
-    }
+    public EnvironmentReadingDto? GetLastOrDefault() =>
+        _prefs.Get<EnvironmentReadingDto>(Key);
+
+    public void Save(EnvironmentReadingDto reading) =>
+        _prefs.Set(Key, reading);
 }

@@ -1,7 +1,9 @@
 @page "/medications"
 @using DigitalTwin.Domain.Enums
+@implements IDisposable
 @inject IMedicationApplicationService MedicationService
 @inject IAuthApplicationService AuthService
+@inject IPullRefreshCoordinator PullRefresh
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
@@ -169,33 +171,25 @@
     {
         _patientId = await AuthService.GetCurrentPatientIdAsync();
         if (_patientId.HasValue)
+        {
             await LoadMedicationsAsync();
+            PullRefresh.RegisterMedications(() => LoadMedicationsAsync(forceRefresh: true));
+        }
     }
 
     // ── Data loading ──────────────────────────────────────────────────────────
 
-    private async Task LoadMedicationsAsync()
+    private async Task LoadMedicationsAsync(bool forceRefresh = false)
     {
         if (!_patientId.HasValue) return;
         _isLoading = true;
         try
         {
-            var meds = await MedicationService.GetMyMedicationsAsync(_patientId.Value);
-            _medications = meds.ToList();
+            var load = await MedicationService.GetMyMedicationsAsync(_patientId.Value, forceRefresh);
+            _medications = load.Medications.ToList();
             _activeMeds  = _medications.Where(m => m.Status == MedicationStatus.Active).ToList();
             _endedMeds   = _medications.Where(m => m.Status == MedicationStatus.Discontinued).ToList();
-
-            var rxCuis = _medications
-                .Where(m => !string.IsNullOrWhiteSpace(m.RxCui))
-                .Select(m => m.RxCui!)
-                .Distinct()
-                .ToList();
-
-            if (rxCuis.Count >= 2)
-            {
-                try { _autoInteractions = (await MedicationService.CheckInteractionsAsync(rxCuis)).ToList(); }
-                catch { }
-            }
+            _autoInteractions = load.AutoInteractions.ToList();
         }
         catch (Exception ex)
         {
@@ -391,4 +385,6 @@
         "background: rgba(0,212,200,0.2); border-color: rgba(0,212,200,0.4); color: var(--teal-primary); " +
         "padding: 12px 24px; display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; " +
         $"box-shadow: 0 4px 20px rgba(0,212,200,0.2); cursor: {(isLoading ? "not-allowed" : "pointer")}; opacity: {(isLoading ? "0.7" : "1")};";
+
+    public void Dispose() => PullRefresh.UnregisterMedications();
 }

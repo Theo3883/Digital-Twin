@@ -23,6 +23,8 @@ public partial class MainPage : ContentPage
                 await _pullRefresh.EnvironmentRefreshAsync().ConfigureAwait(true);
             else if (path is "" or "/" or "/home")
                 await _pullRefresh.HomeRefreshAsync().ConfigureAwait(true);
+            else if (string.Equals(path, "/medications", StringComparison.OrdinalIgnoreCase))
+                await _pullRefresh.MedicationsRefreshAsync().ConfigureAwait(true);
         }
         catch
         {

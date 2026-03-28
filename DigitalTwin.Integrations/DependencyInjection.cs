@@ -4,6 +4,7 @@ using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Interfaces.Providers;
 using DigitalTwin.Integrations.AI;
 using DigitalTwin.Integrations.Auth;
+using DigitalTwin.Integrations.Caching;
 using DigitalTwin.Integrations.Ecg;
 using DigitalTwin.Integrations.Environment;
 using DigitalTwin.Integrations.Medication;
@@ -25,6 +26,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddIntegrations(this IServiceCollection services, EnvConfig config)
     {
+        services.AddSingleton<IPreferencesJsonCache, PreferencesJsonCache>();
         services.AddSingleton<IEnvironmentReadingCache, EnvironmentReadingPreferencesCache>();
 
         // Named HttpClient for Google OAuth/tokeninfo calls — 30 s timeout, no socket reuse leak.

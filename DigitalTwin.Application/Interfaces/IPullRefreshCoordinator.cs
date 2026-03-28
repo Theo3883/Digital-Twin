@@ -13,7 +13,13 @@ public interface IPullRefreshCoordinator
 
     void UnregisterHome();
 
+    void RegisterMedications(Func<Task> refresh);
+
+    void UnregisterMedications();
+
     Task EnvironmentRefreshAsync();
 
     Task HomeRefreshAsync();
+
+    Task MedicationsRefreshAsync();
 }

@@ -2,6 +2,7 @@
 @using DigitalTwin.Components.Theme
 @using DigitalTwin.OCR.Components
 @inject IAuthApplicationService AuthService
+@inject IMedicationApplicationService MedicationApplicationService
 @inject IHealthDataSyncService SyncService
 @inject IEnvironmentApplicationService EnvironmentService
 @inject IAppRouteState AppRouteState
@@ -107,7 +108,10 @@
         // Start live HealthKit streaming + drain timer AFTER the gate is gone.
         // This prevents live sensor data from flooding in during the loading phase.
         if (_currentUser is not null)
+        {
             await SyncService.StartSyncAsync();
+            _ = WarmMedicationCacheAsync();
+        }
         // ─────────────────────────────────────────────────────────────────────
 
         _riskSubscription = EnvironmentService.RiskEvents
@@ -175,6 +179,20 @@
     private void GoToProfile()
     {
         Navigation.NavigateTo("/profile");
+    }
+
+    private async Task WarmMedicationCacheAsync()
+    {
+        try
+        {
+            var pid = await AuthService.GetCurrentPatientIdAsync();
+            if (pid is null) return;
+            await MedicationApplicationService.GetMyMedicationsAsync(pid.Value, forceRefresh: false);
+        }
+        catch
+        {
+            // Best-effort; Medications page loads on demand
+        }
     }
 
     public void Dispose()
