@@ -21,7 +21,15 @@ public class PatientService : IPatientService
     /// Creates a new patient profile or updates an existing one for the given user.
     /// </summary>
     public async Task<Patient> CreateOrUpdateProfileAsync(
-        Guid userId, string? bloodType, string? allergies, string? medicalHistoryNotes)
+        Guid userId,
+        string? bloodType,
+        string? allergies,
+        string? medicalHistoryNotes,
+        decimal? weight,
+        decimal? height,
+        int? bloodPressureSystolic,
+        int? bloodPressureDiastolic,
+        decimal? cholesterol)
     {
         var existing = await _patientRepo.GetByUserIdAsync(userId);
 
@@ -30,6 +38,11 @@ public class PatientService : IPatientService
             existing.BloodType           = bloodType;
             existing.Allergies           = allergies;
             existing.MedicalHistoryNotes = medicalHistoryNotes;
+            existing.Weight = weight;
+            existing.Height = height;
+            existing.BloodPressureSystolic = bloodPressureSystolic;
+            existing.BloodPressureDiastolic = bloodPressureDiastolic;
+            existing.Cholesterol = cholesterol;
             await _patientRepo.UpdateAsync(existing);
             return existing;
         }
@@ -39,7 +52,12 @@ public class PatientService : IPatientService
             UserId              = userId,
             BloodType           = bloodType,
             Allergies           = allergies,
-            MedicalHistoryNotes = medicalHistoryNotes
+            MedicalHistoryNotes = medicalHistoryNotes,
+            Weight = weight,
+            Height = height,
+            BloodPressureSystolic = bloodPressureSystolic,
+            BloodPressureDiastolic = bloodPressureDiastolic,
+            Cholesterol = cholesterol
         };
         await _patientRepo.AddAsync(patient);
         return patient;

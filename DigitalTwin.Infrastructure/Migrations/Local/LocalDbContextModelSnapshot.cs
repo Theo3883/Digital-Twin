@@ -342,13 +342,25 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                     b.Property<string>("Allergies")
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("BloodPressureDiastolic")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("BloodPressureSystolic")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("BloodType")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("Cholesterol")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("Height")
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsDirty")
@@ -364,6 +376,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("Weight")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");

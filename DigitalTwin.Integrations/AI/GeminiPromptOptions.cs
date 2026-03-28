@@ -38,7 +38,9 @@ public class GeminiPromptOptions
 
     /// <summary>
     /// Chat response format template. Placeholders: {patientName}, {age},
-    /// {medications}, {latestHr}, {latestSpO2}, {recentSteps}, {trend}.
+    /// {medications}, {latestHr}, {latestSpO2}, {recentSteps}, {trend},
+    /// {bloodType}, {allergies}, {medicalHistoryNotes}, {weight}, {height},
+    /// {bloodPressure}, {cholesterol}, {bmi}, {restingHr}.
     /// </summary>
     public string ChatResponseFormatPrompt { get; set; } = """
         RESPONSE FORMAT — follow these EXACTLY every time:
@@ -59,11 +61,22 @@ public class GeminiPromptOptions
         - Latest SpO2: {latestSpO2}%
         - Recent Steps: {recentSteps}
         - Overall Trend: {trend}
+        - Blood Type: {bloodType}
+        - Allergies: {allergies}
+        - Medical History Notes: {medicalHistoryNotes}
+        - Weight: {weight}
+        - Height: {height}
+        - Blood Pressure: {bloodPressure}
+        - Cholesterol: {cholesterol}
+        - BMI: {bmi}
+        - Resting HR (estimated): {restingHr} bpm
         """;
 
     /// <summary>
     /// Coaching response format template. Placeholders: {patientName}, {latestHr},
-    /// {hrTrend}, {latestSpO2}, {stepsToday}, {medications}, {sleepScore}.
+    /// {hrTrend}, {latestSpO2}, {stepsToday}, {medications}, {sleepScore},
+    /// {bloodType}, {allergies}, {medicalHistoryNotes}, {weight}, {height},
+    /// {bloodPressure}, {cholesterol}, {bmi}, {restingHr}.
     /// </summary>
     public string CoachingResponseFormatPrompt { get; set; } = """
         RESPONSE FORMAT — follow these EXACTLY every time:
@@ -89,6 +102,15 @@ public class GeminiPromptOptions
         - Steps Today: {stepsToday}
         - Medications: {medications}
         - Sleep Score: {sleepScore}
+        - Blood Type: {bloodType}
+        - Allergies: {allergies}
+        - Medical History Notes: {medicalHistoryNotes}
+        - Weight: {weight}
+        - Height: {height}
+        - Blood Pressure: {bloodPressure}
+        - Cholesterol: {cholesterol}
+        - BMI: {bmi}
+        - Resting HR (estimated): {restingHr} bpm
 
         Generate a personalized coaching response NOW.
         """;

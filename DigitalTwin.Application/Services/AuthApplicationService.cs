@@ -109,7 +109,15 @@ public class AuthApplicationService : IAuthApplicationService
             throw new UnauthorizedException("No authenticated user. Sign in first.");
 
         await _patientService.CreateOrUpdateProfileAsync(
-            current.UserId, profile.BloodType, profile.Allergies, profile.MedicalHistoryNotes);
+            current.UserId,
+            profile.BloodType,
+            profile.Allergies,
+            profile.MedicalHistoryNotes,
+            profile.Weight,
+            profile.Height,
+            profile.BloodPressureSystolic,
+            profile.BloodPressureDiastolic,
+            profile.Cholesterol);
 
         if (_logger.IsEnabled(LogLevel.Debug))
             _logger.LogDebug("[Auth] Patient profile saved for UserId={UserId}.", current.UserId);
@@ -139,6 +147,11 @@ public class AuthApplicationService : IAuthApplicationService
             BloodType           = patient.BloodType,
             Allergies           = patient.Allergies,
             MedicalHistoryNotes = patient.MedicalHistoryNotes,
+            Weight              = patient.Weight,
+            Height              = patient.Height,
+            BloodPressureSystolic  = patient.BloodPressureSystolic,
+            BloodPressureDiastolic = patient.BloodPressureDiastolic,
+            Cholesterol         = patient.Cholesterol,
             CreatedAt           = patient.CreatedAt
         };
     }

@@ -59,6 +59,11 @@ public class PatientRepository : IPatientRepository
         entity.BloodType = patient.BloodType;
         entity.Allergies = patient.Allergies;
         entity.MedicalHistoryNotes = patient.MedicalHistoryNotes;
+        entity.Weight = patient.Weight;
+        entity.Height = patient.Height;
+        entity.BloodPressureSystolic = patient.BloodPressureSystolic;
+        entity.BloodPressureDiastolic = patient.BloodPressureDiastolic;
+        entity.Cholesterol = patient.Cholesterol;
         entity.UpdatedAt = DateTime.UtcNow;
         entity.IsDirty = _markDirtyOnInsert;
         if (!_markDirtyOnInsert) entity.SyncedAt = DateTime.UtcNow;
@@ -104,6 +109,11 @@ public class PatientRepository : IPatientRepository
         BloodType = entity.BloodType,
         Allergies = entity.Allergies,
         MedicalHistoryNotes = entity.MedicalHistoryNotes,
+        Weight = entity.Weight,
+        Height = entity.Height,
+        BloodPressureSystolic = entity.BloodPressureSystolic,
+        BloodPressureDiastolic = entity.BloodPressureDiastolic,
+        Cholesterol = entity.Cholesterol,
         CreatedAt = entity.CreatedAt,
         UpdatedAt = entity.UpdatedAt
     };
@@ -115,6 +125,11 @@ public class PatientRepository : IPatientRepository
         BloodType = model.BloodType,
         Allergies = model.Allergies,
         MedicalHistoryNotes = model.MedicalHistoryNotes,
+        Weight = model.Weight,
+        Height = model.Height,
+        BloodPressureSystolic = model.BloodPressureSystolic,
+        BloodPressureDiastolic = model.BloodPressureDiastolic,
+        Cholesterol = model.Cholesterol,
         CreatedAt = model.CreatedAt,
         UpdatedAt = model.UpdatedAt
     };

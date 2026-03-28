@@ -43,6 +43,7 @@ public class GeminiChatBotProvider : IChatBotProvider
                 .Replace("{latestSpO2}", "N/A")
                 .Replace("{recentSteps}", "N/A")
                 .Replace("{trend}", "N/A");
+            format = GeminiPatientContextFormatting.ReplaceMedicalProfilePlaceholders(format, null);
         }
         else
         {
@@ -66,6 +67,7 @@ public class GeminiChatBotProvider : IChatBotProvider
                 .Replace("{latestSpO2}", latestSpO2?.Value.ToString("F0") ?? "N/A")
                 .Replace("{recentSteps}", "N/A")
                 .Replace("{trend}", "Stable");
+            format = GeminiPatientContextFormatting.ReplaceMedicalProfilePlaceholders(format, profile);
         }
 
         return $"{identity}\n\n{format}";

@@ -19,4 +19,29 @@ public record PatientProfileDto
     /// Gets the patient's medical history notes.
     /// </summary>
     public string? MedicalHistoryNotes { get; init; }
+
+    /// <summary>
+    /// Gets the patient's weight in kilograms (kg).
+    /// </summary>
+    public decimal? Weight { get; init; }
+
+    /// <summary>
+    /// Gets the patient's height in centimeters (cm).
+    /// </summary>
+    public decimal? Height { get; init; }
+
+    /// <summary>
+    /// Gets the patient's blood pressure systolic value in millimeters of mercury (mmHg).
+    /// </summary>
+    public int? BloodPressureSystolic { get; init; }
+
+    /// <summary>
+    /// Gets the patient's blood pressure diastolic value in millimeters of mercury (mmHg).
+    /// </summary>
+    public int? BloodPressureDiastolic { get; init; }
+
+    /// <summary>
+    /// Gets the patient's total cholesterol in millimoles per liter (mmol/L).
+    /// </summary>
+    public decimal? Cholesterol { get; init; }
 }

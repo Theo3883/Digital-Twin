@@ -347,14 +347,26 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                     b.Property<string>("Allergies")
                         .HasColumnType("text");
 
+                    b.Property<int?>("BloodPressureDiastolic")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("BloodPressureSystolic")
+                        .HasColumnType("integer");
+
                     b.Property<string>("BloodType")
                         .HasColumnType("text");
+
+                    b.Property<decimal?>("Cholesterol")
+                        .HasColumnType("numeric");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("Height")
+                        .HasColumnType("numeric");
 
                     b.Property<bool>("IsDirty")
                         .HasColumnType("boolean");
@@ -370,6 +382,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
+
+                    b.Property<decimal?>("Weight")
+                        .HasColumnType("numeric");
 
                     b.HasKey("Id");
 

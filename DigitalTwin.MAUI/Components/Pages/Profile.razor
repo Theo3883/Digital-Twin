@@ -3,6 +3,7 @@
 @inject IDoctorAssignmentApplicationService DoctorAssignments
 @inject IHealthDataSyncService SyncService
 @inject IMedicalHistoryEntryRepository MedicalHistoryRepo
+@inject IVitalSignRepository VitalSignRepo
 @inject NavigationManager Navigation
 @* OcrSheet removed — OCR is now a full-screen page at /ocr/{source} *@
 
@@ -50,6 +51,11 @@
                                 InitialBloodType="@_patient?.BloodType"
                                 InitialAllergies="@_patient?.Allergies"
                                 InitialMedicalHistory="@_patient?.MedicalHistoryNotes"
+                                InitialWeight="@_patient?.Weight"
+                                InitialHeight="@_patient?.Height"
+                                InitialBloodPressureSystolic="@_patient?.BloodPressureSystolic"
+                                InitialBloodPressureDiastolic="@_patient?.BloodPressureDiastolic"
+                                InitialCholesterol="@_patient?.Cholesterol"
                                 OnSave="SaveProfileAsync"
                                 OnCancel="CancelForm" />
         }
@@ -84,27 +90,86 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <div class="glass-card" style="padding: 12px;">
                 <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 4px;">Weight</div>
-                <div style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">78 <span style="font-size: 12px; color: var(--text-sec);">kg</span></div>
+                <div style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">
+                    @if (_patient?.Weight is not null)
+                    {
+                        @_patient.Weight.Value.ToString("0.#") <span style="font-size: 12px; color: var(--text-sec);">kg</span>
+                    }
+                    else
+                    {
+                        <span>—</span>
+                    }
+                </div>
+            </div>
+            <div class="glass-card" style="padding: 12px;">
+                <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 4px;">Height</div>
+                <div style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">
+                    @if (_patient?.Height is not null)
+                    {
+                        @_patient.Height.Value.ToString("0.#") <span style="font-size: 12px; color: var(--text-sec);">cm</span>
+                    }
+                    else
+                    {
+                        <span>—</span>
+                    }
+                </div>
+            </div>
+            <div class="glass-card" style="padding: 12px;">
+                <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 4px;">Resting HR</div>
+                <div style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">
+                    @if (_restingHrBpm is not null)
+                    {
+                        @_restingHrBpm <span style="font-size: 12px; color: var(--text-sec);">BPM</span>
+                    }
+                    else
+                    {
+                        <span>—</span>
+                    }
+                </div>
+            </div>
+            <div class="glass-card" style="padding: 12px;">
+                <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 4px;">Blood Pressure</div>
+                <div style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">
+                    @if (_patient?.BloodPressureSystolic is not null && _patient?.BloodPressureDiastolic is not null)
+                    {
+                        @($"{_patient.BloodPressureSystolic}/{_patient.BloodPressureDiastolic}") <span style="font-size: 10px; color: var(--text-sec);">mmHg</span>
+                    }
+                    else
+                    {
+                        <span>N/A</span>
+                    }
+                </div>
+            </div>
+            <div class="glass-card" style="padding: 12px;">
+                <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 4px;">BMI</div>
+                <div style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">
+                    @if (_bmi is not null)
+                    {
+                        @_bmi.Value.ToString("0.0")
+                        <span style="font-size: 10px; color: @_bmiCategoryColor;">@_bmiCategory</span>
+                    }
+                    else
+                    {
+                        <span>—</span>
+                    }
+                </div>
+            </div>
+            <div class="glass-card" style="padding: 12px;">
+                <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 4px;">Cholesterol</div>
+                <div style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">
+                    @if (_patient?.Cholesterol is not null)
+                    {
+                        @_patient.Cholesterol.Value.ToString("0.0") <span style="font-size: 10px; color: var(--text-sec);">mmol/L</span>
+                    }
+                    else
+                    {
+                        <span>N/A</span>
+                    }
+                </div>
             </div>
             <div class="glass-card" style="padding: 12px;">
                 <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 4px;">Blood Type</div>
                 <div style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">@(_patient?.BloodType ?? "—")</div>
-            </div>
-            <div class="glass-card" style="padding: 12px;">
-                <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 4px;">Resting HR</div>
-                <div style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">68 <span style="font-size: 12px; color: var(--text-sec);">BPM</span></div>
-            </div>
-            <div class="glass-card" style="padding: 12px;">
-                <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 4px;">Blood Pressure</div>
-                <div style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">118/76 <span style="font-size: 10px; color: var(--text-sec);">mmHg</span></div>
-            </div>
-            <div class="glass-card" style="padding: 12px;">
-                <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 4px;">BMI</div>
-                <div style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">23.8 <span style="font-size: 10px; color: var(--green-positive);">Normal</span></div>
-            </div>
-            <div class="glass-card" style="padding: 12px;">
-                <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 4px;">Cholesterol</div>
-                <div style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">4.2 <span style="font-size: 10px; color: var(--text-sec);">mmol/L</span></div>
             </div>
         </div>
 
@@ -245,6 +310,18 @@
     private bool _isSaving;
     private string? _formError;
     private List<ProfileCompletionChecklist.ChecklistItem> _checklistItems = new();
+    private int? _restingHrBpm;
+
+    private decimal? _bmi => TryComputeBmi(_patient?.Weight, _patient?.Height, out var bmi) ? bmi : null;
+    private string _bmiCategory => _bmi is null ? "—" : GetBmiCategory(_bmi.Value);
+    private string _bmiCategoryColor => _bmiCategory switch
+    {
+        "Normal" => "var(--green-positive)",
+        "Underweight" => "var(--amber-warning)",
+        "Overweight" => "var(--amber-warning)",
+        "Obese" => "var(--red-critical)",
+        _ => "var(--text-sec)"
+    };
 
 
     private string _initials => string.IsNullOrEmpty(_currentUser?.DisplayName)
@@ -267,6 +344,8 @@
                 _ocrHistory = (await MedicalHistoryRepo.GetByPatientAsync(_patient.PatientId))
                     .OrderByDescending(x => x.EventDate)
                     .ToList();
+
+            await LoadRestingHrAsync();
         }
         RebuildChecklist();
     }
@@ -329,8 +408,62 @@
             new(_currentUser?.HasPatientProfile == true, "Medical profile"),
             new(!string.IsNullOrEmpty(_patient?.BloodType), "Blood type"),
             new(!string.IsNullOrEmpty(_patient?.Allergies), "Allergies info"),
-            new(!string.IsNullOrEmpty(_patient?.MedicalHistoryNotes), "Medical history")
+            new(!string.IsNullOrEmpty(_patient?.MedicalHistoryNotes), "Medical history"),
+            new(_patient?.Weight is not null, "Weight"),
+            new(_patient?.Height is not null, "Height")
         };
+    }
+
+    private async Task LoadRestingHrAsync()
+    {
+        _restingHrBpm = null;
+        if (_patient is null) return;
+
+        try
+        {
+            var from = DateTime.UtcNow.AddDays(-7);
+            var hr = (await VitalSignRepo.GetByPatientAsync(_patient.PatientId, DigitalTwin.Domain.Enums.VitalSignType.HeartRate, from))
+                .Select(v => v.Value)
+                .Where(v => v > 0)
+                .Select(v => (decimal)v)
+                .OrderBy(v => v)
+                .ToList();
+
+            _restingHrBpm = ComputeRestingHrBpm(hr);
+        }
+        catch
+        {
+            // Best-effort only; UI will show "—".
+            _restingHrBpm = null;
+        }
+    }
+
+    private static int? ComputeRestingHrBpm(IReadOnlyList<decimal> sortedSamples)
+    {
+        if (sortedSamples.Count < 10) return null;
+        var take = Math.Max(1, (int)Math.Ceiling(sortedSamples.Count * 0.10m));
+        var avg = sortedSamples.Take(take).Average();
+        if (avg <= 0) return null;
+        return (int)Math.Round(avg, MidpointRounding.AwayFromZero);
+    }
+
+    private static bool TryComputeBmi(decimal? weight, decimal? heightCm, out decimal bmi)
+    {
+        bmi = 0;
+        if (!weight.HasValue || !heightCm.HasValue) return false;
+        if (weight.Value <= 0 || heightCm.Value <= 0) return false;
+        var heightM = heightCm.Value / 100m;
+        if (heightM <= 0) return false;
+        bmi = weight.Value / (heightM * heightM);
+        return bmi > 0;
+    }
+
+    private static string GetBmiCategory(decimal bmi)
+    {
+        if (bmi < 18.5m) return "Underweight";
+        if (bmi < 25m) return "Normal";
+        if (bmi < 30m) return "Overweight";
+        return "Obese";
     }
 
     /// <summary>Opens OCR on the scan hub (camera, Photos, Files) — single entry from Profile.</summary>

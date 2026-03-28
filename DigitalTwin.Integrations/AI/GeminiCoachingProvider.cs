@@ -54,6 +54,7 @@ public class GeminiCoachingProvider : ICoachingProvider
             .Replace("{stepsToday}", "N/A")
             .Replace("{medications}", medications)
             .Replace("{sleepScore}", "N/A");
+        format = GeminiPatientContextFormatting.ReplaceMedicalProfilePlaceholders(format, profile);
 
         return $"{identity}\n\n{format}";
     }

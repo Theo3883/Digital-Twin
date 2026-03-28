@@ -12,6 +12,11 @@ internal static class PatientEntityMapper
         BloodType           = e.BloodType,
         Allergies           = e.Allergies,
         MedicalHistoryNotes = e.MedicalHistoryNotes,
+        Weight              = e.Weight,
+        Height              = e.Height,
+        BloodPressureSystolic  = e.BloodPressureSystolic,
+        BloodPressureDiastolic = e.BloodPressureDiastolic,
+        Cholesterol         = e.Cholesterol,
         CreatedAt           = e.CreatedAt,
         UpdatedAt           = e.UpdatedAt
     };
@@ -23,6 +28,11 @@ internal static class PatientEntityMapper
         BloodType           = m.BloodType,
         Allergies           = m.Allergies,
         MedicalHistoryNotes = m.MedicalHistoryNotes,
+        Weight              = m.Weight,
+        Height              = m.Height,
+        BloodPressureSystolic  = m.BloodPressureSystolic,
+        BloodPressureDiastolic = m.BloodPressureDiastolic,
+        Cholesterol         = m.Cholesterol,
         CreatedAt           = m.CreatedAt,
         UpdatedAt           = m.UpdatedAt
     };

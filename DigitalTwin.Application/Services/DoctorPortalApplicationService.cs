@@ -119,6 +119,11 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
                 BloodType           = patient.BloodType,
                 Allergies           = patient.Allergies,
                 MedicalHistoryNotes = patient.MedicalHistoryNotes,
+                Weight              = patient.Weight,
+                Height              = patient.Height,
+                BloodPressureSystolic  = patient.BloodPressureSystolic,
+                BloodPressureDiastolic = patient.BloodPressureDiastolic,
+                Cholesterol         = patient.Cholesterol,
                 CreatedAt           = patient.CreatedAt,
                 UpdatedAt           = patient.UpdatedAt
             };
