@@ -11,37 +11,37 @@ public class HttpEnvironmentProvider : IEnvironmentDataProvider
     private readonly OpenWeatherMapProvider _weather;
     private readonly OpenWeatherAirQualityProvider _airQuality;
     private readonly IEnvironmentAssessmentService _assessmentService;
-    private readonly double _latitude;
-    private readonly double _longitude;
+    private readonly IEnvironmentLocationSource _locationSource;
 
     public HttpEnvironmentProvider(
         OpenWeatherMapProvider weather,
         OpenWeatherAirQualityProvider airQuality,
         IEnvironmentAssessmentService assessmentService,
-        double latitude = 48.8566,
-        double longitude = 2.3522)
+        IEnvironmentLocationSource locationSource)
     {
         _weather = weather;
         _airQuality = airQuality;
         _assessmentService = assessmentService;
-        _latitude = latitude;
-        _longitude = longitude;
+        _locationSource = locationSource;
     }
 
     public async Task<EnvironmentReading> GetCurrentAsync()
     {
-        var weatherTask = _weather.GetWeatherAsync(_latitude, _longitude);
-        var airTask = _airQuality.GetAirQualityAsync(_latitude, _longitude);
+        var loc = await _locationSource.ResolveAsync(CancellationToken.None).ConfigureAwait(false);
 
-        await Task.WhenAll(weatherTask, airTask);
+        var weatherTask = _weather.GetWeatherAsync(loc.Latitude, loc.Longitude);
+        var airTask = _airQuality.GetAirQualityAsync(loc.Latitude, loc.Longitude);
 
-        var weather = await weatherTask;
-        var air = await airTask;
+        await Task.WhenAll(weatherTask, airTask).ConfigureAwait(false);
+
+        var weather = await weatherTask.ConfigureAwait(false);
+        var air = await airTask.ConfigureAwait(false);
 
         var reading = new EnvironmentReading
         {
-            Latitude = _latitude,
-            Longitude = _longitude,
+            Latitude = loc.Latitude,
+            Longitude = loc.Longitude,
+            LocationDisplayName = loc.DisplayName,
             Temperature = weather?.Temperature ?? 0,
             Humidity = weather?.Humidity ?? 0,
             PM25 = air?.PM25 ?? 0,

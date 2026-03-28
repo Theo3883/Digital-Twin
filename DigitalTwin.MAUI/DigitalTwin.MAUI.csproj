@@ -83,4 +83,9 @@
       <ProjectReference Include="..\DigitalTwin.OCR\DigitalTwin.OCR.csproj" />
     </ItemGroup>
 
+    <!-- Ensures location usage text is merged into the final Info.plist (CompileAppManifest can omit keys from Platforms/iOS/Info.plist). -->
+    <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
+      <PartialAppManifest Include="Platforms\iOS\LocationUsage.partial.plist" />
+    </ItemGroup>
+
 </Project>

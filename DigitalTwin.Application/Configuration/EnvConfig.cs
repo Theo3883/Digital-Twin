@@ -79,12 +79,13 @@ public class EnvConfig
     public string? GoogleAirQualityApiKey { get; set; }
 
     /// <summary>
-    /// Gets or sets the configured latitude for environment queries.
+    /// Gets or sets a fallback latitude when the app cannot use GPS or a user-entered city
+    /// (simulator, denied permission, or non-mobile host). The MAUI app normally uses device location or manual geocoding instead.
     /// </summary>
     public double Latitude { get; set; } = 48.8566;
 
     /// <summary>
-    /// Gets or sets the configured longitude for environment queries.
+    /// Gets or sets a fallback longitude; see <see cref="Latitude"/>.
     /// </summary>
     public double Longitude { get; set; } = 2.3522;
 

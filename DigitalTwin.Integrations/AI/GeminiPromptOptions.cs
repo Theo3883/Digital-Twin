@@ -115,6 +115,17 @@ public class GeminiPromptOptions
         Generate a personalized coaching response NOW.
         """;
 
+    /// <summary>
+    /// Environment card: short actionable text. Placeholders: {location}, {aqi}, {pm25}, {tempC}, {latestHr}, {patientName}.
+    /// </summary>
+    public string EnvironmentAdvicePrompt { get; set; } = """
+        You are CardioCompanion. Give ONE short paragraph (max 90 words) of practical advice combining:
+        - current air quality (AQI {aqi}, PM2.5 {pm25} µg/m³) at {location}, temperature {tempC}°C
+        - the patient's latest heart rate {latestHr} bpm if provided (else say HR unknown)
+        - safe outdoor exercise timing if pollution is elevated; otherwise encourage light outdoor activity
+        Do not diagnose. End with: consult your clinician if you have symptoms. Name: {patientName}.
+        """;
+
     // ── Generation parameters (deterministic output) ────────────────────────
     /// <summary>Base endpoint URL for the Gemini generateContent API (model + method, no key).</summary>
     public string EndpointUrl { get; set; } = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent";

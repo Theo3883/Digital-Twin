@@ -15,6 +15,9 @@ public static class EnvironmentReadingMapper
     {
         return new EnvironmentReadingDto
         {
+            Latitude = model.Latitude,
+            Longitude = model.Longitude,
+            LocationDisplayName = model.LocationDisplayName,
             PM25 = model.PM25,
             PM10 = model.PM10,
             O3 = model.O3,
@@ -24,6 +27,25 @@ public static class EnvironmentReadingMapper
             AirQuality = EnumMapper.ToApp(model.AirQuality),
             AqiIndex = model.AqiIndex,
             Timestamp = model.Timestamp
+        };
+    }
+
+    public static EnvironmentReading ToDomain(EnvironmentReadingDto dto)
+    {
+        return new EnvironmentReading
+        {
+            Latitude = dto.Latitude,
+            Longitude = dto.Longitude,
+            LocationDisplayName = dto.LocationDisplayName,
+            PM25 = dto.PM25,
+            PM10 = dto.PM10,
+            O3 = dto.O3,
+            NO2 = dto.NO2,
+            Temperature = dto.Temperature,
+            Humidity = dto.Humidity,
+            AirQuality = EnumMapper.ToDomain(dto.AirQuality),
+            AqiIndex = dto.AqiIndex,
+            Timestamp = dto.Timestamp
         };
     }
 }

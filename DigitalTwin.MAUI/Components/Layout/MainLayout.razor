@@ -4,6 +4,7 @@
 @inject IAuthApplicationService AuthService
 @inject IHealthDataSyncService SyncService
 @inject IEnvironmentApplicationService EnvironmentService
+@inject IAppRouteState AppRouteState
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 @implements IDisposable
@@ -126,7 +127,12 @@
 
     private void UpdatePageState()
     {
-        var path = new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/');
+        var path = new Uri(Navigation.Uri).AbsolutePath;
+        if (string.IsNullOrEmpty(path))
+            path = "/";
+        AppRouteState.SetCurrentPath(path);
+
+        path = path.TrimEnd('/');
         _showTabBar = !path.Equals("/login", StringComparison.OrdinalIgnoreCase)
                    && !path.StartsWith("/ocr", StringComparison.OrdinalIgnoreCase);
         _pageTitle = path switch

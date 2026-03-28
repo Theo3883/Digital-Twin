@@ -8,6 +8,7 @@ using DigitalTwin.Infrastructure.Data;
 using DigitalTwin.OCR;
 using DigitalTwin.OCR.Models.Enums;
 using DigitalTwin.Services;
+using DigitalTwin.Application.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.Xml.Linq;
 #if IOS
@@ -47,6 +48,10 @@ public static class MauiProgram
         builder.Services.AddMauiBlazorWebView();
 
         builder.Services.AddMudServices();
+
+        builder.Services.AddSingleton<IAppRouteState, AppRouteState>();
+        builder.Services.AddSingleton<IPullRefreshCoordinator, PullRefreshCoordinator>();
+        builder.Services.AddSingleton<MainPage>();
 
         var localDbPath = Path.Combine(FileSystem.AppDataDirectory, "healthapp.db");
         System.Diagnostics.Debug.WriteLine($"[DB PATH] {localDbPath}");

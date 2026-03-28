@@ -18,6 +18,8 @@
     <string>We need to read your fitness data to send to Gemini AI for analysis.</string>
     <key>NSHealthUpdateUsageDescription</key>
     <string>We need to track your fitness progress.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>We use your location to show local weather and air quality on the Environment screen.</string>
     <key>UISupportedInterfaceOrientations</key>
     <array>
         <string>UIInterfaceOrientationPortrait</string>

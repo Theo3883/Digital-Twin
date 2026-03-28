@@ -13,6 +13,7 @@ using DigitalTwin.Integrations.Sync;
 #endif
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 #if IOS || MACCATALYST
 using DigitalTwin.Integrations.HealthKit;
@@ -24,6 +25,8 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddIntegrations(this IServiceCollection services, EnvConfig config)
     {
+        services.AddSingleton<IEnvironmentReadingCache, EnvironmentReadingPreferencesCache>();
+
         // Named HttpClient for Google OAuth/tokeninfo calls — 30 s timeout, no socket reuse leak.
         services.AddHttpClient("GoogleOAuth", client =>
         {
@@ -65,12 +68,22 @@ public static class DependencyInjection
             // Air pollution uses the same OpenWeatherMap API key
             return new OpenWeatherAirQualityProvider(factory.CreateClient(), config.OpenWeatherMapApiKey ?? string.Empty);
         });
+        services.AddSingleton(sp =>
+        {
+            var http = sp.GetRequiredService<IHttpClientFactory>().CreateClient();
+            http.Timeout = TimeSpan.FromSeconds(20);
+            return new OpenWeatherGeocodingClient(http, config.OpenWeatherMapApiKey ?? string.Empty);
+        });
+        services.AddSingleton<IEnvironmentLocationSource>(sp => new EnvironmentLocationSource(
+            sp.GetRequiredService<OpenWeatherGeocodingClient>(),
+            config.Latitude,
+            config.Longitude,
+            sp.GetService<ILogger<EnvironmentLocationSource>>() ?? NullLogger<EnvironmentLocationSource>.Instance));
         services.AddScoped<IEnvironmentDataProvider>(sp => new HttpEnvironmentProvider(
             sp.GetRequiredService<OpenWeatherMapProvider>(),
             sp.GetRequiredService<OpenWeatherAirQualityProvider>(),
             sp.GetRequiredService<IEnvironmentAssessmentService>(),
-            config.Latitude,
-            config.Longitude));
+            sp.GetRequiredService<IEnvironmentLocationSource>()));
 
         // ── Gemini AI: chatbot + coaching ────────────────────────────────────
         services.Configure<GeminiPromptOptions>(_ => { }); // Register with defaults

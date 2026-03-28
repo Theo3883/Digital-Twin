@@ -1,5 +1,6 @@
 using DigitalTwin.Application.DTOs;
 using DigitalTwin.Application.Interfaces;
+using DigitalTwin.Application.Mappers;
 using DigitalTwin.Domain.Interfaces.Providers;
 using DigitalTwin.Domain.Interfaces.Services;
 using Microsoft.Extensions.Logging;
@@ -52,6 +53,24 @@ public class CoachingApplicationService : ICoachingApplicationService
         return new CoachingAdviceDto
         {
             Advice    = advice,
+            Timestamp = DateTime.UtcNow
+        };
+    }
+
+    /// <inheritdoc />
+    public async Task<CoachingAdviceDto> GetEnvironmentAdviceAsync(EnvironmentReadingDto environment, CancellationToken ct = default)
+    {
+        var profile = await _patientContextService.BuildContextAsync(ct).ConfigureAwait(false);
+        var domain = EnvironmentReadingMapper.ToDomain(environment);
+
+        if (_logger.IsEnabled(LogLevel.Information))
+            _logger.LogInformation("[Coaching] Environment advice for location {Location}.", domain.LocationDisplayName);
+
+        var advice = await _coachingProvider.GetEnvironmentAdviceAsync(profile, domain, ct).ConfigureAwait(false);
+
+        return new CoachingAdviceDto
+        {
+            Advice = advice,
             Timestamp = DateTime.UtcNow
         };
     }

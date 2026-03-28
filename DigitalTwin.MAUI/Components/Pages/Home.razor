@@ -3,6 +3,7 @@
 @implements IDisposable
 @inject IVitalsApplicationService VitalsService
 @inject IEnvironmentApplicationService EnvironmentService
+@inject IPullRefreshCoordinator PullRefresh
 @inject IHealthDataSyncService SyncService
 @inject IAuthApplicationService AuthService
 @inject NavigationManager Navigation
@@ -112,11 +113,11 @@
              style="padding: 20px; display: flex; flex-direction: column; justify-content: space-between; min-height: 160px; cursor: pointer;">
             <div style="display: flex; align-items: center; gap: 6px;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-main)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
-                <span style="font-size: 13px; font-weight: 600; letter-spacing: -0.3px; color: var(--text-main);">@(_envReading is not null ? "Bucharest, Romania" : "Bucharest")</span>
+                <span style="font-size: 13px; font-weight: 600; letter-spacing: -0.3px; color: var(--text-main);">@_envLocationLabel</span>
             </div>
             <div>
-                <span style="font-family: var(--font-rounded); font-size: 36px; font-weight: 500; letter-spacing: -1px; color: var(--text-main);">@(_envReading?.Temperature.ToString("F0") ?? "21")°</span>
-                <p style="font-size: 12px; font-weight: 500; color: var(--text-sec); margin-top: 4px;">AQI @(_envReading is not null ? (_envReading.AqiIndex > 0 ? _envReading.AqiIndex.ToString() : "42") : "42") · Good</p>
+                <span style="font-family: var(--font-rounded); font-size: 36px; font-weight: 500; letter-spacing: -1px; color: var(--text-main);">@(_envReading is not null ? _envReading.Temperature.ToString("F0") : "—")°</span>
+                <p style="font-size: 12px; font-weight: 500; color: var(--text-sec); margin-top: 4px;">@_envAqiLine</p>
             </div>
         </div>
 
@@ -151,7 +152,6 @@
 
 @code {
     private IDisposable? _vitalsSubscription;
-    private IDisposable? _envSubscription;
     private AuthResultDto? _currentUser;
 
     private double _heartRate;
@@ -171,6 +171,29 @@
     private readonly List<double> _caloriesHistory = [];
 
     private EnvironmentReadingDto? _envReading;
+
+    private string _envLocationLabel =>
+        !string.IsNullOrWhiteSpace(_envReading?.LocationDisplayName)
+            ? _envReading!.LocationDisplayName
+            : "Environment";
+
+    private string _envAqiLine
+    {
+        get
+        {
+            if (_envReading is null)
+                return "Loading air quality…";
+            var idx = _envReading.AqiIndex > 0 ? _envReading.AqiIndex.ToString() : "—";
+            var label = _envReading.AirQuality switch
+            {
+                AirQualityLevel.Good => "Good",
+                AirQualityLevel.Moderate => "Moderate",
+                AirQualityLevel.Unhealthy => "Unhealthy",
+                _ => "—"
+            };
+            return $"AQI {idx} · {label}";
+        }
+    }
 
     private string _userName => _currentUser?.DisplayName ?? "Alexandru Munteanu";
     private string _userInitials => string.IsNullOrEmpty(_currentUser?.DisplayName)
@@ -223,18 +246,32 @@
                 InvokeAsync(StateHasChanged);
             });
 
+        _envReading = EnvironmentService.GetLastCachedEnvironmentSnapshot();
+
         try
         {
             _envReading = await EnvironmentService.GetCurrentEnvironmentAsync();
         }
-        catch { }
+        catch
+        {
+            // Keep cached snapshot if network fails
+        }
 
-        _envSubscription = EnvironmentService.SubscribeToEnvironment()
-            .Subscribe(dto =>
-            {
-                _envReading = dto;
-                InvokeAsync(StateHasChanged);
-            });
+        PullRefresh.RegisterHome(RefreshHomeEnvironmentAsync);
+    }
+
+    private async Task RefreshHomeEnvironmentAsync()
+    {
+        try
+        {
+            _envReading = await EnvironmentService.GetCurrentEnvironmentAsync();
+        }
+        catch
+        {
+            // Leave previous reading
+        }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private static void AddToHistory(List<double> history, double value)
@@ -254,6 +291,6 @@
     public void Dispose()
     {
         _vitalsSubscription?.Dispose();
-        _envSubscription?.Dispose();
+        PullRefresh.UnregisterHome();
     }
 }

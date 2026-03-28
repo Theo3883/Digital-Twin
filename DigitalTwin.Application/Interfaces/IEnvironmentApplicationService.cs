@@ -13,6 +13,11 @@ public interface IEnvironmentApplicationService
     Task<EnvironmentReadingDto> GetCurrentEnvironmentAsync();
 
     /// <summary>
+    /// Last successful reading from app preferences (not the medical database).
+    /// </summary>
+    EnvironmentReadingDto? GetLastCachedEnvironmentSnapshot();
+
+    /// <summary>
     /// Subscribes to assessed environment updates.
     /// </summary>
     IObservable<EnvironmentReadingDto> SubscribeToEnvironment();

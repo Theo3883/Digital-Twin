@@ -31,6 +31,19 @@ public class MockHealthProvider : IHealthDataProvider
         }
     }
 
+    public Task<IEnumerable<VitalSign>> GetSamplesAsync(VitalSignType type, DateTime fromUtc, DateTime toUtc, int maxSamples = 8000)
+    {
+        lock (_sync)
+        {
+            var samples = _buffer
+                .Where(v => v.Type == type && v.Timestamp >= fromUtc && v.Timestamp <= toUtc)
+                .OrderBy(v => v.Timestamp)
+                .Take(maxSamples)
+                .ToList();
+            return Task.FromResult<IEnumerable<VitalSign>>(samples);
+        }
+    }
+
     public Task<IEnumerable<SleepSession>> GetSleepSessionsAsync(DateTime from, DateTime to)
     {
         // Generate a few mock sleep sessions within the requested range

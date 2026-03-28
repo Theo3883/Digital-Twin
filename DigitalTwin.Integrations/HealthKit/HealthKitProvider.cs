@@ -159,6 +159,25 @@ public class HealthKitProvider : IHealthDataProvider
         });
     }
 
+    public async Task<IEnumerable<VitalSign>> GetSamplesAsync(VitalSignType type, DateTime fromUtc, DateTime toUtc, int maxSamples = 8000)
+    {
+        if (type == VitalSignType.StandHours)
+            return [];
+
+        if (!VitalTypeMap.TryGetValue(type, out var hkId))
+            return [];
+
+        var rows = await QueryQuantitySamplesInRangeAsync(hkId, fromUtc, toUtc, maxSamples).ConfigureAwait(false);
+        return rows.Select(r => new VitalSign
+        {
+            Type = type,
+            Value = r.value,
+            Unit = UnitMap[type],
+            Source = "HealthKit",
+            Timestamp = r.timestamp
+        });
+    }
+
     public async Task<IEnumerable<SleepSession>> GetSleepSessionsAsync(DateTime from, DateTime to)
     {
         var sleepType = HKCategoryType.Create(HKCategoryTypeIdentifier.SleepAnalysis);
@@ -277,6 +296,50 @@ public class HealthKitProvider : IHealthDataProvider
 
         var query = new HKSampleQuery(
             quantityType, predicate, (nuint)limit,
+            [sortDescriptor],
+            (_, results, error) =>
+            {
+                if (error is not null || results is null)
+                {
+                    tcs.SetResult([]);
+                    return;
+                }
+
+                var unit = GetHKUnit(identifier);
+                var values = results
+                    .OfType<HKQuantitySample>()
+                    .Select(s => (
+                        value: Math.Round(s.Quantity.GetDoubleValue(unit), 1),
+                        timestamp: (DateTime)s.EndDate))
+                    .ToList();
+
+                tcs.SetResult(values);
+            });
+
+        _store.ExecuteQuery(query);
+        return tcs.Task;
+    }
+
+    private Task<List<(double value, DateTime timestamp)>> QueryQuantitySamplesInRangeAsync(
+        HKQuantityTypeIdentifier identifier,
+        DateTime from,
+        DateTime to,
+        int maxSamples)
+    {
+        var quantityType = HKQuantityType.Create(identifier);
+        if (quantityType is null)
+            return Task.FromResult(new List<(double, DateTime)>());
+
+        var predicate = HKQuery.GetPredicateForSamples(
+            (NSDate)from, (NSDate)to, HKQueryOptions.None);
+
+        var sortDescriptor = new NSSortDescriptor(
+            HKSample.SortIdentifierEndDate, ascending: true);
+
+        var tcs = new TaskCompletionSource<List<(double, DateTime)>>();
+
+        var query = new HKSampleQuery(
+            quantityType, predicate, (nuint)Math.Min(maxSamples, int.MaxValue),
             [sortDescriptor],
             (_, results, error) =>
             {

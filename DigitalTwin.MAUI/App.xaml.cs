@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace DigitalTwin;
@@ -5,17 +6,19 @@ namespace DigitalTwin;
 public partial class App : Microsoft.Maui.Controls.Application
 {
     private readonly ILogger<App> _logger;
+    private readonly IServiceProvider _services;
 
-    public App(ILogger<App> logger)
+    public App(ILogger<App> logger, IServiceProvider services)
     {
         _logger = logger;
+        _services = services;
         InitializeComponent();
         RegisterGlobalExceptionHandlers();
     }
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        return new Window(new MainPage()) { Title = "DigitalTwin" };
+        return new Window(_services.GetRequiredService<MainPage>()) { Title = "DigitalTwin" };
     }
 
     // ── Global exception safety net ──────────────────────────────────────────

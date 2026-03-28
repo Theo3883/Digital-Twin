@@ -1,4 +1,3 @@
-using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Interfaces.Providers;
 using DigitalTwin.Domain.Models;
 
@@ -34,5 +33,26 @@ public class MockCoachingProvider : ICoachingProvider
         };
 
         return Task.FromResult(AdvicePool[index]);
+    }
+
+    public Task<string> GetEnvironmentAdviceAsync(
+        PatientProfile? profile,
+        EnvironmentReading environment,
+        CancellationToken cancellationToken = default)
+    {
+        var pm = environment.PM25;
+        var aqiHint = pm <= 12
+            ? "Air quality looks good."
+            : pm <= 35
+                ? "Air quality is acceptable for most people."
+                : pm <= 55
+                    ? "Consider reducing prolonged outdoor exertion."
+                    : "Unhealthy air — limit outdoor activity and keep windows closed when possible.";
+
+        var activity = pm <= 35
+            ? " A walk earlier in the day is reasonable if you feel well."
+            : " Prefer indoor movement or shorter outdoor sessions.";
+
+        return Task.FromResult(aqiHint + activity);
     }
 }

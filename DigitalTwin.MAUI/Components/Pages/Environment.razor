@@ -1,6 +1,12 @@
 @page "/environment"
+@using System
+@using System.Globalization
 @implements IDisposable
 @inject IEnvironmentApplicationService EnvironmentService
+@inject IEnvironmentLocationSource LocationSource
+@inject IEnvironmentAnalyticsService AnalyticsService
+@inject ICoachingApplicationService CoachingService
+@inject IPullRefreshCoordinator PullRefresh
 
 <RequireAuth>
 <div class="page-enter" style="padding: 0 16px 32px; display: flex; flex-direction: column; gap: 16px;">
@@ -8,19 +14,49 @@
     @* AQI Hero Card / Map *@
     <div class="glass-card" style="position: relative; overflow: hidden; height: 200px; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px;">
         <div style="position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(30,60,120,0.4), rgba(10,14,26,0.9)); pointer-events: none;"></div>
-        <div style="position: absolute; inset: 0; background: url('https://picsum.photos/seed/bucharest/400/200'); background-size: cover; background-position: center; mix-blend-mode: overlay; filter: blur(2px); opacity: 0.6;"></div>
+        <div style="position: absolute; inset: 0; background: url('https://picsum.photos/seed/weather/400/200'); background-size: cover; background-position: center; mix-blend-mode: overlay; filter: blur(2px); opacity: 0.6;"></div>
+        @if (_loading)
+        {
+            <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.35); z-index: 2; display: flex; align-items: center; justify-content: center; font-size: 13px; color: rgba(255,255,255,0.9);">Loading…</div>
+        }
         <div style="position: relative; z-index: 1;">
-            <div style="display: flex; align-items: center; gap: 6px; font-size: 14px; color: rgba(255,255,255,0.8); margin-bottom: 12px;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
-                <span>Bucharest, Romania · @DateTime.Now.ToString("dd MMM yyyy")</span>
+            <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 6px; font-size: 14px; color: rgba(255,255,255,0.8);">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
+                    <span>@_locationDisplay · @DateTime.Now.ToString("dd MMM yyyy")</span>
+                </div>
             </div>
             <div style="display: inline-flex; align-items: center; padding: 8px 20px; border-radius: var(--radius-inner); @_aqiBadgeStyle backdrop-filter: blur(8px); margin-bottom: 8px;">
                 <span style="font-family: var(--font-display); font-weight: 700; font-size: 22px; color: @_aqiTextColor; letter-spacing: -0.5px;">
                     AQI @_aqiValue · @_aqiLabel
                 </span>
             </div>
-            <p style="font-size: 12px; color: rgba(255,255,255,0.7); margin: 0;">Air quality is satisfactory and poses little or no risk.</p>
+            <p style="font-size: 12px; color: rgba(255,255,255,0.7); margin: 0;">@_aqiHeroSubtitle</p>
         </div>
+    </div>
+
+    @* Location: device GPS or manual city *@
+    <div class="glass-card" style="padding: 14px 16px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+            <button type="button" class="glass-chip" style="cursor: pointer; border: none; font-size: 13px; color: var(--text-main); padding: 8px 14px;" @onclick="UseMyLocationAsync" disabled="@_loading">
+                Use my location
+            </button>
+            <span style="font-size: 12px; color: var(--text-sec);">or enter a city:</span>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+            <input type="text" @bind="_cityInput" @bind:event="oninput" placeholder="e.g. Paris, FR" disabled="@_loading"
+                   style="flex: 1; min-width: 160px; padding: 10px 12px; border-radius: var(--radius-inner); border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.2); color: var(--text-main); font-size: 14px;" />
+            <button type="button" class="glass-chip" style="cursor: pointer; border: none; font-size: 13px; color: var(--text-main); padding: 8px 14px;" @onclick="ApplyCityAsync" disabled="@_loading">
+                Apply city
+            </button>
+        </div>
+        @if (!string.IsNullOrEmpty(_locationError))
+        {
+            <p style="margin: 0; font-size: 12px; color: var(--red-critical);">@_locationError</p>
+        }
+        <p style="margin: 0; font-size: 11px; color: var(--text-tert);">
+            @(LocationSource.Mode == DigitalTwin.Domain.Enums.EnvironmentLocationMode.Manual ? "Using city name (geocoded)." : "Using device location, or LATITUDE/LONGITUDE from .env if GPS is unavailable.")
+        </p>
     </div>
 
     @* Metric Grid (2×3) *@
@@ -98,22 +134,45 @@
         <div style="font-family: var(--font-display); font-weight: 600; font-size: 16px; color: var(--text-main); margin-bottom: 16px;">
             Heart Rate vs Air Quality — Last 24h
         </div>
+        @if (_analyticsLoading)
+        {
+            <p style="font-size: 12px; color: var(--text-sec); margin: 0 0 12px;">Loading chart…</p>
+        }
         <div style="position: relative; height: 150px; width: 100%; border-bottom: 1px solid rgba(255,255,255,0.1); border-left: 1px solid rgba(255,255,255,0.1); margin-bottom: 8px;">
             <svg viewBox="0 0 100 50" style="width: 100%; height: 100%;" preserveAspectRatio="none">
-                <path d="M0,30 Q10,28 20,32 T40,25 T60,10 T80,28 T100,30" fill="none" stroke="var(--teal-primary)" stroke-width="1.5" />
-                <path d="M0,40 Q15,42 30,38 T50,15 T70,35 T100,40" fill="none" stroke="var(--amber-warning)" stroke-width="1.5" stroke-dasharray="3,3" />
-                <circle cx="55" cy="12" r="2" fill="var(--amber-warning)" />
-                <line x1="55" y1="12" x2="55" y2="50" stroke="white" stroke-width="0.5" stroke-dasharray="1,1" opacity="0.4" />
+                @if (_analytics is not null && !string.IsNullOrEmpty(_analytics.HeartRatePath))
+                {
+                    <path d="@_analytics.HeartRatePath" fill="none" stroke="var(--teal-primary)" stroke-width="1.5" />
+                }
+                @if (_analytics is not null && !string.IsNullOrEmpty(_analytics.Pm25Path))
+                {
+                    <path d="@_analytics.Pm25Path" fill="none" stroke="var(--amber-warning)" stroke-width="1.5" stroke-dasharray="3,3" />
+                }
             </svg>
-            <div class="glass-chip" style="position: absolute; top: 0; left: 40%; padding: 3px 8px; font-size: 9px; color: var(--amber-warning); border-color: rgba(255, 149, 0, 0.3);">
-                PM2.5 spike · HR +8 BPM
-            </div>
+            @if (_analytics is not null && _analytics.CorrelationR is double cr && Math.Abs(cr) >= 0.15)
+            {
+                <div class="glass-chip" style="position: absolute; top: 4px; right: 4px; padding: 3px 8px; font-size: 9px; color: var(--text-sec); border-color: rgba(255,255,255,0.15);">
+                    r ≈ @cr.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)
+                </div>
+            }
         </div>
-        <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-tert); padding: 0 4px;">
-            <span>00:00</span><span>12:00</span><span>23:00</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: var(--text-tert); padding: 0 4px;">
+            <span>24h ago</span>
+            <span>Now</span>
         </div>
         <div style="font-size: 11px; color: var(--text-sec); margin-top: 12px; line-height: 1.5;">
-            Moderate correlation detected (r = 0.62). Domain risk event threshold: PM2.5 &gt; 35 µg/m³.
+            @if (_analytics is not null && !string.IsNullOrWhiteSpace(_analytics.Footnote))
+            {
+                @_analytics.Footnote
+            }
+            else if (!_analyticsLoading)
+            {
+                <span>No analytics loaded yet.</span>
+            }
+        </div>
+        <div style="display: flex; gap: 12px; margin-top: 8px; font-size: 10px; color: var(--text-tert);">
+            <span><span style="color: var(--teal-primary);">■</span> Heart rate (saved vitals)</span>
+            <span><span style="color: var(--amber-warning);">■</span> PM2.5 (saved readings)</span>
         </div>
     </div>
 
@@ -121,13 +180,17 @@
     <div class="glass-card" style="padding: 16px; border-left: 4px solid var(--teal-primary) !important;">
         <div style="display: flex; align-items: flex-start; gap: 12px;">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--teal-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
-            <div>
-                <p style="font-size: 14px; color: rgba(255,255,255,0.9); line-height: 1.6; margin: 0;">
-                    Low pollution levels detected. Outdoor activity recommended between 06:00–09:00 for optimal cardiac benefit.
-                </p>
+            <div style="flex: 1; min-width: 0;">
+                @if (_adviceLoading)
+                {
+                    <p style="font-size: 13px; color: var(--text-sec); margin: 0;">Generating recommendation…</p>
+                }
+                else
+                {
+                    <p style="font-size: 14px; color: rgba(255,255,255,0.9); line-height: 1.6; margin: 0; white-space: pre-wrap;">@_envAdvice</p>
+                }
                 <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
                     <span class="glass-chip" style="padding: 2px 10px; font-size: 10px; color: var(--text-tert);">OpenWeatherMap</span>
-                    <span class="glass-chip" style="padding: 2px 10px; font-size: 10px; color: var(--text-tert);">Google Air Quality API</span>
                 </div>
             </div>
         </div>
@@ -137,8 +200,16 @@
 </RequireAuth>
 
 @code {
-    private IDisposable? _envSubscription;
     private bool _loading = true;
+    private string _locationDisplay = "Loading…";
+    private string _cityInput = "";
+    private string? _locationError;
+
+    private EnvironmentReadingDto _currentReading = new();
+    private EnvironmentAnalyticsDto? _analytics;
+    private bool _analyticsLoading;
+    private string _envAdvice = "";
+    private bool _adviceLoading;
 
     private double _pm25;
     private double _pm10;
@@ -178,29 +249,118 @@
     private string _pm10Label => _pm10 <= 20 ? "Good" : _pm10 <= 50 ? "Fair" : "Poor";
     private string _pm10LabelColor => _pm10 <= 20 ? "var(--green-positive)" : _pm10 <= 50 ? "var(--amber-warning)" : "var(--red-critical)";
 
+    private string _aqiHeroSubtitle => _aqiLevel switch
+    {
+        AirQualityLevel.Good => "Air quality is good. Outdoor activity is generally fine for most people.",
+        AirQualityLevel.Moderate => "Air quality is acceptable. Sensitive groups may want to shorten outdoor exertion.",
+        AirQualityLevel.Unhealthy => "Air quality may affect health. Limit outdoor activity and check local guidance.",
+        _ => "Air quality information is shown above."
+    };
+
     protected override async Task OnInitializedAsync()
     {
+        _cityInput = LocationSource.ManualCityName ?? "";
+
+        var cached = EnvironmentService.GetLastCachedEnvironmentSnapshot();
+        if (cached is not null)
+            ApplyReading(cached);
+        else
+            ApplyReading(new EnvironmentReadingDto());
+
+        _loading = false;
+
+        PullRefresh.RegisterEnvironment(RefreshEnvironmentAsync);
+
+        await LoadAnalyticsAndAdviceAsync();
+    }
+
+    private async Task RefreshEnvironmentAsync()
+    {
+        _locationError = null;
+        _loading = true;
+        await InvokeAsync(StateHasChanged);
         try
         {
             var reading = await EnvironmentService.GetCurrentEnvironmentAsync();
             ApplyReading(reading);
         }
-        catch { }
         finally
         {
             _loading = false;
         }
 
-        _envSubscription = EnvironmentService.SubscribeToEnvironment()
-            .Subscribe(reading =>
-            {
-                ApplyReading(reading);
-                InvokeAsync(StateHasChanged);
-            });
+        await LoadAnalyticsAndAdviceAsync();
+    }
+
+    private async Task UseMyLocationAsync()
+    {
+        LocationSource.SetMode(DigitalTwin.Domain.Enums.EnvironmentLocationMode.Device);
+        try
+        {
+            await RefreshEnvironmentAsync();
+        }
+        catch (Exception ex)
+        {
+            _locationError = ex.Message;
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ApplyCityAsync()
+    {
+        LocationSource.SetManualCityName(_cityInput);
+        LocationSource.SetMode(DigitalTwin.Domain.Enums.EnvironmentLocationMode.Manual);
+        try
+        {
+            await RefreshEnvironmentAsync();
+        }
+        catch (Exception ex)
+        {
+            _locationError = ex.Message;
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task LoadAnalyticsAndAdviceAsync()
+    {
+        _analyticsLoading = true;
+        _adviceLoading = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            _analytics = await AnalyticsService.GetLast24HoursAsync();
+        }
+        catch (Exception)
+        {
+            // Keep prior series if refresh fails
+        }
+        finally
+        {
+            _analyticsLoading = false;
+        }
+
+        try
+        {
+            var advice = await CoachingService.GetEnvironmentAdviceAsync(_currentReading);
+            _envAdvice = advice.Advice;
+        }
+        catch (Exception)
+        {
+            _envAdvice = "Unable to load recommendation right now.";
+        }
+        finally
+        {
+            _adviceLoading = false;
+        }
     }
 
     private void ApplyReading(EnvironmentReadingDto reading)
     {
+        _currentReading = reading;
+        _locationDisplay = string.IsNullOrWhiteSpace(reading.LocationDisplayName)
+            ? "Unknown place"
+            : reading.LocationDisplayName;
         _pm25 = reading.PM25;
         _pm10 = reading.PM10;
         _o3 = reading.O3;
@@ -220,6 +380,6 @@
 
     public void Dispose()
     {
-        _envSubscription?.Dispose();
+        PullRefresh.UnregisterEnvironment();
     }
 }

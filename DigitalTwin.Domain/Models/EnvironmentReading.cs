@@ -6,6 +6,11 @@ public class EnvironmentReading
 {
     public double Latitude { get; set; }
     public double Longitude { get; set; }
+
+    /// <summary>
+    /// Human-readable place label (e.g. geocoded city or "Current location").
+    /// </summary>
+    public string LocationDisplayName { get; set; } = string.Empty;
     public double PM25 { get; set; }
     public double PM10 { get; set; }
     public double O3 { get; set; }

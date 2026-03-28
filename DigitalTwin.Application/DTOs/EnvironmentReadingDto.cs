@@ -8,6 +8,21 @@ namespace DigitalTwin.Application.DTOs;
 public class EnvironmentReadingDto
 {
     /// <summary>
+    /// Gets or sets the latitude used for this reading.
+    /// </summary>
+    public double Latitude { get; set; }
+
+    /// <summary>
+    /// Gets or sets the longitude used for this reading.
+    /// </summary>
+    public double Longitude { get; set; }
+
+    /// <summary>
+    /// Gets or sets a label for the place (e.g. city name or "Current location").
+    /// </summary>
+    public string LocationDisplayName { get; set; } = string.Empty;
+
+    /// <summary>
     /// Gets or sets the PM2.5 concentration.
     /// </summary>
     public double PM25 { get; set; }

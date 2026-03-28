@@ -166,7 +166,8 @@ public static class DependencyInjection
             sp.GetRequiredService<IEnvironmentDataProvider>(),
             sp.GetRequiredService<IEnvironmentAssessmentService>(),
             sp.GetRequiredService<IPersistenceGateway<EnvironmentReading>>(),
-            sp.GetRequiredService<ILogger<EnvironmentApplicationService>>()));
+            sp.GetRequiredService<ILogger<EnvironmentApplicationService>>(),
+            sp.GetService<IEnvironmentReadingCache>()));
         services.AddScoped<IAuthApplicationService, AuthApplicationService>();
         services.AddSingleton<IHealthDataSyncService>(sp => new HealthDataSyncService(
             sp.GetRequiredService<IServiceScopeFactory>(),
@@ -193,6 +194,7 @@ public static class DependencyInjection
         services.AddScoped<IEcgApplicationService, EcgApplicationService>();
         services.AddScoped<IChatBotApplicationService, ChatBotApplicationService>();
         services.AddScoped<ICoachingApplicationService, CoachingApplicationService>();
+        services.AddScoped<IEnvironmentAnalyticsService, EnvironmentAnalyticsService>();
         services.AddScoped<IDoctorAssignmentApplicationService, DoctorAssignmentApplicationService>();
 
         // ── Cloud identity resolution (local ↔ cloud use different ID spaces) ──
@@ -289,6 +291,7 @@ public static class DependencyInjection
     private static IServiceCollection AddCoreDomainServices(this IServiceCollection services)
     {
         services.AddScoped<IVitalSignService, VitalSignService>();
+        services.AddScoped<IEnvironmentHealthAnalyticsService, EnvironmentHealthAnalyticsService>();
         services.AddScoped<IEnvironmentAssessmentService, EnvironmentAssessmentService>();
         services.AddScoped<IMedicationInteractionService, MedicationInteractionService>();
         services.AddScoped<IMedicationService, MedicationService>();

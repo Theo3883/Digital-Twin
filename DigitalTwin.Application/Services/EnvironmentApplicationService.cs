@@ -16,6 +16,7 @@ public class EnvironmentApplicationService : IEnvironmentApplicationService
     private readonly IEnvironmentDataProvider                         _environmentDataProvider;
     private readonly IEnvironmentAssessmentService                    _assessmentService;
     private readonly IPersistenceGateway<Domain.Models.EnvironmentReading> _gateway;
+    private readonly IEnvironmentReadingCache?                        _cache;
     private readonly ILogger<EnvironmentApplicationService>           _logger;
 
     /// <summary>
@@ -25,12 +26,14 @@ public class EnvironmentApplicationService : IEnvironmentApplicationService
         IEnvironmentDataProvider environmentDataProvider,
         IEnvironmentAssessmentService assessmentService,
         IPersistenceGateway<Domain.Models.EnvironmentReading> gateway,
-        ILogger<EnvironmentApplicationService> logger)
+        ILogger<EnvironmentApplicationService> logger,
+        IEnvironmentReadingCache? cache = null)
     {
         _environmentDataProvider = environmentDataProvider;
         _assessmentService       = assessmentService;
         _gateway                 = gateway;
         _logger                  = logger;
+        _cache                   = cache;
     }
 
     /// <summary>
@@ -55,8 +58,14 @@ public class EnvironmentApplicationService : IEnvironmentApplicationService
 
         _ = _gateway.PersistAsync(assessed);
 
-        return EnvironmentReadingMapper.ToDto(assessed);
+        var dto = EnvironmentReadingMapper.ToDto(assessed);
+        _cache?.Save(dto);
+        return dto;
     }
+
+    /// <inheritdoc />
+    public EnvironmentReadingDto? GetLastCachedEnvironmentSnapshot() =>
+        _cache?.GetLastOrDefault();
 
     /// <summary>
     /// Subscribes to assessed environment updates and persists each reading.
@@ -68,7 +77,9 @@ public class EnvironmentApplicationService : IEnvironmentApplicationService
             {
                 var assessed = _assessmentService.AssessReading(reading);
                 _ = _gateway.PersistAsync(assessed);
-                return EnvironmentReadingMapper.ToDto(assessed);
+                var dto = EnvironmentReadingMapper.ToDto(assessed);
+                _cache?.Save(dto);
+                return dto;
             });
     }
 }

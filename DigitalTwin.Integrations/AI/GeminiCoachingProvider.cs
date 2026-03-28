@@ -58,4 +58,25 @@ public class GeminiCoachingProvider : ICoachingProvider
 
         return $"{identity}\n\n{format}";
     }
+
+    public async Task<string> GetEnvironmentAdviceAsync(PatientProfile? profile, EnvironmentReading environment, CancellationToken cancellationToken = default)
+    {
+        var latestHr = profile?.RecentVitals
+            .Where(v => v.Type == Domain.Enums.VitalSignType.HeartRate)
+            .MaxBy(v => v.Timestamp);
+
+        var name = profile?.FullName ?? "there";
+        var loc = string.IsNullOrWhiteSpace(environment.LocationDisplayName) ? "your area" : environment.LocationDisplayName;
+        var hrText = latestHr is not null ? $"{latestHr.Value:F0}" : "unknown";
+
+        var system = _options.SystemIdentityPrompt + "\n\n" + _options.EnvironmentAdvicePrompt
+            .Replace("{location}", loc)
+            .Replace("{aqi}", environment.AqiIndex > 0 ? environment.AqiIndex.ToString() : "n/a")
+            .Replace("{pm25}", environment.PM25.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))
+            .Replace("{tempC}", environment.Temperature.ToString("F1", System.Globalization.CultureInfo.InvariantCulture))
+            .Replace("{latestHr}", hrText)
+            .Replace("{patientName}", name);
+
+        return await _apiClient.GenerateContentAsync(system, "Respond now.", cancellationToken).ConfigureAwait(false);
+    }
 }
