@@ -29,5 +29,10 @@ public record AuthResultDto
     /// Gets a value indicating whether the user already has a patient profile.
     /// </summary>
     public bool HasPatientProfile { get; init; }
+
+    /// <summary>
+    /// Gets the user's date of birth.
+    /// </summary>
+    public DateTime? DateOfBirth { get; init; }
 }
 

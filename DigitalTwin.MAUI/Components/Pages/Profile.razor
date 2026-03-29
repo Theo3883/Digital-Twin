@@ -13,14 +13,38 @@
     @if (_currentUser is not null)
     {
         @* Profile Header *@
-        <div class="glass-card" style="padding: 20px; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; overflow: hidden;">
-            @* Completion Ring *@
-            <div style="position: absolute; top: 16px; right: 16px; width: 48px; height: 48px;">
+        <div class="glass-card" style="padding: 20px; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative;">
+            @* Completion Ring — left *@
+            <div style="position: absolute; top: 16px; left: 16px; width: 48px; height: 48px;">
                 <svg viewBox="0 0 36 36" style="width: 100%; height: 100%; transform: rotate(-90deg);">
                     <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="3"/>
                     <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--teal-primary)" stroke-width="3" stroke-dasharray="@(_completionPct), 100"/>
                 </svg>
                 <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: var(--teal-primary);">@_completionPct%</div>
+            </div>
+
+            @* 3-dot menu — right *@
+            <div style="position: absolute; top: 16px; right: 16px; z-index: 101;">
+                <button @onclick="ToggleProfileMenu" style="width: 32px; height: 32px; border-radius: 50%; border: none; background: rgba(255,255,255,0.08); color: var(--text-sec); cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <MudIcon Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Style="color: var(--text-sec);" />
+                </button>
+                @if (_showProfileMenu)
+                {
+                    @* Backdrop *@
+                    <div @onclick="CloseProfileMenu" style="position: fixed; inset: 0; z-index: 99;"></div>
+                    @* Dropdown *@
+                    <div style="position: absolute; top: 36px; right: 0; min-width: 190px; border-radius: 14px; background: #1e2028; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 8px 32px rgba(0,0,0,0.6); z-index: 100; overflow: hidden;">
+                        <button @onclick="EditMedicalProfileFromMenu" style="width: 100%; padding: 13px 16px; background: transparent; border: none; text-align: left; font-size: 14px; color: #ffffff; cursor: pointer; display: flex; align-items: center; gap: 10px;">
+                            <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Style="color: var(--teal-primary);" />
+                            @(_patient is null ? "Create Medical Profile" : "Edit Medical Profile")
+                        </button>
+                        <div style="height: 1px; background: rgba(255,255,255,0.08); margin: 0 12px;"></div>
+                        <button @onclick="SignOutFromMenu" style="width: 100%; padding: 13px 16px; background: transparent; border: none; text-align: left; font-size: 14px; color: var(--red-critical, #ff3b30); cursor: pointer; display: flex; align-items: center; gap: 10px;">
+                            <MudIcon Icon="@Icons.Material.Filled.Logout" Size="Size.Small" Style="color: var(--red-critical, #ff3b30);" />
+                            Log out
+                        </button>
+                    </div>
+                }
             </div>
 
             @* Avatar *@
@@ -36,10 +60,7 @@
             </div>
 
             <h2 style="font-family: var(--font-display); font-size: 24px; font-weight: 600; letter-spacing: -0.5px; color: var(--text-main); margin: 0;">@_currentUser.DisplayName</h2>
-            <p style="font-size: 14px; color: var(--text-sec); margin-top: 4px;">@(_patient?.BloodType is not null ? $"Blood type: {_patient.BloodType}" : _currentUser.Email)</p>
-            <div class="glass-chip" style="padding: 4px 12px; font-size: 12px; color: var(--text-tert); margin-top: 12px;">
-                Patient ID: @(_currentUser.UserId.ToString()[..8].ToUpper())
-            </div>
+            <p style="font-size: 14px; color: var(--text-sec); margin-top: 4px;">@_profileSubtitle</p>
         </div>
 
         @* Profile Form or Card *@
@@ -60,31 +81,22 @@
                                 OnCancel="CancelForm" />
         }
 
-        @* Profile Completion *@
-        <div class="glass-card" style="padding: 16px;">
-            <h3 style="font-size: 14px; font-weight: 600; color: var(--text-main); margin-bottom: 12px;">Profile Completion</h3>
-            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 14px;">
-                @foreach (var item in _checklistItems)
-                {
-                    <div style="display: flex; align-items: center; gap: 8px; color: @(item.IsChecked ? "rgba(255,255,255,0.9)" : "var(--text-sec)");">
-                        <span style="color: @(item.IsChecked ? "var(--teal-primary)" : "rgba(255,255,255,0.2)");">@(item.IsChecked ? "✓" : "○")</span>
-                        @item.Label
-                    </div>
-                }
+        @* Profile Completion — hidden when 100% complete *@
+        @if (_completionPct < 100)
+        {
+            <div class="glass-card" style="padding: 16px;">
+                <h3 style="font-size: 14px; font-weight: 600; color: var(--text-main); margin-bottom: 12px;">Profile Completion</h3>
+                <div style="display: flex; flex-direction: column; gap: 10px; font-size: 14px;">
+                    @foreach (var item in _checklistItems)
+                    {
+                        <div style="display: flex; align-items: center; gap: 8px; color: @(item.IsChecked ? "rgba(255,255,255,0.9)" : "var(--text-sec)");">
+                            <span style="color: @(item.IsChecked ? "var(--teal-primary)" : "rgba(255,255,255,0.2)");">@(item.IsChecked ? "✓" : "○")</span>
+                            @item.Label
+                        </div>
+                    }
+                </div>
             </div>
-            @if (!_showForm && _patient is null)
-            {
-                <button @onclick="ShowCreateForm" style="margin-top: 16px; width: 100%; padding: 10px; border-radius: 12px; border: 1px solid rgba(0,212,200,0.4); background: rgba(0,212,200,0.1); color: var(--teal-primary); font-size: 14px; font-weight: 500; cursor: pointer;">
-                    + Complete Medical Profile
-                </button>
-            }
-            else if (!_showForm && _patient is not null)
-            {
-                <button @onclick="ShowEditForm" style="margin-top: 16px; width: 100%; padding: 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: var(--text-sec); font-size: 14px; cursor: pointer;">
-                    Edit Medical Profile
-                </button>
-            }
-        </div>
+        }
 
         @* Vital Statistics Grid *@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -107,6 +119,20 @@
                     @if (_patient?.Height is not null)
                     {
                         @_patient.Height.Value.ToString("0.#") <span style="font-size: 12px; color: var(--text-sec);">cm</span>
+                    }
+                    else
+                    {
+                        <span>—</span>
+                    }
+                </div>
+            </div>
+            <div class="glass-card" style="padding: 12px;">
+                <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 4px;">BMI</div>
+                <div style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">
+                    @if (_bmi is not null)
+                    {
+                        @_bmi.Value.ToString("0.0")
+                        <span style="font-size: 10px; color: @_bmiCategoryColor;">@_bmiCategory</span>
                     }
                     else
                     {
@@ -141,20 +167,6 @@
                 </div>
             </div>
             <div class="glass-card" style="padding: 12px;">
-                <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 4px;">BMI</div>
-                <div style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">
-                    @if (_bmi is not null)
-                    {
-                        @_bmi.Value.ToString("0.0")
-                        <span style="font-size: 10px; color: @_bmiCategoryColor;">@_bmiCategory</span>
-                    }
-                    else
-                    {
-                        <span>—</span>
-                    }
-                </div>
-            </div>
-            <div class="glass-card" style="padding: 12px;">
                 <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 4px;">Cholesterol</div>
                 <div style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">
                     @if (_patient?.Cholesterol is not null)
@@ -166,57 +178,6 @@
                         <span>N/A</span>
                     }
                 </div>
-            </div>
-            <div class="glass-card" style="padding: 12px;">
-                <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 4px;">Blood Type</div>
-                <div style="font-family: var(--font-rounded); font-size: 18px; color: var(--text-main);">@(_patient?.BloodType ?? "—")</div>
-            </div>
-        </div>
-
-        @* Assigned Doctors *@
-        <div class="glass-card" style="padding: 16px;">
-            <h3 style="font-size: 14px; font-weight: 600; color: var(--text-main); margin-bottom: 16px;">Assigned Doctors</h3>
-            <div style="display: flex; flex-direction: column; gap: 16px;">
-                @if (_assignedDoctors.Count == 0)
-                {
-                    <div style="font-size: 13px; color: var(--text-sec); line-height: 1.6;">
-                        No doctor is currently assigned to your profile.
-                    </div>
-                }
-                else
-                {
-                    @foreach (var doctor in _assignedDoctors)
-                    {
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <div style="width: 40px; height: 40px; border-radius: 50%;
-                                        background: rgba(255,255,255,0.08);
-                                        display: flex; align-items: center; justify-content: center;
-                                        font-size: 14px; font-weight: 600; color: var(--text-main);
-                                        position: relative; flex-shrink: 0; overflow: hidden;">
-                                @if (!string.IsNullOrEmpty(doctor.PhotoUrl))
-                                {
-                                    <img src="@doctor.PhotoUrl" alt="@doctor.FullName"
-                                         style="width: 100%; height: 100%; object-fit: cover;" />
-                                }
-                                else
-                                {
-                                    @GetInitials(doctor.FullName)
-                                }
-                            </div>
-                            <div style="min-width: 0;">
-                                <div style="font-size: 14px; font-weight: 500; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                    @doctor.FullName
-                                </div>
-                                <div style="font-size: 12px; color: var(--text-sec); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                    @doctor.Email
-                                </div>
-                                <div style="font-size: 10px; color: var(--text-tert); margin-top: 2px;">
-                                    Assigned @doctor.AssignedAt.ToLocalTime().ToString("dd MMM yyyy")
-                                </div>
-                            </div>
-                        </div>
-                    }
-                }
             </div>
         </div>
 
@@ -291,11 +252,53 @@
             </div>
         </div>
 
-        @* Sign Out *@
-        <button @onclick="SignOutAsync"
-                style="width: 100%; padding: 14px; border-radius: 16px; border: 1px solid rgba(255,59,48,0.3); background: rgba(255,59,48,0.1); color: var(--red-critical); font-size: 15px; font-weight: 600; cursor: pointer;">
-            Log out
-        </button>
+        @* Assigned Doctors *@
+        <div class="glass-card" style="padding: 16px;">
+            <h3 style="font-size: 14px; font-weight: 600; color: var(--text-main); margin-bottom: 16px;">Assigned Doctors</h3>
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                @if (_assignedDoctors.Count == 0)
+                {
+                    <div style="font-size: 13px; color: var(--text-sec); line-height: 1.6;">
+                        No doctor is currently assigned to your profile.
+                    </div>
+                }
+                else
+                {
+                    @foreach (var doctor in _assignedDoctors)
+                    {
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 40px; height: 40px; border-radius: 50%;
+                                        background: rgba(255,255,255,0.08);
+                                        display: flex; align-items: center; justify-content: center;
+                                        font-size: 14px; font-weight: 600; color: var(--text-main);
+                                        position: relative; flex-shrink: 0; overflow: hidden;">
+                                @if (!string.IsNullOrEmpty(doctor.PhotoUrl))
+                                {
+                                    <img src="@doctor.PhotoUrl" alt="@doctor.FullName"
+                                         style="width: 100%; height: 100%; object-fit: cover;" />
+                                }
+                                else
+                                {
+                                    @GetInitials(doctor.FullName)
+                                }
+                            </div>
+                            <div style="min-width: 0;">
+                                <div style="font-size: 14px; font-weight: 500; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    @doctor.FullName
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-sec); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    @doctor.Email
+                                </div>
+                                <div style="font-size: 10px; color: var(--text-tert); margin-top: 2px;">
+                                    Assigned @doctor.AssignedAt.ToLocalTime().ToString("dd MMM yyyy")
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
     }
 
 </div>
@@ -308,6 +311,7 @@
     private List<DigitalTwin.Domain.Models.MedicalHistoryEntry> _ocrHistory = new();
     private bool _showForm;
     private bool _isSaving;
+    private bool _showProfileMenu;
     private string? _formError;
     private List<ProfileCompletionChecklist.ChecklistItem> _checklistItems = new();
     private int? _restingHrBpm;
@@ -330,6 +334,23 @@
             .Split(' ', StringSplitOptions.RemoveEmptyEntries)
             .Take(2).Select(w => w[0])).ToUpperInvariant();
 
+    private string _profileSubtitle
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (_currentUser?.DateOfBirth is { } dob && dob != default)
+            {
+                var age = DateTime.Today.Year - dob.Year;
+                if (dob.Date > DateTime.Today.AddYears(-age)) age--;
+                parts.Add($"{dob:yyyy-MM-dd} ({age} y/o)");
+            }
+            if (!string.IsNullOrEmpty(_patient?.BloodType))
+                parts.Add($"Blood type: {_patient.BloodType}");
+            return parts.Count > 0 ? string.Join(" | ", parts) : (_currentUser?.Email ?? string.Empty);
+        }
+    }
+
     private int _completionPct => _checklistItems.Count == 0 ? 0
         : (int)Math.Round(_checklistItems.Count(i => i.IsChecked) * 100.0 / _checklistItems.Count);
 
@@ -348,6 +369,22 @@
             await LoadRestingHrAsync();
         }
         RebuildChecklist();
+    }
+
+    private void ToggleProfileMenu() => _showProfileMenu = !_showProfileMenu;
+    private void CloseProfileMenu() => _showProfileMenu = false;
+
+    private async Task SignOutFromMenu()
+    {
+        _showProfileMenu = false;
+        await SignOutAsync();
+    }
+
+    private void EditMedicalProfileFromMenu()
+    {
+        _showProfileMenu = false;
+        _formError = null;
+        _showForm = true;
     }
 
     private void ShowCreateForm()

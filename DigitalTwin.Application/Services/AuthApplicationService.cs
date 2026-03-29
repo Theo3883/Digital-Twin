@@ -210,7 +210,8 @@ public class AuthApplicationService : IAuthApplicationService
             Email             = user.Email,
             DisplayName       = $"{user.FirstName} {user.LastName}".Trim(),
             PhotoUrl          = user.PhotoUrl,
-            HasPatientProfile = hasProfile
+            HasPatientProfile = hasProfile,
+            DateOfBirth       = user.DateOfBirth
         };
     }
 
