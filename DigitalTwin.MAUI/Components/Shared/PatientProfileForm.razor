@@ -117,6 +117,24 @@
                              Min="0"
                              Max="30" />
 
+            <MudDivider Class="my-2" />
+
+            <MudText Typo="Typo.caption" Style="color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.1em;">
+                Identification
+            </MudText>
+
+            <MudTextField @bind-Value="_cnp"
+                          Label="CNP *"
+                          Variant="Variant.Outlined"
+                          MaxLength="13"
+                          Counter="13"
+                          Required="true"
+                          RequiredError="CNP is required."
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Badge"
+                          Placeholder="13-digit Personal Numeric Code"
+                          HelperText="Cod Numeric Personal (Romanian ID number)" />
+
             <MudStack Row="true" Spacing="2" Style="margin-top: 8px;">
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Primary"
@@ -160,6 +178,7 @@
     [Parameter] public int? InitialBloodPressureSystolic { get; set; }
     [Parameter] public int? InitialBloodPressureDiastolic { get; set; }
     [Parameter] public decimal? InitialCholesterol { get; set; }
+    [Parameter] public string? InitialCnp { get; set; }
     [Parameter] public EventCallback<PatientProfileDto> OnSave { get; set; }
     [Parameter] public EventCallback OnCancel { get; set; }
 
@@ -171,6 +190,7 @@
     private int? _bpSystolic;
     private int? _bpDiastolic;
     private decimal? _cholesterol;
+    private string? _cnp;
 
     private string? _bmi
         => TryComputeBmi(_weight, _height, out var bmi)
@@ -192,6 +212,7 @@
         _bpSystolic = InitialBloodPressureSystolic;
         _bpDiastolic = InitialBloodPressureDiastolic;
         _cholesterol = InitialCholesterol;
+        _cnp = InitialCnp;
     }
 
     private async Task HandleSave()
@@ -205,7 +226,8 @@
             Height              = _height,
             BloodPressureSystolic  = _bpSystolic,
             BloodPressureDiastolic = _bpDiastolic,
-            Cholesterol         = _cholesterol
+            Cholesterol         = _cholesterol,
+            Cnp                 = _cnp?.Trim()
         };
         await OnSave.InvokeAsync(dto);
     }

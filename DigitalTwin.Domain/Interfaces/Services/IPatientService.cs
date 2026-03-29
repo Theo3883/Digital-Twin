@@ -13,7 +13,9 @@ public interface IPatientService
         decimal? height,
         int? bloodPressureSystolic,
         int? bloodPressureDiastolic,
-        decimal? cholesterol);
+        decimal? cholesterol,
+        string? cnp,
+        DateTime? userDateOfBirth);
     Task<Patient?> GetByUserIdAsync(Guid userId);
     Task<bool> HasPatientProfileAsync(Guid userId);
     Task<Guid?> GetPatientIdForUserAsync(Guid userId);

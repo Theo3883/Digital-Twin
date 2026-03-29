@@ -124,6 +124,7 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
                 BloodPressureSystolic  = patient.BloodPressureSystolic,
                 BloodPressureDiastolic = patient.BloodPressureDiastolic,
                 Cholesterol         = patient.Cholesterol,
+                Cnp                 = patient.Cnp,
                 CreatedAt           = patient.CreatedAt,
                 UpdatedAt           = patient.UpdatedAt
             };

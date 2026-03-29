@@ -71,6 +71,11 @@ public record DoctorPatientDetailDto
     public decimal? Cholesterol { get; init; }
 
     /// <summary>
+    /// Gets the patient's Romanian Personal Numeric Code (CNP).
+    /// </summary>
+    public string? Cnp { get; init; }
+
+    /// <summary>
     /// Gets when the patient profile was created.
     /// </summary>
     public DateTime CreatedAt { get; init; }

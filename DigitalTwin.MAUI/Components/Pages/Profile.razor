@@ -77,6 +77,7 @@
                                 InitialBloodPressureSystolic="@_patient?.BloodPressureSystolic"
                                 InitialBloodPressureDiastolic="@_patient?.BloodPressureDiastolic"
                                 InitialCholesterol="@_patient?.Cholesterol"
+                                InitialCnp="@_patient?.Cnp"
                                 OnSave="SaveProfileAsync"
                                 OnCancel="CancelForm" />
         }
@@ -99,6 +100,8 @@
         }
 
         @* Vital Statistics Grid *@
+        @if (_patient is not null)
+        {
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <div class="glass-card" style="padding: 12px;">
                 <div style="font-size: 12px; color: var(--text-sec); margin-bottom: 4px;">Weight</div>
@@ -205,24 +208,9 @@
             }
             else
             {
-                <div style="position: relative; border-left: 1px solid rgba(255,255,255,0.1); margin-left: 8px; display: flex; flex-direction: column; gap: 24px; padding-bottom: 8px;">
-                    <div style="position: relative; padding-left: 16px;">
-                        <div style="position: absolute; left: -6px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--teal-primary); box-shadow: 0 0 10px rgba(0,212,200,0.5);"></div>
-                        <div style="font-size: 12px; color: var(--teal-primary); font-weight: 500; margin-bottom: 4px;">Mar 2024</div>
-                        <div style="font-size: 14px; color: rgba(255,255,255,0.9);">Paroxysmal SVT episode</div>
-                        <div style="font-size: 12px; color: var(--text-sec);">ED visit, cardioverted</div>
-                    </div>
-                    <div style="position: relative; padding-left: 16px;">
-                        <div style="position: absolute; left: -6px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);"></div>
-                        <div style="font-size: 12px; color: var(--text-sec); font-weight: 500; margin-bottom: 4px;">Oct 2023</div>
-                        <div style="font-size: 14px; color: rgba(255,255,255,0.9);">Started Metoprolol 50mg</div>
-                    </div>
-                    <div style="position: relative; padding-left: 16px;">
-                        <div style="position: absolute; left: -6px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4);"></div>
-                        <div style="font-size: 12px; color: var(--text-sec); font-weight: 500; margin-bottom: 4px;">Jun 2022</div>
-                        <div style="font-size: 14px; color: rgba(255,255,255,0.9);">Echocardiogram — EF 62%</div>
-                    </div>
-                </div>
+                <p style="font-size: 13px; color: var(--text-sec); line-height: 1.6;">
+                    No medical history recorded yet. Import a document or add notes to your medical profile.
+                </p>
             }
         </div>
 
@@ -298,6 +286,28 @@
                 }
             </div>
         </div>
+
+        }
+        else if (!_showForm)
+        {
+            @* No medical profile yet — warn the user *@
+            <div class="glass-card" style="padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center;">
+                <div style="width: 52px; height: 52px; border-radius: 50%; background: rgba(255,180,0,0.12); display: flex; align-items: center; justify-content: center;">
+                    <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Style="color: var(--amber-warning, #f59e0b); font-size: 28px;" />
+                </div>
+                <div>
+                    <p style="font-size: 15px; font-weight: 600; color: var(--text-main); margin: 0 0 6px;">No medical profile yet</p>
+                    <p style="font-size: 13px; color: var(--text-sec); line-height: 1.6; margin: 0;">
+                        Create your medical profile to unlock vitals tracking, medical history, document scanning, and doctor assignments.
+                    </p>
+                </div>
+                <button @onclick="ShowCreateForm"
+                        style="width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(0,212,200,0.4); background: rgba(0,212,200,0.1); color: var(--teal-primary); font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <MudIcon Icon="@Icons.Material.Filled.AddCircleOutline" Size="Size.Small" Style="color: var(--teal-primary);" />
+                    Create Medical Profile
+                </button>
+            </div>
+        }
 
     }
 
@@ -447,7 +457,8 @@
             new(!string.IsNullOrEmpty(_patient?.Allergies), "Allergies info"),
             new(!string.IsNullOrEmpty(_patient?.MedicalHistoryNotes), "Medical history"),
             new(_patient?.Weight is not null, "Weight"),
-            new(_patient?.Height is not null, "Height")
+            new(_patient?.Height is not null, "Height"),
+            new(!string.IsNullOrEmpty(_patient?.Cnp), "CNP")
         };
     }
 

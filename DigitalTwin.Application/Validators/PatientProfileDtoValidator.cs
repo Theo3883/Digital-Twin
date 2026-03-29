@@ -60,5 +60,12 @@ public class PatientProfileDtoValidator : AbstractValidator<PatientProfileDto>
             .Must(p =>
                 !(p.BloodPressureSystolic.HasValue ^ p.BloodPressureDiastolic.HasValue))
             .WithMessage("Blood pressure must include both systolic and diastolic values (or neither).");
+
+        RuleFor(p => p.Cnp)
+            .NotEmpty()
+            .WithMessage("CNP is required.")
+            .Matches(@"^\d{13}$")
+            .When(p => !string.IsNullOrWhiteSpace(p.Cnp))
+            .WithMessage("CNP must be exactly 13 digits.");
     }
 }

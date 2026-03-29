@@ -44,4 +44,9 @@ public record PatientProfileDto
     /// Gets the patient's total cholesterol in millimoles per liter (mmol/L).
     /// </summary>
     public decimal? Cholesterol { get; init; }
+
+    /// <summary>
+    /// Gets the patient's Romanian Personal Numeric Code (CNP).
+    /// </summary>
+    public string? Cnp { get; init; }
 }

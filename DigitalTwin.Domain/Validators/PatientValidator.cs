@@ -26,5 +26,29 @@ public class PatientValidator : AbstractValidator<Patient>
         RuleFor(p => p.MedicalHistoryNotes)
             .MaximumLength(5000)
             .When(p => p.MedicalHistoryNotes is not null);
+
+        RuleFor(p => p.Cnp)
+            .NotEmpty()
+            .WithMessage("CNP is required.");
+
+        RuleFor(p => p.Cnp)
+            .Must(CnpValidator.IsValidFormat)
+            .WithMessage("CNP must be exactly 13 digits and start with 1–6.")
+            .When(p => !string.IsNullOrWhiteSpace(p.Cnp));
+
+        RuleFor(p => p.Cnp)
+            .Must(cnp => CnpValidator.IsValidDate(cnp!))
+            .WithMessage("CNP contains an invalid date of birth.")
+            .When(p => !string.IsNullOrWhiteSpace(p.Cnp) && CnpValidator.IsValidFormat(p.Cnp!));
+
+        RuleFor(p => p.Cnp)
+            .Must(cnp => CnpValidator.IsValidCountyCode(cnp!))
+            .WithMessage("CNP contains an invalid county code.")
+            .When(p => !string.IsNullOrWhiteSpace(p.Cnp) && CnpValidator.IsValidFormat(p.Cnp!));
+
+        RuleFor(p => p.Cnp)
+            .Must(cnp => CnpValidator.IsValidChecksum(cnp!))
+            .WithMessage("CNP has an invalid checksum digit.")
+            .When(p => !string.IsNullOrWhiteSpace(p.Cnp) && CnpValidator.IsValidFormat(p.Cnp!));
     }
 }

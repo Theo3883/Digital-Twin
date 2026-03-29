@@ -64,6 +64,7 @@ public class PatientRepository : IPatientRepository
         entity.BloodPressureSystolic = patient.BloodPressureSystolic;
         entity.BloodPressureDiastolic = patient.BloodPressureDiastolic;
         entity.Cholesterol = patient.Cholesterol;
+        entity.Cnp = patient.Cnp;
         entity.UpdatedAt = DateTime.UtcNow;
         entity.IsDirty = _markDirtyOnInsert;
         if (!_markDirtyOnInsert) entity.SyncedAt = DateTime.UtcNow;
@@ -114,6 +115,7 @@ public class PatientRepository : IPatientRepository
         BloodPressureSystolic = entity.BloodPressureSystolic,
         BloodPressureDiastolic = entity.BloodPressureDiastolic,
         Cholesterol = entity.Cholesterol,
+        Cnp = entity.Cnp,
         CreatedAt = entity.CreatedAt,
         UpdatedAt = entity.UpdatedAt
     };
@@ -130,6 +132,7 @@ public class PatientRepository : IPatientRepository
         BloodPressureSystolic = model.BloodPressureSystolic,
         BloodPressureDiastolic = model.BloodPressureDiastolic,
         Cholesterol = model.Cholesterol,
+        Cnp = model.Cnp,
         CreatedAt = model.CreatedAt,
         UpdatedAt = model.UpdatedAt
     };

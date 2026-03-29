@@ -17,6 +17,7 @@ internal static class PatientEntityMapper
         BloodPressureSystolic  = e.BloodPressureSystolic,
         BloodPressureDiastolic = e.BloodPressureDiastolic,
         Cholesterol         = e.Cholesterol,
+        Cnp                 = e.Cnp,
         CreatedAt           = e.CreatedAt,
         UpdatedAt           = e.UpdatedAt
     };
@@ -33,6 +34,7 @@ internal static class PatientEntityMapper
         BloodPressureSystolic  = m.BloodPressureSystolic,
         BloodPressureDiastolic = m.BloodPressureDiastolic,
         Cholesterol         = m.Cholesterol,
+        Cnp                 = m.Cnp,
         CreatedAt           = m.CreatedAt,
         UpdatedAt           = m.UpdatedAt
     };

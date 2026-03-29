@@ -359,6 +359,10 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                     b.Property<decimal?>("Cholesterol")
                         .HasColumnType("numeric");
 
+                    b.Property<string>("Cnp")
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 

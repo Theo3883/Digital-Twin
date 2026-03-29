@@ -354,6 +354,10 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                     b.Property<decimal?>("Cholesterol")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Cnp")
+                        .HasMaxLength(13)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 

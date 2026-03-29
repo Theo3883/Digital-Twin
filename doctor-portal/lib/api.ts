@@ -201,6 +201,7 @@ export interface PatientDetail {
   bloodType: string | null;
   allergies: string | null;
   medicalHistoryNotes: string | null;
+  cnp: string | null;
   createdAt: string;
   updatedAt: string;
 }

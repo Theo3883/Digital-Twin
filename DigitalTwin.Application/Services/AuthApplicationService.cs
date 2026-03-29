@@ -108,6 +108,8 @@ public class AuthApplicationService : IAuthApplicationService
         if (current is null)
             throw new UnauthorizedException("No authenticated user. Sign in first.");
 
+        var user = await _authService.GetCurrentUserAsync();
+
         await _patientService.CreateOrUpdateProfileAsync(
             current.UserId,
             profile.BloodType,
@@ -117,14 +119,16 @@ public class AuthApplicationService : IAuthApplicationService
             profile.Height,
             profile.BloodPressureSystolic,
             profile.BloodPressureDiastolic,
-            profile.Cholesterol);
+            profile.Cholesterol,
+            profile.Cnp,
+            user?.DateOfBirth);
 
         if (_logger.IsEnabled(LogLevel.Debug))
             _logger.LogDebug("[Auth] Patient profile saved for UserId={UserId}.", current.UserId);
 
         await TriggerCloudSync();
 
-        var user = (await _authService.GetCurrentUserAsync())!;
+        user = (await _authService.GetCurrentUserAsync())!;
         var authResult = await BuildAuthResultAsync(user);
         _cachedUser = authResult;
         return authResult;
@@ -152,6 +156,7 @@ public class AuthApplicationService : IAuthApplicationService
             BloodPressureSystolic  = patient.BloodPressureSystolic,
             BloodPressureDiastolic = patient.BloodPressureDiastolic,
             Cholesterol         = patient.Cholesterol,
+            Cnp                 = patient.Cnp,
             CreatedAt           = patient.CreatedAt
         };
     }

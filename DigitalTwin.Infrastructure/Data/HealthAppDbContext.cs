@@ -93,6 +93,7 @@ public class HealthAppDbContext : DbContext
         {
             e.HasKey(p => p.Id);
             e.HasIndex(p => p.UserId).IsUnique();
+            e.Property(p => p.Cnp).HasMaxLength(13);
             e.HasMany(p => p.VitalSigns).WithOne(v => v.Patient).HasForeignKey(v => v.PatientId);
             e.HasMany(p => p.Medications).WithOne(m => m.Patient).HasForeignKey(m => m.PatientId);
             e.HasMany(p => p.SleepSessions).WithOne(s => s.Patient).HasForeignKey(s => s.PatientId);

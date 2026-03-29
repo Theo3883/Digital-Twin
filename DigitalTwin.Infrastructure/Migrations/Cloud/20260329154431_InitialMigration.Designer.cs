@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DigitalTwin.Infrastructure.Migrations.Cloud
 {
     [DbContext(typeof(CloudDbContext))]
-    [Migration("20260327134135_InitialMigration")]
+    [Migration("20260329154431_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -361,6 +361,10 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
 
                     b.Property<decimal?>("Cholesterol")
                         .HasColumnType("numeric");
+
+                    b.Property<string>("Cnp")
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");

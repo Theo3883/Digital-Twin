@@ -1,6 +1,8 @@
+using DigitalTwin.Domain.Exceptions;
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Interfaces.Repositories;
 using DigitalTwin.Domain.Models;
+using DigitalTwin.Domain.Validators;
 
 namespace DigitalTwin.Domain.Services;
 
@@ -29,8 +31,17 @@ public class PatientService : IPatientService
         decimal? height,
         int? bloodPressureSystolic,
         int? bloodPressureDiastolic,
-        decimal? cholesterol)
+        decimal? cholesterol,
+        string? cnp,
+        DateTime? userDateOfBirth)
     {
+        if (!string.IsNullOrWhiteSpace(cnp) && userDateOfBirth.HasValue)
+        {
+            if (!CnpValidator.MatchesDateOfBirth(cnp, userDateOfBirth.Value))
+                throw new DomainException(
+                    "The date of birth embedded in the CNP does not match the patient's date of birth.");
+        }
+
         var existing = await _patientRepo.GetByUserIdAsync(userId);
 
         if (existing is not null)
@@ -43,6 +54,7 @@ public class PatientService : IPatientService
             existing.BloodPressureSystolic = bloodPressureSystolic;
             existing.BloodPressureDiastolic = bloodPressureDiastolic;
             existing.Cholesterol = cholesterol;
+            existing.Cnp = cnp;
             await _patientRepo.UpdateAsync(existing);
             return existing;
         }
@@ -57,7 +69,8 @@ public class PatientService : IPatientService
             Height = height,
             BloodPressureSystolic = bloodPressureSystolic,
             BloodPressureDiastolic = bloodPressureDiastolic,
-            Cholesterol = cholesterol
+            Cholesterol = cholesterol,
+            Cnp = cnp
         };
         await _patientRepo.AddAsync(patient);
         return patient;

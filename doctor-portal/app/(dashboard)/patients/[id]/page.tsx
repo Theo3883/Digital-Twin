@@ -588,6 +588,7 @@ export default function PatientDetailPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <InfoCard label="Blood Type" value={patient.bloodType ?? "—"} />
         <InfoCard label="Allergies" value={patient.allergies ?? "None"} />
+        <InfoCard label="CNP" value={patient.cnp ?? "—"} />
         <InfoCard
           label="Member Since"
           value={format(new Date(patient.createdAt), "MMM d, yyyy")}

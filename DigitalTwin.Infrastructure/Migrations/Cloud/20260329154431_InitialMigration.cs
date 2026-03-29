@@ -149,6 +149,7 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                     BloodPressureSystolic = table.Column<int>(type: "integer", nullable: true),
                     BloodPressureDiastolic = table.Column<int>(type: "integer", nullable: true),
                     Cholesterol = table.Column<decimal>(type: "numeric", nullable: true),
+                    Cnp = table.Column<string>(type: "character varying(13)", maxLength: 13, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     IsDirty = table.Column<bool>(type: "boolean", nullable: false),

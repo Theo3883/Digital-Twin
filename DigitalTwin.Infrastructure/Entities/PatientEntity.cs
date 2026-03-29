@@ -23,6 +23,9 @@ public class PatientEntity
     /// <summary>Total cholesterol in millimoles per liter (mmol/L).</summary>
     public decimal? Cholesterol { get; set; }
 
+    /// <summary>Romanian Personal Numeric Code (Cod Numeric Personal).</summary>
+    public string? Cnp { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public bool IsDirty { get; set; }

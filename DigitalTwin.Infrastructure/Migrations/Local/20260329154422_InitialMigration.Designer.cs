@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DigitalTwin.Infrastructure.Migrations.Local
 {
     [DbContext(typeof(LocalDbContext))]
-    [Migration("20260327134130_InitialMigration")]
+    [Migration("20260329154422_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -355,6 +355,10 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                         .HasColumnType("TEXT");
 
                     b.Property<decimal?>("Cholesterol")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Cnp")
+                        .HasMaxLength(13)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
