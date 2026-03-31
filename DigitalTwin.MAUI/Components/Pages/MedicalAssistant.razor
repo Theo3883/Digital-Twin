@@ -1,5 +1,6 @@
 @page "/assistant"
 @inject IChatBotApplicationService ChatBotService
+@inject DigitalTwin.Services.ChatHistoryStore ChatHistory
 
 <RequireAuth>
 <div class="page-enter chat-page">
@@ -16,6 +17,9 @@
                 <span style="font-size: 12px; font-weight: 500; color: var(--text-sec);">Online</span>
             </div>
         </div>
+        <button @onclick="ClearChat" style="margin-left: auto; background: none; border: none; padding: 8px; cursor: pointer; color: var(--text-sec); display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: background 0.2s;" title="Clear chat">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        </button>
     </div>
 
     <div style="flex: 1; min-height: 0; overflow: hidden;">
@@ -31,15 +35,29 @@
     private readonly List<ChatMessageDto> _messages = [];
     private bool _isLoading;
 
+    protected override void OnInitialized()
+    {
+        _messages.AddRange(ChatHistory.Messages);
+    }
+
+    private void ClearChat()
+    {
+        ChatHistory.Clear();
+        _messages.Clear();
+        StateHasChanged();
+    }
+
     private async Task HandleSendMessage(string userMessage)
     {
         // Add user message to the list immediately.
-        _messages.Add(new ChatMessageDto
+        var userMsg = new ChatMessageDto
         {
             Content   = userMessage,
             IsUser    = true,
             Timestamp = DateTime.UtcNow
-        });
+        };
+        _messages.Add(userMsg);
+        ChatHistory.Add(userMsg);
 
         _isLoading = true;
         // Fire-and-forget render — queues a re-render without blocking the current thread.
@@ -66,6 +84,7 @@
         }
 
         _messages.Add(response);
+        ChatHistory.Add(response);
         _isLoading = false;
         // After Task.Run we are on a thread-pool thread — use InvokeAsync to marshal
         // the final state update back onto the Blazor renderer's sync context.

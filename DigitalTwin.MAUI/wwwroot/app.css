@@ -721,4 +721,12 @@ body {
   z-index: 20;
 }
 
+/* 13. Home page: in-flow flex column, explicit height fills the gap between page-content padding */
+.home-page {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: calc(100dvh - 52px - 128px);
+}
+
 

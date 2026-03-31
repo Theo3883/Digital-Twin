@@ -55,6 +55,12 @@ public sealed class PatientSyncDrainer : SyncDrainerBase<Patient>
                 BloodType = patient.BloodType,
                 Allergies = patient.Allergies,
                 MedicalHistoryNotes = patient.MedicalHistoryNotes,
+                Weight = patient.Weight,
+                Height = patient.Height,
+                BloodPressureSystolic = patient.BloodPressureSystolic,
+                BloodPressureDiastolic = patient.BloodPressureDiastolic,
+                Cholesterol = patient.Cholesterol,
+                Cnp = patient.Cnp,
                 CreatedAt = patient.CreatedAt,
                 UpdatedAt = patient.UpdatedAt
             });
@@ -73,6 +79,12 @@ public sealed class PatientSyncDrainer : SyncDrainerBase<Patient>
                 existing.BloodType = patient.BloodType;
                 existing.Allergies = patient.Allergies;
                 existing.MedicalHistoryNotes = patient.MedicalHistoryNotes;
+                existing.Weight = patient.Weight;
+                existing.Height = patient.Height;
+                existing.BloodPressureSystolic = patient.BloodPressureSystolic;
+                existing.BloodPressureDiastolic = patient.BloodPressureDiastolic;
+                existing.Cholesterol = patient.Cholesterol;
+                existing.Cnp = patient.Cnp;
                 await _cloud.UpdateAsync(existing);
             }
             else
@@ -123,10 +135,22 @@ public sealed class PatientSyncDrainer : SyncDrainerBase<Patient>
         var cloudPatient = cloudItems[0];
         var localPatient = (Patient)scope.Context!;
 
-        localPatient.BloodType = cloudPatient.BloodType;
-        localPatient.Allergies = cloudPatient.Allergies;
-        localPatient.MedicalHistoryNotes = cloudPatient.MedicalHistoryNotes;
+        // Null-coalescing merge: prefer the cloud value when available, otherwise keep the
+        // existing local value. This prevents a stale/incomplete cloud record from
+        // overwriting locally-set fields that haven't been pushed yet.
+        localPatient.BloodType                = cloudPatient.BloodType                ?? localPatient.BloodType;
+        localPatient.Allergies                = cloudPatient.Allergies                ?? localPatient.Allergies;
+        localPatient.MedicalHistoryNotes      = cloudPatient.MedicalHistoryNotes      ?? localPatient.MedicalHistoryNotes;
+        localPatient.Weight                   = cloudPatient.Weight                   ?? localPatient.Weight;
+        localPatient.Height                   = cloudPatient.Height                   ?? localPatient.Height;
+        localPatient.BloodPressureSystolic    = cloudPatient.BloodPressureSystolic    ?? localPatient.BloodPressureSystolic;
+        localPatient.BloodPressureDiastolic   = cloudPatient.BloodPressureDiastolic   ?? localPatient.BloodPressureDiastolic;
+        localPatient.Cholesterol              = cloudPatient.Cholesterol              ?? localPatient.Cholesterol;
+        localPatient.Cnp                      = cloudPatient.Cnp                      ?? localPatient.Cnp;
         await _local.UpdateAsync(localPatient);
+        // UpdateAsync on the local repo sets IsDirty=true (markDirtyOnInsert:true).
+        // A pull from cloud is not a local change — clear the flag immediately.
+        await _local.MarkSyncedAsync([localPatient]);
         return 1;
     }
 }

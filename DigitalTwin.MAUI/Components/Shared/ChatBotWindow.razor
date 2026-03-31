@@ -1,4 +1,5 @@
 @* Reusable chat window component — message list + input *@
+@inject IJSRuntime JS
 
 <div class="chatbot-container">
     <div class="chatbot-messages" @ref="_messagesContainer">
@@ -304,6 +305,11 @@
     private bool _prevIsLoading;
     private int _prevMessageCount;
 
+    // Separate scroll-trigger tracking — distinct from ShouldRender so scroll fires
+    // even when the component decides to skip a full re-render.
+    private int _scrolledAtMessageCount = -1;
+    private bool _scrolledAtIsLoading;
+
     protected override bool ShouldRender()
     {
         var inputHasText = !string.IsNullOrWhiteSpace(_inputText);
@@ -314,6 +320,22 @@
         _prevIsLoading     = IsLoading;
         _prevMessageCount  = Messages.Count;
         return needsRender;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender
+            || Messages.Count != _scrolledAtMessageCount
+            || IsLoading      != _scrolledAtIsLoading)
+        {
+            _scrolledAtMessageCount = Messages.Count;
+            _scrolledAtIsLoading    = IsLoading;
+            try
+            {
+                await JS.InvokeVoidAsync("ChatWindow.scrollToBottom", _messagesContainer);
+            }
+            catch { /* element may not be mounted yet on first render — safe to ignore */ }
+        }
     }
 
     private async Task SendMessage()

@@ -16,4 +16,9 @@ public interface ICoachingApplicationService
     /// Short environment-aware guidance from the current air-quality reading (Gemini when configured, otherwise heuristic).
     /// </summary>
     Task<CoachingAdviceDto> GetEnvironmentAdviceAsync(EnvironmentReadingDto environment, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the last environment advice persisted to app preferences, or <c>null</c> if none exists yet.
+    /// </summary>
+    CoachingAdviceDto? GetLastEnvironmentAdvice();
 }

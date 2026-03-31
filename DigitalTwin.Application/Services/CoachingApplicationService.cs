@@ -14,6 +14,7 @@ public class CoachingApplicationService : ICoachingApplicationService
 {
     private readonly ICoachingProvider _coachingProvider;
     private readonly IPatientContextService _patientContextService;
+    private readonly IEnvironmentReadingCache? _envCache;
     private readonly ILogger<CoachingApplicationService> _logger;
 
     /// <summary>
@@ -22,11 +23,13 @@ public class CoachingApplicationService : ICoachingApplicationService
     public CoachingApplicationService(
         ICoachingProvider coachingProvider,
         IPatientContextService patientContextService,
-        ILogger<CoachingApplicationService> logger)
+        ILogger<CoachingApplicationService> logger,
+        IEnvironmentReadingCache? envCache = null)
     {
         _coachingProvider      = coachingProvider;
         _patientContextService = patientContextService;
         _logger                = logger;
+        _envCache              = envCache;
     }
 
     /// <summary>
@@ -68,10 +71,17 @@ public class CoachingApplicationService : ICoachingApplicationService
 
         var advice = await _coachingProvider.GetEnvironmentAdviceAsync(profile, domain, ct).ConfigureAwait(false);
 
-        return new CoachingAdviceDto
+        var dto = new CoachingAdviceDto
         {
             Advice = advice,
             Timestamp = DateTime.UtcNow
         };
+
+        _envCache?.SaveAdvice(dto);
+
+        return dto;
     }
+
+    /// <inheritdoc />
+    public CoachingAdviceDto? GetLastEnvironmentAdvice() => _envCache?.GetLastAdvice();
 }

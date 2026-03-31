@@ -4,11 +4,12 @@ using DigitalTwin.Application.Interfaces;
 namespace DigitalTwin.Integrations.Environment;
 
 /// <summary>
-/// Stores the last environment snapshot via <see cref="IPreferencesJsonCache"/>.
+/// Stores the last environment snapshot and Gemini advice via <see cref="IPreferencesJsonCache"/>.
 /// </summary>
 public sealed class EnvironmentReadingPreferencesCache : IEnvironmentReadingCache
 {
     public const string Key = "env_reading_snapshot_json_v1";
+    private const string AdviceKey = "env_advice_v1";
 
     private readonly IPreferencesJsonCache _prefs;
 
@@ -22,4 +23,10 @@ public sealed class EnvironmentReadingPreferencesCache : IEnvironmentReadingCach
 
     public void Save(EnvironmentReadingDto reading) =>
         _prefs.Set(Key, reading);
+
+    public CoachingAdviceDto? GetLastAdvice() =>
+        _prefs.Get<CoachingAdviceDto>(AdviceKey);
+
+    public void SaveAdvice(CoachingAdviceDto advice) =>
+        _prefs.Set(AdviceKey, advice);
 }

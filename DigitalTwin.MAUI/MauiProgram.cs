@@ -51,6 +51,7 @@ public static class MauiProgram
 
         builder.Services.AddSingleton<IAppRouteState, AppRouteState>();
         builder.Services.AddSingleton<IPullRefreshCoordinator, PullRefreshCoordinator>();
+        builder.Services.AddSingleton<ChatHistoryStore>();
         builder.Services.AddSingleton<MainPage>();
 
         var localDbPath = Path.Combine(FileSystem.AppDataDirectory, "healthapp.db");

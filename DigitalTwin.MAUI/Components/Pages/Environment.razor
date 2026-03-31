@@ -12,6 +12,7 @@
 <div class="page-enter" style="padding: 0 16px 32px; display: flex; flex-direction: column; gap: 16px;">
 
     @* AQI Hero Card / Map *@
+    <div style="position: relative;">
     <div class="glass-card" style="position: relative; overflow: hidden; height: 200px; display: flex; flex-direction: column; justify-content: flex-end; padding: 20px; -webkit-mask-image: -webkit-radial-gradient(white, black);">
         @* Gradient + nested image — matches web design structure *@
         <div style="position: absolute; inset: 0; border-radius: inherit; overflow: hidden; background: linear-gradient(to bottom, rgba(30,60,120,0.4), rgba(10,14,26,0.9)); opacity: 0.6;">
@@ -35,28 +36,22 @@
         </div>
     </div>
 
-    @* Location: device GPS or manual city *@
-    <div class="glass-card" style="padding: 14px 16px; display: flex; flex-direction: column; gap: 12px;">
-        <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
-            <button type="button" class="glass-chip" style="cursor: pointer; border: none; font-size: 13px; color: var(--text-main); padding: 8px 14px;" @onclick="UseMyLocationAsync" disabled="@_loading">
-                Use my location
-            </button>
-            <span style="font-size: 12px; color: var(--text-sec);">or enter a city:</span>
-        </div>
-        <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
-            <input type="text" @bind="_cityInput" @bind:event="oninput" placeholder="e.g. Paris, FR" disabled="@_loading"
-                   style="flex: 1; min-width: 160px; padding: 10px 12px; border-radius: var(--radius-inner); border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.2); color: var(--text-main); font-size: 14px;" />
-            <button type="button" class="glass-chip" style="cursor: pointer; border: none; font-size: 13px; color: var(--text-main); padding: 8px 14px;" @onclick="ApplyCityAsync" disabled="@_loading">
-                Apply city
-            </button>
-        </div>
-        @if (!string.IsNullOrEmpty(_locationError))
+    @* 3-dot menu — outside hero card to avoid overflow: hidden clipping *@
+    <div style="position: absolute; top: 12px; right: 12px; z-index: 10;">
+        <button @onclick="ToggleLocationMenu" style="width: 32px; height: 32px; border-radius: 50%; border: none; background: rgba(0,0,0,0.35); color: rgba(255,255,255,0.8); cursor: pointer; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(8px);">
+            <MudIcon Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Style="color: rgba(255,255,255,0.8);" />
+        </button>
+        @if (_showLocationMenu)
         {
-            <p style="margin: 0; font-size: 12px; color: var(--red-critical);">@_locationError</p>
+            <div @onclick="CloseLocationMenu" style="position: fixed; inset: 0; z-index: 99;"></div>
+            <div style="position: absolute; top: 36px; right: 0; min-width: 190px; border-radius: 14px; background: #1e2028; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 8px 32px rgba(0,0,0,0.6); z-index: 100; overflow: hidden;">
+                <button @onclick="OpenLocationPopup" style="width: 100%; padding: 13px 16px; background: transparent; border: none; text-align: left; font-size: 14px; color: #ffffff; cursor: pointer; display: flex; align-items: center; gap: 10px;">
+                    <MudIcon Icon="@Icons.Material.Filled.EditLocation" Size="Size.Small" Style="color: var(--teal-primary);" />
+                    Edit Location
+                </button>
+            </div>
         }
-        <p style="margin: 0; font-size: 11px; color: var(--text-tert);">
-            @(LocationSource.Mode == DigitalTwin.Domain.Enums.EnvironmentLocationMode.Manual ? "Using city name (geocoded)." : "Using device location, or LATITUDE/LONGITUDE from .env if GPS is unavailable.")
-        </p>
+    </div>
     </div>
 
     @* Metric Grid (2×3) *@
@@ -197,6 +192,42 @@
     </div>
 
 </div>
+
+@* Location popup sheet *@
+@if (_showLocationPopup)
+{
+    <div @onclick="CloseLocationPopup" style="position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);"></div>
+    <div @onclick:stopPropagation="true" style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 201; background: #1a1d26; border-radius: 24px 24px 0 0; padding: 24px 20px calc(24px + env(safe-area-inset-bottom, 16px)); border-top: 1px solid rgba(255,255,255,0.12); box-shadow: 0 -8px 40px rgba(0,0,0,0.6);">
+        <div @onclick="CloseLocationPopup" style="width: 100%; padding: 4px 0 20px; display: flex; justify-content: center; align-items: center; cursor: pointer;">
+            <div style="width: 40px; height: 4px; background: rgba(255,255,255,0.25); border-radius: 2px;"></div>
+        </div>
+        <div style="font-family: var(--font-display); font-weight: 600; font-size: 18px; color: var(--text-main); margin-bottom: 20px;">Edit Location</div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <button type="button" class="glass-chip" style="cursor: pointer; border: none; font-size: 14px; color: var(--text-main); padding: 12px 16px; display: flex; align-items: center; gap: 10px; justify-content: center;" @onclick="UseMyLocationFromPopupAsync" disabled="@_loading">
+                <MudIcon Icon="@Icons.Material.Filled.MyLocation" Size="Size.Small" Style="color: var(--teal-primary);" />
+                Use my location
+            </button>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></div>
+                <span style="font-size: 12px; color: var(--text-sec);">or enter a city</span>
+                <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.1);"></div>
+            </div>
+            <input type="text" @bind="_cityInput" @bind:event="oninput" placeholder="e.g. Paris, FR" disabled="@_loading"
+                   style="width: 100%; padding: 12px 14px; border-radius: var(--radius-inner); border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.25); color: var(--text-main); font-size: 14px; box-sizing: border-box;" />
+            <button type="button" class="glass-chip" style="cursor: pointer; border: none; font-size: 14px; color: var(--text-main); padding: 12px 16px;" @onclick="ApplyCityFromPopupAsync" disabled="@(_loading || string.IsNullOrWhiteSpace(_cityInput))">
+                Apply city
+            </button>
+            @if (!string.IsNullOrEmpty(_locationError))
+            {
+                <p style="margin: 0; font-size: 12px; color: var(--red-critical);">@_locationError</p>
+            }
+            <p style="margin: 4px 0 0; font-size: 11px; color: var(--text-tert); text-align: center;">
+                @(LocationSource.Mode == DigitalTwin.Domain.Enums.EnvironmentLocationMode.Manual ? "Using city name (geocoded)." : "Using device location, or LATITUDE/LONGITUDE from .env if GPS is unavailable.")
+            </p>
+        </div>
+    </div>
+}
+
 </RequireAuth>
 
 @code {
@@ -204,6 +235,8 @@
     private string _locationDisplay = "Loading…";
     private string _cityInput = "";
     private string? _locationError;
+    private bool _showLocationMenu;
+    private bool _showLocationPopup;
 
     private EnvironmentReadingDto _currentReading = new();
     private EnvironmentAnalyticsDto? _analytics;
@@ -267,11 +300,15 @@
         else
             ApplyReading(new EnvironmentReadingDto());
 
+        var cachedAdvice = CoachingService.GetLastEnvironmentAdvice();
+        if (cachedAdvice is not null)
+            _envAdvice = cachedAdvice.Advice;
+
         _loading = false;
 
         PullRefresh.RegisterEnvironment(RefreshEnvironmentAsync);
 
-        await LoadAnalyticsAndAdviceAsync();
+        await LoadAnalyticsAndAdviceAsync(includeAdvice: cachedAdvice is null);
     }
 
     private async Task RefreshEnvironmentAsync()
@@ -292,39 +329,55 @@
         await LoadAnalyticsAndAdviceAsync();
     }
 
-    private async Task UseMyLocationAsync()
+    private void ToggleLocationMenu() => _showLocationMenu = !_showLocationMenu;
+    private void CloseLocationMenu() => _showLocationMenu = false;
+
+    private void OpenLocationPopup()
+    {
+        _showLocationMenu = false;
+        _locationError = null;
+        _showLocationPopup = true;
+    }
+
+    private void CloseLocationPopup() => _showLocationPopup = false;
+
+    private async Task UseMyLocationFromPopupAsync()
     {
         LocationSource.SetMode(DigitalTwin.Domain.Enums.EnvironmentLocationMode.Device);
         try
         {
+            _showLocationPopup = false;
             await RefreshEnvironmentAsync();
         }
         catch (Exception ex)
         {
             _locationError = ex.Message;
+            _showLocationPopup = true;
         }
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task ApplyCityAsync()
+    private async Task ApplyCityFromPopupAsync()
     {
         LocationSource.SetManualCityName(_cityInput);
         LocationSource.SetMode(DigitalTwin.Domain.Enums.EnvironmentLocationMode.Manual);
         try
         {
+            _showLocationPopup = false;
             await RefreshEnvironmentAsync();
         }
         catch (Exception ex)
         {
             _locationError = ex.Message;
+            _showLocationPopup = true;
         }
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task LoadAnalyticsAndAdviceAsync()
+    private async Task LoadAnalyticsAndAdviceAsync(bool includeAdvice = true)
     {
         _analyticsLoading = true;
-        _adviceLoading = true;
+        _adviceLoading = includeAdvice;
         await InvokeAsync(StateHasChanged);
 
         try
@@ -340,18 +393,21 @@
             _analyticsLoading = false;
         }
 
-        try
+        if (includeAdvice)
         {
-            var advice = await CoachingService.GetEnvironmentAdviceAsync(_currentReading);
-            _envAdvice = advice.Advice;
-        }
-        catch (Exception)
-        {
-            _envAdvice = "Unable to load recommendation right now.";
-        }
-        finally
-        {
-            _adviceLoading = false;
+            try
+            {
+                var advice = await CoachingService.GetEnvironmentAdviceAsync(_currentReading);
+                _envAdvice = advice.Advice;
+            }
+            catch (Exception)
+            {
+                _envAdvice = "Unable to load recommendation right now.";
+            }
+            finally
+            {
+                _adviceLoading = false;
+            }
         }
     }
 

@@ -9,10 +9,10 @@
 @inject NavigationManager Navigation
 
 <RequireAuth>
-<div class="page-enter" style="padding: 0 20px 32px; display: flex; flex-direction: column; gap: 20px;">
+<div class="page-enter home-page">
 
-    @* Top Bar *@
-    <div style="display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 30; padding-top: 16px; padding-bottom: 8px;">
+    @* Top Bar — never scrolls *@
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; padding: 16px 20px 12px;">
         <div style="display: flex; align-items: center; gap: 12px;">
             <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #60a5fa, #a855f7); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px; border: 1px solid rgba(255,255,255,0.2); flex-shrink: 0; overflow: hidden;">
                 @if (!string.IsNullOrEmpty(_currentUser?.PhotoUrl))
@@ -26,7 +26,7 @@
             </div>
             <div style="display: flex; flex-direction: column;">
                 <span style="font-size: 18px; font-weight: 600; line-height: 1.2; letter-spacing: -0.3px; color: var(--text-main);">@(_userName)</span>
-                <span style="font-size: 12px; color: var(--text-sec); font-weight: 500;">Good Morning</span>
+                <span style="font-size: 12px; color: var(--text-sec); font-weight: 500;">@_greeting</span>
             </div>
         </div>
         <button class="glass-pill" style="width: 40px; height: 40px; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative; background: var(--glass-bg);">
@@ -35,7 +35,8 @@
         </button>
     </div>
 
-    @* Widget Grid *@
+    @* Scrollable content *@
+    <div style="flex: 1; min-height: 0; overflow-y: auto; padding: 0 20px 32px;">
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
 
         @* Heart Rate Hero — full width *@
@@ -147,6 +148,7 @@
         </div>
 
     </div>
+    </div>
 </div>
 </RequireAuth>
 
@@ -196,6 +198,18 @@
     }
 
     private string _userName => _currentUser?.DisplayName ?? "Alexandru Munteanu";
+
+    private static string _greeting
+    {
+        get
+        {
+            var h = DateTime.Now.Hour;
+            if (h < 12) return "Good Morning";
+            if (h < 18) return "Good Afternoon";
+            return "Good Evening";
+        }
+    }
+
     private string _userInitials => string.IsNullOrEmpty(_currentUser?.DisplayName)
         ? "AM"
         : string.Concat(_currentUser.DisplayName

@@ -99,16 +99,19 @@ public sealed class UserSyncDrainer : SyncDrainerBase<User>
         var cloudUser = cloudItems[0];
         var localUser = (User)scope.Context!;
 
-        localUser.Role = cloudUser.Role;
-        localUser.FirstName = cloudUser.FirstName;
-        localUser.LastName = cloudUser.LastName;
-        localUser.PhotoUrl = cloudUser.PhotoUrl;
-        localUser.Phone = cloudUser.Phone;
-        localUser.Address = cloudUser.Address;
-        localUser.City = cloudUser.City;
-        localUser.Country = cloudUser.Country;
-        localUser.DateOfBirth = cloudUser.DateOfBirth;
+        // Null-coalescing merge: prefer the cloud value when available, otherwise keep local.
+        localUser.Role        = cloudUser.Role;
+        localUser.FirstName   = cloudUser.FirstName   ?? localUser.FirstName;
+        localUser.LastName    = cloudUser.LastName    ?? localUser.LastName;
+        localUser.PhotoUrl    = cloudUser.PhotoUrl    ?? localUser.PhotoUrl;
+        localUser.Phone       = cloudUser.Phone       ?? localUser.Phone;
+        localUser.Address     = cloudUser.Address     ?? localUser.Address;
+        localUser.City        = cloudUser.City        ?? localUser.City;
+        localUser.Country     = cloudUser.Country     ?? localUser.Country;
+        localUser.DateOfBirth = cloudUser.DateOfBirth ?? localUser.DateOfBirth;
         await _local.UpdateAsync(localUser);
+        // UpdateAsync on the local repo sets IsDirty=true — clear it after a pull.
+        await _local.MarkSyncedAsync([localUser]);
         return 1;
     }
 }
