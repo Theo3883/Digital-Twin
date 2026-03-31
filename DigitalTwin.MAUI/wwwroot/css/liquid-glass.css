@@ -144,8 +144,9 @@
   justify-content: space-between;
   padding: 0 12px;
   background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
+  /* Reduced blur (16px vs 24px) — always-composited element, cheaper is better */
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
   border: 1px solid var(--glass-border);
   border-top-color: var(--glass-highlight);
   border-left-color: var(--glass-highlight);
@@ -153,6 +154,8 @@
   box-shadow: var(--glass-shadow);
   z-index: 100;
   --tab-active-index: 0;
+  /* Isolate tab bar paint from page content repaints */
+  contain: layout style paint;
 }
 
 /* Sliding active indicator (motion layoutId animation from digital-twin-health) */
@@ -212,18 +215,33 @@
 @keyframes page-enter {
   from {
     opacity: 0;
-    transform: translateX(20px);
-    filter: blur(4px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
-    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+@keyframes page-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
   }
 }
 
 .page-enter {
-  animation: page-enter 0.3s ease-out forwards;
+  animation: page-enter 0.22s var(--ease-smooth) forwards;
+  will-change: transform, opacity;
+}
+
+.page-exit {
+  animation: page-exit 0.18s var(--ease-smooth) forwards;
+  will-change: transform, opacity;
 }
 
 @keyframes heartbeat-pulse {

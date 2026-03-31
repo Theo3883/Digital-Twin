@@ -8,6 +8,7 @@
 @inject IAppRouteState AppRouteState
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 @implements IDisposable
 
 <MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="@MedicalTheme.Instance" />
@@ -27,7 +28,7 @@
     <!-- Dark overlay bg-black/40 (digital-twin-health) -->
     <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.4); pointer-events: none; z-index: 0;"></div>
 
-    <div @key="@Navigation.Uri" class="page-content" style="position: relative; @(_showTabBar ? "padding-bottom: 128px; padding-top: 52px;" : "padding-top: env(safe-area-inset-top, 52px);")">
+    <div @ref="_pageContentRef" class="page-content" style="position: relative; @(_showTabBar ? "padding-bottom: 128px; padding-top: 52px;" : "padding-top: env(safe-area-inset-top, 52px);")">
         @Body
     </div>
 
@@ -58,11 +59,13 @@
 </div>
 
 @code {
+    private ElementReference _pageContentRef;
     private bool _isDarkMode = true;
     private AuthResultDto? _currentUser;
     private IDisposable? _riskSubscription;
     private string _pageTitle = "Digital Twin";
     private bool _showTabBar = true;
+    private int _prevTabIndex = -1;
 
     // ── Startup sync gate state ───────────────────────────────────────────────
     private bool _syncComplete = false;
@@ -126,7 +129,26 @@
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
         UpdatePageState();
-        InvokeAsync(StateHasChanged);
+
+        var newTabIndex = _activeTabIndex;
+        var tabChanged = newTabIndex != _prevTabIndex;
+        _prevTabIndex = newTabIndex;
+
+        // Always re-render so the tab bar active state and page body update,
+        // then fire the JS animation AFTER Blazor has committed the new DOM.
+        InvokeAsync(async () =>
+        {
+            StateHasChanged();
+            // Replay the enter animation via class-swap (no DOM teardown).
+            try
+            {
+                await JS.InvokeVoidAsync("pageTransition.animate", _pageContentRef);
+            }
+            catch
+            {
+                // Best-effort: animation is cosmetic, don't crash on failure.
+            }
+        });
     }
 
     private void UpdatePageState()
