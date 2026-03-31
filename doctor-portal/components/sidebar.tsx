@@ -3,15 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import {
-  LayoutDashboard,
-  Users,
-  LogOut,
-  Activity,
-} from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import { LayoutDashboard, Users, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -23,18 +15,28 @@ export function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
 
+  const initials =
+    session?.user?.name
+      ?.split(" ")
+      .map((n) => n[0])
+      .join("")
+      .substring(0, 2)
+      .toUpperCase() ?? "D";
+
   return (
-    <aside className="flex h-screen w-64 flex-col border-r bg-card">
+    <aside className="flex h-screen w-64 flex-col border-r border-white/10 bg-white/10 backdrop-blur-2xl p-6 z-20 shadow-2xl relative">
       {/* Brand */}
-      <div className="flex items-center gap-2 px-6 py-5">
-        <Activity className="h-6 w-6 text-primary" />
-        <span className="text-lg font-bold">Digital Twin</span>
+      <div className="flex items-center gap-3 mb-10">
+        <div className="w-10 h-10 rounded-xl bg-[#007AFF] text-white flex items-center justify-center font-bold text-xl shadow-md select-none">
+          DT
+        </div>
+        <span className="font-bold text-lg tracking-tight text-white">
+          Digital Twin
+        </span>
       </div>
 
-      <Separator />
-
       {/* Nav */}
-      <nav className="flex-1 space-y-1 px-3 py-4">
+      <nav className="flex-1 space-y-2">
         {navItems.map((item) => {
           const isActive =
             item.href === "/"
@@ -45,45 +47,37 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  ? "bg-[#007AFF] text-white shadow-md"
+                  : "text-white/70 hover:bg-white/10 hover:text-white"
               )}
             >
-              <item.icon className="h-4 w-4" />
+              <item.icon className="h-5 w-5 shrink-0" />
               {item.label}
             </Link>
           );
         })}
       </nav>
 
-      <Separator />
-
-      {/* User */}
-      <div className="flex items-center gap-3 px-4 py-4">
-        <Avatar className="h-8 w-8">
-          <AvatarImage src={session?.user?.image ?? ""} />
-          <AvatarFallback>
-            {session?.user?.name?.[0]?.toUpperCase() ?? "D"}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1 truncate">
-          <p className="text-sm font-medium truncate">
+      {/* User footer */}
+      <button
+        onClick={() => signOut({ callbackUrl: "/login" })}
+        className="flex items-center gap-3 p-3 text-white/90 hover:bg-white/10 rounded-xl transition-colors mt-auto text-left w-full group"
+      >
+        <div className="w-10 h-10 rounded-full bg-[#007AFF]/70 text-white flex items-center justify-center font-medium text-base shrink-0 select-none">
+          {initials}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-white truncate">
             {session?.user?.name ?? "Doctor"}
           </p>
-          <p className="text-xs text-muted-foreground truncate">
+          <p className="text-xs text-white/50 truncate">
             {session?.user?.email}
           </p>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => signOut({ callbackUrl: "/login" })}
-        >
-          <LogOut className="h-4 w-4" />
-        </Button>
-      </div>
+        <LogOut className="h-4 w-4 shrink-0 text-white/50 group-hover:text-white transition-colors" />
+      </button>
     </aside>
   );
 }

@@ -5,15 +5,6 @@ import Link from "next/link";
 import { useApi } from "@/hooks/use-api";
 import type { PatientSummary } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -21,8 +12,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserPlus, ArrowRight } from "lucide-react";
 import { format } from "date-fns";
@@ -48,9 +37,8 @@ export default function PatientsPage() {
   };
 
   useEffect(() => {
-    console.log("[Patients] effect fired | ready:", ready);
     loadPatients();
-  }, [ready]);
+  }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAssign = async () => {
     if (!assignEmail.trim()) return;
@@ -62,8 +50,8 @@ export default function PatientsPage() {
       setAssignNotes("");
       setDialogOpen(false);
       loadPatients();
-    } catch (e: any) {
-      setError(e.message || "Failed to assign patient.");
+    } catch (e: unknown) {
+      setError((e as Error).message || "Failed to assign patient.");
     } finally {
       setAssigning(false);
     }
@@ -71,125 +59,150 @@ export default function PatientsPage() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-8 w-48" />
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-16" />
-        ))}
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="h-8 w-48 bg-white/20 rounded-full animate-pulse" />
+        <div className="glass-panel p-6 space-y-4">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-14 bg-white/10 rounded-xl" />
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">My Patients</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-white">
+          My Patients
+        </h1>
+
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
-              <UserPlus className="mr-2 h-4 w-4" />
+            <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors shadow-md">
+              <UserPlus className="w-4 h-4" />
               Assign Patient
-            </Button>
+            </button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-[425px] bg-black/50 backdrop-blur-2xl border-white/15 text-white">
             <DialogHeader>
-              <DialogTitle>Assign a Patient</DialogTitle>
+              <DialogTitle className="text-white text-lg">
+                Assign a Patient
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-2">
-              <div>
-                <label htmlFor="assign-email" className="text-sm font-medium">Patient Email</label>
-                <Input
+              <div className="grid gap-1.5">
+                <label
+                  htmlFor="assign-email"
+                  className="text-sm font-medium text-white/90"
+                >
+                  Patient Email
+                </label>
+                <input
                   id="assign-email"
+                  type="email"
                   placeholder="patient@example.com"
                   value={assignEmail}
                   onChange={(e) => setAssignEmail(e.target.value)}
+                  className="flex h-10 w-full rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
                 />
               </div>
-              <div>
-                <label htmlFor="assign-notes" className="text-sm font-medium">
+              <div className="grid gap-1.5">
+                <label
+                  htmlFor="assign-notes"
+                  className="text-sm font-medium text-white/90"
+                >
                   Notes{" "}
-                  <span className="text-muted-foreground">(optional)</span>
+                  <span className="text-white/40 font-normal">(optional)</span>
                 </label>
-                <Input
+                <input
                   id="assign-notes"
                   placeholder="e.g. Referred by Dr. Smith"
                   value={assignNotes}
                   onChange={(e) => setAssignNotes(e.target.value)}
+                  className="flex h-10 w-full rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30"
                 />
               </div>
               {error && (
-                <p className="text-sm text-destructive">{error}</p>
+                <p className="text-sm text-red-400">{error}</p>
               )}
-              <Button
-                className="w-full"
+              <button
                 onClick={handleAssign}
                 disabled={assigning || !assignEmail.trim()}
+                className="w-full h-10 rounded-xl bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {assigning ? "Assigning..." : "Assign Patient"}
-              </Button>
+                {assigning ? "Assigning…" : "Assign Patient"}
+              </button>
             </div>
           </DialogContent>
         </Dialog>
       </div>
 
+      {/* Patient list */}
       {patients.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">
-              No patients assigned yet. Click &quot;Assign Patient&quot; to add
-              one by email.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="glass-panel p-12 text-center">
+          <p className="text-white/60">
+            No patients assigned yet. Click &quot;Assign Patient&quot; to add one by email.
+          </p>
+        </div>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {patients.length} Patient{patients.length === 1 ? "" : "s"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Blood Type</TableHead>
-                  <TableHead>Assigned</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {patients.map((p) => (
-                  <TableRow key={p.patientId}>
-                    <TableCell className="font-medium">
-                      {p.fullName || "—"}
-                    </TableCell>
-                    <TableCell>{p.email}</TableCell>
-                    <TableCell>
-                      {p.bloodType ? (
-                        <Badge variant="outline">{p.bloodType}</Badge>
-                      ) : (
-                        "—"
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(p.assignedAt), "MMM d, yyyy")}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm" asChild>
-                        <Link href={`/patients/${p.patientId}`}>
-                          View
-                          <ArrowRight className="ml-1 h-4 w-4" />
-                        </Link>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <div className="glass-panel overflow-hidden">
+          <div className="px-6 py-5 border-b border-white/10">
+            <h3 className="text-base font-semibold text-white">
+              {patients.length} Patient{patients.length !== 1 ? "s" : ""}
+            </h3>
+          </div>
+          <table className="w-full text-sm text-left">
+            <thead className="text-xs text-white/50 uppercase bg-white/5">
+              <tr>
+                <th className="px-6 py-4 font-medium">Name</th>
+                <th className="px-6 py-4 font-medium">Email</th>
+                <th className="px-6 py-4 font-medium">Blood Type</th>
+                <th className="px-6 py-4 font-medium">Assigned</th>
+                <th className="px-6 py-4 font-medium text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {patients.map((p) => (
+                <tr
+                  key={p.patientId}
+                  className="border-b border-white/10 hover:bg-white/5 transition-colors"
+                >
+                  <td className="px-6 py-4 font-medium text-white">
+                    {p.fullName || "—"}
+                  </td>
+                  <td className="px-6 py-4 text-white/60">{p.email}</td>
+                  <td className="px-6 py-4">
+                    {p.bloodType ? (
+                      <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20 text-xs font-medium text-white">
+                        {p.bloodType}
+                      </span>
+                    ) : (
+                      <span className="text-white/40">—</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-white/60">
+                    {format(new Date(p.assignedAt), "MMM d, yyyy")}
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1 text-white/70 hover:text-white hover:bg-white/10"
+                      asChild
+                    >
+                      <Link href={`/patients/${p.patientId}`}>
+                        View
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

@@ -2,23 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useApi } from "@/hooks/use-api";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Activity, Moon, TrendingUp } from "lucide-react";
 import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
-import { AreaChart, Area, CartesianGrid, XAxis, YAxis } from "recharts";
+  AreaChart,
+  Area,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 const weeklyChartData = [
   { day: "Mon", heartRate: 72, steps: 6200 },
@@ -30,21 +23,44 @@ const weeklyChartData = [
   { day: "Sun", heartRate: 69, steps: 4900 },
 ];
 
-const weeklyChartConfig = {
-  heartRate: {
-    label: "Heart Rate",
-    color: "var(--chart-1)",
-  },
-  steps: {
-    label: "Steps",
-    color: "var(--chart-2)",
-  },
-} satisfies ChartConfig;
-
 interface Dashboard {
   totalAssignedPatients: number;
   doctorName: string;
   doctorEmail: string;
+}
+
+const statCards = [
+  {
+    id: "patients",
+    title: "Assigned Patients",
+    icon: Users,
+    getValue: (d: Dashboard) => d.totalAssignedPatients,
+    sub: "patients under your care",
+  },
+  {
+    id: "vitals",
+    title: "Live Vitals",
+    icon: Activity,
+    getValue: () => "Real-time",
+    sub: "monitoring via HealthKit sync",
+  },
+  {
+    id: "sleep",
+    title: "Sleep Tracking",
+    icon: Moon,
+    getValue: () => "Active",
+    sub: "automatic sleep session collection",
+  },
+];
+
+function SkeletonCard() {
+  return (
+    <div className="glass-panel p-6 animate-pulse">
+      <div className="h-3 w-24 bg-white/20 rounded-full mb-4" />
+      <div className="h-8 w-16 bg-white/20 rounded-full mb-2" />
+      <div className="h-3 w-36 bg-white/10 rounded-full" />
+    </div>
+  );
 }
 
 export default function DashboardPage() {
@@ -53,142 +69,138 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log("[Dashboard] effect fired | ready:", ready);
     if (!ready) return;
-    console.log("[Dashboard] calling getDashboard()");
     api
       .getDashboard()
-      .then((d) => { console.log("[Dashboard] success:", d); setData(d); })
-      .catch((e) => console.error("[Dashboard] error:", e))
+      .then(setData)
+      .catch(console.error)
       .finally(() => setLoading(false));
   }, [api, ready]);
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-48" />
-        <div className="grid gap-4 md:grid-cols-3">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-32" />
-          ))}
+      <div className="max-w-6xl mx-auto space-y-8">
+        <div className="h-8 w-64 bg-white/20 rounded-full animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => <SkeletonCard key={i} />)}
         </div>
+        <div className="glass-panel h-80 animate-pulse" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">
+        <h1 className="text-3xl font-bold tracking-tight text-white">
           Welcome, Dr. {data?.doctorName || "Doctor"}
         </h1>
-        <p className="text-muted-foreground">{data?.doctorEmail}</p>
+        <p className="text-white/60 mt-1">{data?.doctorEmail}</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Assigned Patients
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {data?.totalAssignedPatients ?? 0}
+      {/* Stat cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {statCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <div key={card.id} className="glass-panel p-6">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-white/80">
+                  {card.title}
+                </span>
+                <Icon className="w-4 h-4 text-white/50" />
+              </div>
+              <div className="text-3xl font-bold text-white">
+                {data ? String(card.getValue(data)) : "—"}
+              </div>
+              <p className="text-xs text-white/50 mt-1">{card.sub}</p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              patients under your care
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Live Vitals</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">Real-time</div>
-            <p className="text-xs text-muted-foreground">
-              monitoring via HealthKit sync
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Sleep Tracking</CardTitle>
-            <Moon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">Active</div>
-            <p className="text-xs text-muted-foreground">
-              automatic sleep session collection
-            </p>
-          </CardContent>
-        </Card>
+          );
+        })}
       </div>
 
-      {/* Weekly activity area chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Weekly Patient Activity</CardTitle>
-          <CardDescription>Average heart rate &amp; steps across your patients</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={weeklyChartConfig} className="h-[280px] w-full">
+      {/* Weekly activity chart */}
+      <div className="glass-panel p-6">
+        <h2 className="text-lg font-semibold text-white mb-1">
+          Weekly Patient Activity
+        </h2>
+        <p className="text-sm text-white/50 mb-6">
+          Average heart rate &amp; steps across your patients
+        </p>
+
+        <div className="h-[320px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
             <AreaChart
-              accessibilityLayer
               data={weeklyChartData}
-              margin={{ left: -20, right: 12 }}
+              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
             >
-              <CartesianGrid vertical={false} />
+              <defs>
+                <linearGradient id="gradSteps" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#00D4C8" stopOpacity={0.6} />
+                  <stop offset="95%" stopColor="#00D4C8" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="gradHR" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#007AFF" stopOpacity={0.6} />
+                  <stop offset="95%" stopColor="#007AFF" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="rgba(255,255,255,0.08)"
+              />
               <XAxis
                 dataKey="day"
-                tickLine={false}
                 axisLine={false}
-                tickMargin={8}
+                tickLine={false}
+                tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 12 }}
               />
               <YAxis
-                tickLine={false}
                 axisLine={false}
-                tickMargin={8}
-                tickCount={4}
+                tickLine={false}
+                tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 12 }}
               />
-              <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: "14px",
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
+                  backgroundColor: "rgba(10,20,35,0.85)",
+                  color: "#ffffff",
+                  backdropFilter: "blur(12px)",
+                }}
+              />
               <Area
+                type="monotone"
                 dataKey="steps"
-                type="natural"
-                fill="var(--color-steps)"
-                fillOpacity={0.4}
-                stroke="var(--color-steps)"
-                stackId="a"
+                stroke="#00D4C8"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#gradSteps)"
               />
               <Area
+                type="monotone"
                 dataKey="heartRate"
-                type="natural"
-                fill="var(--color-heartRate)"
-                fillOpacity={0.4}
-                stroke="var(--color-heartRate)"
-                stackId="a"
+                stroke="#007AFF"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#gradHR)"
               />
             </AreaChart>
-          </ChartContainer>
-        </CardContent>
-        <CardFooter>
-          <div className="flex w-full items-start gap-2 text-sm">
-            <div className="grid gap-2">
-              <div className="flex items-center gap-2 font-medium leading-none">
-                Trending up this week <TrendingUp className="h-4 w-4" />
-              </div>
-              <div className="text-muted-foreground flex items-center gap-2 leading-none">
-                Showing avg daily metrics across all assigned patients
-              </div>
-            </div>
-          </div>
-        </CardFooter>
-      </Card>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="flex items-center gap-2 mt-6">
+          <span className="text-sm font-medium text-white">
+            Trending up this week
+          </span>
+          <TrendingUp className="w-4 h-4 text-[#00D4C8]" />
+        </div>
+        <p className="text-xs text-white/50 mt-1">
+          Showing avg daily metrics across all assigned patients
+        </p>
+      </div>
     </div>
   );
 }
