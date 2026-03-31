@@ -1,4 +1,6 @@
 @page "/profile"
+@implements IAsyncDisposable
+@inject IJSRuntime JS
 @inject IAuthApplicationService AuthService
 @inject IDoctorAssignmentApplicationService DoctorAssignments
 @inject IHealthDataSyncService SyncService
@@ -63,24 +65,7 @@
             <p style="font-size: 14px; color: var(--text-sec); margin-top: 4px;">@_profileSubtitle</p>
         </div>
 
-        @* Profile Form or Card *@
-        @if (_showForm)
-        {
-            <PatientProfileForm IsEditing="@(_patient is not null)"
-                                IsSaving="@_isSaving"
-                                ErrorMessage="@_formError"
-                                InitialBloodType="@_patient?.BloodType"
-                                InitialAllergies="@_patient?.Allergies"
-                                InitialMedicalHistory="@_patient?.MedicalHistoryNotes"
-                                InitialWeight="@_patient?.Weight"
-                                InitialHeight="@_patient?.Height"
-                                InitialBloodPressureSystolic="@_patient?.BloodPressureSystolic"
-                                InitialBloodPressureDiastolic="@_patient?.BloodPressureDiastolic"
-                                InitialCholesterol="@_patient?.Cholesterol"
-                                InitialCnp="@_patient?.Cnp"
-                                OnSave="SaveProfileAsync"
-                                OnCancel="CancelForm" />
-        }
+        @* Profile Form is in the bottom-sheet popup below *@
 
         @* Profile Completion — hidden when 100% complete *@
         @if (_completionPct < 100)
@@ -288,7 +273,7 @@
         </div>
 
         }
-        else if (!_showForm)
+        else
         {
             @* No medical profile yet — warn the user *@
             <div class="glass-card" style="padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center;">
@@ -312,6 +297,38 @@
     }
 
 </div>
+
+@* Medical Profile bottom-sheet popup — draggable *@
+@if (_showForm)
+{
+    <div @ref="_formOverlayRef" @onclick="CancelForm" style="position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); opacity: 0;"></div>
+    <div @ref="_formSheetRef" @onclick:stopPropagation="true"
+         style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 201; background: #1a1d26; border-radius: 24px 24px 0 0; padding: 0 0 0; border-top: 1px solid rgba(255,255,255,0.12); box-shadow: 0 -8px 40px rgba(0,0,0,0.6); max-height: 88vh; display: flex; flex-direction: column; transform: translateY(100%); will-change: transform;">
+        @* Drag pill *@
+        <div data-sheet-pill
+             style="width: 100%; padding: 16px 0 12px; display: flex; justify-content: center; align-items: center; cursor: grab; touch-action: none; flex-shrink: 0;">
+            <div style="width: 40px; height: 4px; background: rgba(255,255,255,0.25); border-radius: 2px;"></div>
+        </div>
+        @* Scrollable form content *@
+        <div style="overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 20px calc(24px + env(safe-area-inset-bottom, 16px)); flex: 1; min-height: 0;">
+            <PatientProfileForm IsEditing="@(_patient is not null)"
+                                IsSaving="@_isSaving"
+                                ErrorMessage="@_formError"
+                                InitialBloodType="@_patient?.BloodType"
+                                InitialAllergies="@_patient?.Allergies"
+                                InitialMedicalHistory="@_patient?.MedicalHistoryNotes"
+                                InitialWeight="@_patient?.Weight"
+                                InitialHeight="@_patient?.Height"
+                                InitialBloodPressureSystolic="@_patient?.BloodPressureSystolic"
+                                InitialBloodPressureDiastolic="@_patient?.BloodPressureDiastolic"
+                                InitialCholesterol="@_patient?.Cholesterol"
+                                InitialCnp="@_patient?.Cnp"
+                                OnSave="SaveProfileAsync"
+                                OnCancel="CancelForm" />
+        </div>
+    </div>
+}
+
 </RequireAuth>
 
 @code {
@@ -324,6 +341,11 @@
     private bool _isSaving;
     private bool _showProfileMenu;
     private string? _formError;
+
+    // Sheet drag state (JS-driven)
+    private ElementReference _formSheetRef;
+    private ElementReference _formOverlayRef;
+    private DotNetObjectReference<Profile>? _dotNetRef;
     private List<ProfileCompletionChecklist.ChecklistItem> _checklistItems = new();
     private int? _restingHrBpm;
 
@@ -393,29 +415,45 @@
         await SignOutAsync();
     }
 
-    private void EditMedicalProfileFromMenu()
+    private async Task EditMedicalProfileFromMenu()
     {
         _showProfileMenu = false;
-        _formError = null;
-        _showForm = true;
+        await OpenFormSheet();
     }
 
-    private void ShowCreateForm()
+    private async Task ShowCreateForm()
+    {
+        await OpenFormSheet();
+    }
+
+    private async Task ShowEditForm()
+    {
+        await OpenFormSheet();
+    }
+
+    private async Task OpenFormSheet()
     {
         _formError = null;
         _showForm = true;
-    }
-
-    private void ShowEditForm()
-    {
-        _formError = null;
-        _showForm = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
+        _dotNetRef ??= DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("SheetDrag.init", _formSheetRef, _formOverlayRef, _dotNetRef, 120);
     }
 
     private void CancelForm()
     {
         _showForm = false;
         _formError = null;
+        _ = JS.InvokeVoidAsync("SheetDrag.dispose", _formSheetRef);
+    }
+
+    [JSInvokable]
+    public void DismissSheet()
+    {
+        _showForm = false;
+        _formError = null;
+        InvokeAsync(StateHasChanged);
     }
 
     private async Task SaveProfileAsync(PatientProfileDto profile)
@@ -429,6 +467,7 @@
             _patient = await AuthService.GetPatientProfileAsync();
             await SyncService.StartVitalsCollectionAsync();
             _showForm = false;
+            _ = JS.InvokeVoidAsync("SheetDrag.dispose", _formSheetRef);
             RebuildChecklist();
         }
         catch (Exception ex)
@@ -535,5 +574,11 @@
             .Split(' ', StringSplitOptions.RemoveEmptyEntries)
             .Take(2)
             .Select(w => char.ToUpperInvariant(w[0])));
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await JS.InvokeVoidAsync("SheetDrag.dispose", _formSheetRef);
+        _dotNetRef?.Dispose();
     }
 }

@@ -1,7 +1,8 @@
 @page "/environment"
 @using System
 @using System.Globalization
-@implements IDisposable
+@implements IAsyncDisposable
+@inject IJSRuntime JS
 @inject IEnvironmentApplicationService EnvironmentService
 @inject IEnvironmentLocationSource LocationSource
 @inject IEnvironmentAnalyticsService AnalyticsService
@@ -196,11 +197,11 @@
 @* Location popup sheet — draggable *@
 @if (_showLocationPopup)
 {
-    <div @onclick="CloseLocationPopup" style="position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);"></div>
+    <div @ref="_overlayRef" @onclick="CloseLocationPopup" style="position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); opacity: 0;"></div>
     <div @ref="_sheetRef" @onclick:stopPropagation="true"
-         style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 201; background: #1a1d26; border-radius: 24px 24px 0 0; padding: 0 20px calc(24px + env(safe-area-inset-bottom, 16px)); border-top: 1px solid rgba(255,255,255,0.12); box-shadow: 0 -8px 40px rgba(0,0,0,0.6); transform: translateY(@(_sheetTranslateY)px); transition: @(_sheetDragging ? "none" : "transform 0.3s ease"); will-change: transform;">
+         style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 201; background: #1a1d26; border-radius: 24px 24px 0 0; padding: 0 20px calc(24px + env(safe-area-inset-bottom, 16px)); border-top: 1px solid rgba(255,255,255,0.12); box-shadow: 0 -8px 40px rgba(0,0,0,0.6); transform: translateY(100%); will-change: transform;">
         @* Drag pill *@
-        <div @ontouchstart="OnSheetTouchStart" @ontouchend="OnSheetTouchEnd" @ontouchmove="OnSheetTouchMove" @ontouchmove:preventDefault
+        <div data-sheet-pill
              style="width: 100%; padding: 16px 0 20px; display: flex; justify-content: center; align-items: center; cursor: grab; touch-action: none;">
             <div style="width: 40px; height: 4px; background: rgba(255,255,255,0.25); border-radius: 2px;"></div>
         </div>
@@ -241,12 +242,10 @@
     private bool _showLocationMenu;
     private bool _showLocationPopup;
 
-    // Sheet drag state
+    // Sheet drag state (JS-driven)
     private ElementReference _sheetRef;
-    private double _sheetTouchStartY;
-    private double _sheetTranslateY;
-    private bool _sheetDragging;
-    private const double SheetDismissThreshold = 120;
+    private ElementReference _overlayRef;
+    private DotNetObjectReference<Environment>? _dotNetRef;
 
     private EnvironmentReadingDto _currentReading = new();
     private EnvironmentAnalyticsDto? _analytics;
@@ -342,49 +341,29 @@
     private void ToggleLocationMenu() => _showLocationMenu = !_showLocationMenu;
     private void CloseLocationMenu() => _showLocationMenu = false;
 
-    private void OpenLocationPopup()
+    private async Task OpenLocationPopup()
     {
         _showLocationMenu = false;
         _locationError = null;
         _showLocationPopup = true;
+        await InvokeAsync(StateHasChanged);
+        // Wait one frame so Blazor renders the elements, then init JS drag
+        await Task.Yield();
+        _dotNetRef ??= DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("SheetDrag.init", _sheetRef, _overlayRef, _dotNetRef, 120);
     }
 
     private void CloseLocationPopup()
     {
-        _sheetTranslateY = 0;
-        _sheetDragging = false;
         _showLocationPopup = false;
+        _ = JS.InvokeVoidAsync("SheetDrag.dispose", _sheetRef);
     }
 
-    private void OnSheetTouchStart(TouchEventArgs e)
+    [JSInvokable]
+    public void DismissSheet()
     {
-        if (e.ChangedTouches.Length > 0)
-        {
-            _sheetTouchStartY = e.ChangedTouches[0].ClientY;
-            _sheetDragging = true;
-        }
-    }
-
-    private void OnSheetTouchMove(TouchEventArgs e)
-    {
-        if (!_sheetDragging || e.ChangedTouches.Length == 0) return;
-        var delta = e.ChangedTouches[0].ClientY - _sheetTouchStartY;
-        _sheetTranslateY = Math.Max(0, delta); // only allow dragging down
-        StateHasChanged();
-    }
-
-    private void OnSheetTouchEnd(TouchEventArgs e)
-    {
-        if (!_sheetDragging) return;
-        _sheetDragging = false;
-        if (_sheetTranslateY >= SheetDismissThreshold)
-        {
-            CloseLocationPopup();
-        }
-        else
-        {
-            _sheetTranslateY = 0; // snap back
-        }
+        _showLocationPopup = false;
+        InvokeAsync(StateHasChanged);
     }
 
     private async Task UseMyLocationFromPopupAsync()
@@ -480,8 +459,10 @@
         };
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         PullRefresh.UnregisterEnvironment();
+        await JS.InvokeVoidAsync("SheetDrag.dispose", _sheetRef);
+        _dotNetRef?.Dispose();
     }
 }
