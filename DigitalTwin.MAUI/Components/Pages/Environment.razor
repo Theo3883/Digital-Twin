@@ -193,12 +193,15 @@
 
 </div>
 
-@* Location popup sheet *@
+@* Location popup sheet — draggable *@
 @if (_showLocationPopup)
 {
     <div @onclick="CloseLocationPopup" style="position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);"></div>
-    <div @onclick:stopPropagation="true" style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 201; background: #1a1d26; border-radius: 24px 24px 0 0; padding: 24px 20px calc(24px + env(safe-area-inset-bottom, 16px)); border-top: 1px solid rgba(255,255,255,0.12); box-shadow: 0 -8px 40px rgba(0,0,0,0.6);">
-        <div @onclick="CloseLocationPopup" style="width: 100%; padding: 4px 0 20px; display: flex; justify-content: center; align-items: center; cursor: pointer;">
+    <div @ref="_sheetRef" @onclick:stopPropagation="true"
+         style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 201; background: #1a1d26; border-radius: 24px 24px 0 0; padding: 0 20px calc(24px + env(safe-area-inset-bottom, 16px)); border-top: 1px solid rgba(255,255,255,0.12); box-shadow: 0 -8px 40px rgba(0,0,0,0.6); transform: translateY(@(_sheetTranslateY)px); transition: @(_sheetDragging ? "none" : "transform 0.3s ease"); will-change: transform;">
+        @* Drag pill *@
+        <div @ontouchstart="OnSheetTouchStart" @ontouchend="OnSheetTouchEnd" @ontouchmove="OnSheetTouchMove" @ontouchmove:preventDefault
+             style="width: 100%; padding: 16px 0 20px; display: flex; justify-content: center; align-items: center; cursor: grab; touch-action: none;">
             <div style="width: 40px; height: 4px; background: rgba(255,255,255,0.25); border-radius: 2px;"></div>
         </div>
         <div style="font-family: var(--font-display); font-weight: 600; font-size: 18px; color: var(--text-main); margin-bottom: 20px;">Edit Location</div>
@@ -237,6 +240,13 @@
     private string? _locationError;
     private bool _showLocationMenu;
     private bool _showLocationPopup;
+
+    // Sheet drag state
+    private ElementReference _sheetRef;
+    private double _sheetTouchStartY;
+    private double _sheetTranslateY;
+    private bool _sheetDragging;
+    private const double SheetDismissThreshold = 120;
 
     private EnvironmentReadingDto _currentReading = new();
     private EnvironmentAnalyticsDto? _analytics;
@@ -339,7 +349,43 @@
         _showLocationPopup = true;
     }
 
-    private void CloseLocationPopup() => _showLocationPopup = false;
+    private void CloseLocationPopup()
+    {
+        _sheetTranslateY = 0;
+        _sheetDragging = false;
+        _showLocationPopup = false;
+    }
+
+    private void OnSheetTouchStart(TouchEventArgs e)
+    {
+        if (e.ChangedTouches.Length > 0)
+        {
+            _sheetTouchStartY = e.ChangedTouches[0].ClientY;
+            _sheetDragging = true;
+        }
+    }
+
+    private void OnSheetTouchMove(TouchEventArgs e)
+    {
+        if (!_sheetDragging || e.ChangedTouches.Length == 0) return;
+        var delta = e.ChangedTouches[0].ClientY - _sheetTouchStartY;
+        _sheetTranslateY = Math.Max(0, delta); // only allow dragging down
+        StateHasChanged();
+    }
+
+    private void OnSheetTouchEnd(TouchEventArgs e)
+    {
+        if (!_sheetDragging) return;
+        _sheetDragging = false;
+        if (_sheetTranslateY >= SheetDismissThreshold)
+        {
+            CloseLocationPopup();
+        }
+        else
+        {
+            _sheetTranslateY = 0; // snap back
+        }
+    }
 
     private async Task UseMyLocationFromPopupAsync()
     {

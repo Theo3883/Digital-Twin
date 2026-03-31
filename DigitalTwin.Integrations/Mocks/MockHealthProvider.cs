@@ -11,11 +11,13 @@ public class MockHealthProvider : IHealthDataProvider
     private readonly Random _random = new();
     private readonly List<VitalSign> _buffer = [];
     private readonly object _sync = new();
+    private int _dailySteps = 0;
+    private DateTime _lastStepsDate = DateTime.MinValue;
 
     public IObservable<VitalSign> GetLiveVitals()
     {
         return Observable.Timer(TimeSpan.Zero, TimeSpan.FromSeconds(15))
-            .Select(_ => GenerateHeartRate());
+            .SelectMany(_ => GenerateLiveVitals());
     }
 
     public Task<IEnumerable<VitalSign>> GetLatestSamplesAsync(VitalSignType type, int count = 10)
@@ -72,10 +74,13 @@ public class MockHealthProvider : IHealthDataProvider
 
     public Task<bool> RequestPermissionsAsync() => Task.FromResult(true);
 
-    private VitalSign GenerateHeartRate()
+    private IEnumerable<VitalSign> GenerateLiveVitals()
     {
         var now = DateTime.UtcNow;
-        var vital = new VitalSign
+        var vitals = new List<VitalSign>();
+
+        // Heart rate — every tick
+        var hr = new VitalSign
         {
             Type      = VitalSignType.HeartRate,
             Value     = Math.Round(80 + 20 * Math.Sin(now.TimeOfDay.TotalSeconds / 30.0) + _random.Next(-3, 4), 1),
@@ -83,14 +88,43 @@ public class MockHealthProvider : IHealthDataProvider
             Source    = "Mock",
             Timestamp = now
         };
+        vitals.Add(hr);
+
+        // Blood oxygen — every tick alongside HR
+        var spo2 = new VitalSign
+        {
+            Type      = VitalSignType.SpO2,
+            Value     = Math.Round(96.0 + _random.NextDouble() * 3.0, 1), // 96.0–99.0 %
+            Unit      = "%",
+            Source    = "Mock",
+            Timestamp = now
+        };
+        vitals.Add(spo2);
+
+        // Steps — once per calendar day
+        var today = now.Date;
+        if (today != _lastStepsDate)
+        {
+            _dailySteps   = 4000 + _random.Next(0, 8001); // 4 000–12 000 steps
+            _lastStepsDate = today;
+        }
+        var steps = new VitalSign
+        {
+            Type      = VitalSignType.Steps,
+            Value     = _dailySteps,
+            Unit      = "steps",
+            Source    = "Mock",
+            Timestamp = now
+        };
+        vitals.Add(steps);
 
         lock (_sync)
         {
-            _buffer.Add(vital);
+            _buffer.AddRange(vitals);
             if (_buffer.Count > 700)
                 _buffer.RemoveRange(0, _buffer.Count - 700);
         }
 
-        return vital;
+        return vitals;
     }
 }

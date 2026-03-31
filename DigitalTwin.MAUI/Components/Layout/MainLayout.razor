@@ -27,7 +27,7 @@
     <!-- Dark overlay bg-black/40 (digital-twin-health) -->
     <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.4); pointer-events: none; z-index: 0;"></div>
 
-    <div class="page-content" style="position: relative; @(_showTabBar ? "padding-bottom: 128px; padding-top: 52px;" : "padding-top: env(safe-area-inset-top, 52px);")">
+    <div @key="@Navigation.Uri" class="page-content" style="position: relative; @(_showTabBar ? "padding-bottom: 128px; padding-top: 52px;" : "padding-top: env(safe-area-inset-top, 52px);")">
         @Body
     </div>
 

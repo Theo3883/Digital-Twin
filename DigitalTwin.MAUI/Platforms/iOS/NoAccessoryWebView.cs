@@ -20,6 +20,9 @@ internal sealed class NoAccessoryWebView : WKWebView
         // Hide iOS scroll indicators for this web view
         ScrollView.ShowsVerticalScrollIndicator = false;
         ScrollView.ShowsHorizontalScrollIndicator = false;
+        // Disable pinch-to-zoom and double-tap zoom
+        ScrollView.MinimumZoomScale = 1;
+        ScrollView.MaximumZoomScale = 1;
     }
 
     /// <summary>
