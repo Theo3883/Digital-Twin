@@ -59,17 +59,33 @@
     [Parameter, EditorRequired] public MedicationDto Medication { get; set; } = null!;
     [Parameter] public EventCallback<MedicationDto> OnTap { get; set; }
 
-    private string AddedByLabel =>
-        Medication.AddedByRole == AddedByRole.Doctor ? "Doctor" : "Self";
+    private string AddedByLabel => Medication.AddedByRole switch
+    {
+        AddedByRole.Doctor => "Doctor",
+        AddedByRole.OcrScan => "OCR Scan",
+        _ => "Self"
+    };
 
-    private string AddedByColor =>
-        Medication.AddedByRole == AddedByRole.Doctor ? "#a855f7" : "var(--teal-primary)";
+    private string AddedByColor => Medication.AddedByRole switch
+    {
+        AddedByRole.Doctor => "#a855f7",
+        AddedByRole.OcrScan => "#f59e0b",
+        _ => "var(--teal-primary)"
+    };
 
-    private string AddedByBorderColor =>
-        Medication.AddedByRole == AddedByRole.Doctor ? "rgba(168,85,247,0.2)" : "rgba(0,212,200,0.2)";
+    private string AddedByBorderColor => Medication.AddedByRole switch
+    {
+        AddedByRole.Doctor => "rgba(168,85,247,0.2)",
+        AddedByRole.OcrScan => "rgba(245,158,11,0.2)",
+        _ => "rgba(0,212,200,0.2)"
+    };
 
-    private string AddedByBg =>
-        Medication.AddedByRole == AddedByRole.Doctor ? "rgba(168,85,247,0.05)" : "rgba(0,212,200,0.05)";
+    private string AddedByBg => Medication.AddedByRole switch
+    {
+        AddedByRole.Doctor => "rgba(168,85,247,0.05)",
+        AddedByRole.OcrScan => "rgba(245,158,11,0.05)",
+        _ => "rgba(0,212,200,0.05)"
+    };
 
     private Task HandleTap() => OnTap.InvokeAsync(Medication);
 }

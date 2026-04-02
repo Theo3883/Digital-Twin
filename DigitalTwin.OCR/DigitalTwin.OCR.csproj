@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DigitalTwin.Domain\DigitalTwin.Domain.csproj" />
+    <ProjectReference Include="..\DigitalTwin.Application\DigitalTwin.Application.csproj" />
   </ItemGroup>
 
   <ItemGroup>

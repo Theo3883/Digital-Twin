@@ -3,5 +3,6 @@ namespace DigitalTwin.Domain.Enums;
 public enum AddedByRole
 {
     Patient = 0,
-    Doctor = 1
+    Doctor = 1,
+    OcrScan = 2
 }

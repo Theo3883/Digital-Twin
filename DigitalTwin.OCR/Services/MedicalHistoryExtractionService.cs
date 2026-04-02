@@ -4,8 +4,14 @@ namespace DigitalTwin.OCR.Services;
 
 public sealed class MedicalHistoryExtractionService
 {
+    // Handles optional "Rp.:" / "Rp:" prefix, optional numbering, multi-word drug names, dosage.
     private static readonly Regex MedicationLineRegex = new(
-        @"^\s*(?:\d+[\.\)]\s*)?(?<name>[A-Za-zĂÂÎȘȚăâîșț\-]+)\s+(?<dosage>\d+\s*(?:mg|g|mcg|ml))(?<rest>.*)$",
+        @"^\s*(?:Rp\.?\s*:?\s*)?(?:\d+[\.\)]\s*)?(?<name>[A-Za-zĂÂÎȘȚăâîșț][\w\s\-]*?)\s+(?<dosage>\d+\s*(?:mg|g|mcg|ml)\b)(?<rest>.*)$",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    // Detects lines that start a new medication entry (numbered or Rp.: prefixed).
+    private static readonly Regex EntryStartRegex = new(
+        @"^\s*(?:Rp\.?\s*:?\s*)?\d+[\.\)]",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     public IReadOnlyList<ExtractedHistoryItem> Extract(string? sanitizedText)
@@ -13,10 +19,13 @@ public sealed class MedicalHistoryExtractionService
         if (string.IsNullOrWhiteSpace(sanitizedText))
             return [];
 
-        var lines = sanitizedText.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        // Pre-process: join continuation lines into their parent entry.
+        var rawLines = sanitizedText.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var merged = MergeContinuationLines(rawLines);
+
         var items = new List<ExtractedHistoryItem>();
 
-        foreach (var line in lines)
+        foreach (var line in merged)
         {
             var match = MedicationLineRegex.Match(line);
             if (!match.Success)
@@ -43,6 +52,33 @@ public sealed class MedicalHistoryExtractionService
         }
 
         return items;
+    }
+
+    /// <summary>
+    /// Lines that do not start with a number+punctuation (or Rp.:) are treated as
+    /// continuation of the previous entry and appended to it.
+    /// </summary>
+    private static List<string> MergeContinuationLines(string[] lines)
+    {
+        var merged = new List<string>();
+
+        foreach (var line in lines)
+        {
+            if (EntryStartRegex.IsMatch(line) || merged.Count == 0)
+            {
+                merged.Add(line);
+            }
+            else
+            {
+                // Check if the line itself looks like a standalone medication (has dosage).
+                if (MedicationLineRegex.IsMatch(line))
+                    merged.Add(line);
+                else
+                    merged[^1] = $"{merged[^1]} {line}";
+            }
+        }
+
+        return merged;
     }
 
     private static string ExtractFrequency(string text)

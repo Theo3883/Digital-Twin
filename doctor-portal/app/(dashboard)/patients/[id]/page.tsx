@@ -800,8 +800,8 @@ export default function PatientDetailPage() {
                           </span>
                         </td>
                         <td className="px-6 py-3">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${m.addedByRole === 1 ? "bg-blue-500/20 text-blue-300" : "bg-white/10 text-white/60"}`}>
-                            {m.addedByRole === 1 ? "Doctor" : "Patient"}
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${m.addedByRole === 1 ? "bg-blue-500/20 text-blue-300" : m.addedByRole === 2 ? "bg-orange-500/20 text-orange-300" : "bg-white/10 text-white/60"}`}>
+                            {m.addedByRole === 1 ? "Doctor" : m.addedByRole === 2 ? "OCR Scan" : "Patient"}
                           </span>
                         </td>
                         <td className="px-6 py-3 text-white/50 text-xs">

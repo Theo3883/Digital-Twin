@@ -1,3 +1,4 @@
+using DigitalTwin.Application.Interfaces;
 using DigitalTwin.OCR.Models;
 using DigitalTwin.OCR.Models.Enums;
 using DigitalTwin.OCR.Policies;
@@ -27,6 +28,9 @@ public sealed class OcrSessionViewModel
     private readonly OcrSheetService _sheetService;
     private readonly OcrOptions _options;
     private readonly ILogger<OcrSessionViewModel> _logger;
+    private readonly IAuthApplicationService _authService;
+    private readonly DocumentIdentityExtractorService _identityExtractor;
+    private readonly DocumentIdentityValidationPolicy _identityPolicy;
 
     // ── Observable state ──────────────────────────────────────────────────────
     public bool IsLoading { get; private set; }
@@ -35,6 +39,7 @@ public sealed class OcrSessionViewModel
     public string? SanitizedPreview { get; private set; }
     public OcrDocumentSyncRecord? SavedRecord { get; private set; }
     public string? ErrorMessage { get; private set; }
+    public IdentityValidationResult? IdentityMismatch { get; private set; }
     public Action? StateChanged { get; set; }
 
     public OcrSessionViewModel(
@@ -51,7 +56,10 @@ public sealed class OcrSessionViewModel
         MedicalHistoryAutoAppendService historyAutoAppend,
         OcrSheetService sheetService,
         OcrOptions options,
-        ILogger<OcrSessionViewModel> logger)
+        ILogger<OcrSessionViewModel> logger,
+        IAuthApplicationService authService,
+        DocumentIdentityExtractorService identityExtractor,
+        DocumentIdentityValidationPolicy identityPolicy)
     {
         _scanner = scanner;
         _fileImport = fileImport;
@@ -67,6 +75,9 @@ public sealed class OcrSessionViewModel
         _sheetService = sheetService;
         _options = options;
         _logger = logger;
+        _authService = authService;
+        _identityExtractor = identityExtractor;
+        _identityPolicy = identityPolicy;
     }
 
     /// <summary>Initializes the vault for the first time (creates directories + keychain entry).</summary>
@@ -193,6 +204,22 @@ public sealed class OcrSessionViewModel
             if (!ocrResult.IsSuccess) { SetError(ocrResult.Error!); return; }
             OcrResult = ocrResult.Value;
 
+            // 4b — Identity verification (name + CNP must match the logged-in patient)
+            SetLoading("Verifying document identity…");
+            var docIdentity = _identityExtractor.Extract(ocrResult.Value!.RawText);
+            var user = await _authService.GetCurrentUserAsync();
+            var profile = await _authService.GetPatientProfileAsync();
+            if (user is not null && profile is not null)
+            {
+                var validation = _identityPolicy.Validate(docIdentity, user.DisplayName, profile.Cnp);
+                if (!validation.IsValid)
+                {
+                    IdentityMismatch = validation;
+                    SetError(validation.ToUserMessage());
+                    return;
+                }
+            }
+
             // 5 — Sanitize
             SetLoading("Sanitizing…");
             var pageTexts = ocrResult.Value!.Pages.Select(p => p.Blocks.Select(b => b.Text).StringJoin("\n"));
@@ -215,7 +242,17 @@ public sealed class OcrSessionViewModel
             if (!saveResult.IsSuccess)
                 _logger.LogWarning("[OCR VM] Sync record save failed: {Msg}", saveResult.Error);
             else
-                await _historyAutoAppend.AppendAsync(patientId, record.Id, SanitizedPreview, ct);
+            {
+                try
+                {
+                    await _historyAutoAppend.AppendAsync(patientId, record.Id, SanitizedPreview, ct);
+                }
+                catch (Exception ex)
+                {
+                    // History append is non-critical — log and continue so the OCR session still completes.
+                    _logger.LogError(ex, "[OCR VM] MedicalHistory auto-append failed for doc {DocId}.", record.Id);
+                }
+            }
 
             SavedRecord = record;
             ClearLoading();
@@ -252,6 +289,7 @@ public sealed class OcrSessionViewModel
         OcrResult = null;
         SanitizedPreview = null;
         SavedRecord = null;
+        IdentityMismatch = null;
         StateChanged?.Invoke();
     }
 

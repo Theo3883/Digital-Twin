@@ -98,13 +98,13 @@ public class MedicationApplicationService : IMedicationApplicationService
     /// more of the patient's current active medications.
     /// </exception>
     public async Task<MedicationDto> AddMedicationAsync(
-        Guid patientId, AddMedicationDto dto, AddedByRole addedBy)
+        Guid patientId, AddMedicationDto dto, AddedByRole addedBy, bool skipInteractionCheck = false)
     {
         var rxCui = dto.RxCui;
         if (string.IsNullOrWhiteSpace(rxCui) && !string.IsNullOrWhiteSpace(dto.Name))
             rxCui = await _rxCuiLookup.LookupRxCuiAsync(dto.Name.Trim());
 
-        if (!string.IsNullOrWhiteSpace(rxCui))
+        if (!skipInteractionCheck && !string.IsNullOrWhiteSpace(rxCui))
             await EnforceInteractionSafetyAsync(patientId, rxCui);
 
         var medication = _medicationService.CreateMedication(new Domain.Models.CreateMedicationRequest(

@@ -248,8 +248,8 @@ export interface VitalsParams {
 export type MedicationStatus = 0 | 1 | 2 | 3;
 // 0=Oral, 1=IV, 2=Topical, 3=Subcutaneous, 4=Other
 export type MedicationRoute = 0 | 1 | 2 | 3 | 4;
-// 0=Patient, 1=Doctor
-export type AddedByRole = 0 | 1;
+// 0=Patient, 1=Doctor, 2=OcrScan
+export type AddedByRole = 0 | 1 | 2;
 
 export const MedicationStatusLabel: Record<MedicationStatus, string> = {
   0: "Active",

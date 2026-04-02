@@ -74,12 +74,10 @@ public sealed class OpenFdaMedicationInteractionProvider : IMedicationInteractio
 
             if (string.IsNullOrWhiteSpace(name))
             {
-                _logger.LogError(
-                    "[DDI] Name resolution failed for original RxCUI {OriginalRxCui}, ingredient RxCUI {IngredientRxCui}.",
+                _logger.LogWarning(
+                    "[DDI] Name resolution failed for RxCUI {OriginalRxCui} (ingredient {IngredientRxCui}); skipping drug from interaction check.",
                     rxcui, ingredient);
-                throw new InvalidOperationException(
-                    $"Unable to resolve drug name for RxCUI {rxcui} (ingredient {ingredient}). " +
-                    "Medication add is blocked because interaction verification cannot be completed.");
+                continue;
             }
 
             _logger.LogInformation(
@@ -96,12 +94,10 @@ public sealed class OpenFdaMedicationInteractionProvider : IMedicationInteractio
             var corpus = await FetchInteractionCorpusAsync(drug.NormalizedName, ct);
             if (corpus is null)
             {
-                _logger.LogError(
-                    "[DDI] openFDA lookup failed for '{DrugName}' (ingredient {IngredientRxCui}).",
+                _logger.LogWarning(
+                    "[DDI] openFDA lookup failed for '{DrugName}' (ingredient {IngredientRxCui}); skipping drug from interaction check.",
                     drug.NormalizedName, drug.IngredientRxCui);
-                throw new InvalidOperationException(
-                    $"openFDA lookup failed for drug '{drug.NormalizedName}'. " +
-                    "Medication add is blocked to prevent unsafe combinations.");
+                continue;
             }
 
             _logger.LogInformation(
@@ -124,8 +120,9 @@ public sealed class OpenFdaMedicationInteractionProvider : IMedicationInteractio
                 if (!seen.Add(pairKey))
                     continue;
 
-                var corpusA = corpora[a.IngredientRxCui];
-                var corpusB = corpora[b.IngredientRxCui];
+                if (!corpora.TryGetValue(a.IngredientRxCui, out var corpusA) ||
+                    !corpora.TryGetValue(b.IngredientRxCui, out var corpusB))
+                    continue;
 
                 var aMentionsB = ContainsDrugMention(corpusA, b.NormalizedName);
                 var bMentionsA = ContainsDrugMention(corpusB, a.NormalizedName);

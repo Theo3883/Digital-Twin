@@ -1,5 +1,6 @@
 @inject OcrSessionViewModel ViewModel
 @inject SecurityPostureViewModel PostureVm
+@inject IDialogService DialogService
 
 <div class="ocr-page">
     <SecurityPostureCard Posture="@_posture" OnUnlock="HandleUnlock" OnInitVault="HandleInitVault" />
@@ -107,6 +108,7 @@
     private async Task StartCameraScan()
     {
         await ViewModel.RunCameraSessionAsync(Request.PatientId);
+        await ShowIdentityMismatchDialogIfNeeded();
         if (ViewModel.SavedRecord is not null)
             await OnScanned.InvokeAsync();
     }
@@ -114,6 +116,7 @@
     private async Task StartPhotoLibrary()
     {
         await ViewModel.RunPhotoLibraryImportSessionAsync(Request.PatientId);
+        await ShowIdentityMismatchDialogIfNeeded();
         if (ViewModel.SavedRecord is not null)
             await OnScanned.InvokeAsync();
     }
@@ -121,8 +124,32 @@
     private async Task StartFileImport()
     {
         await ViewModel.RunFileImportSessionAsync(Request.PatientId);
+        await ShowIdentityMismatchDialogIfNeeded();
         if (ViewModel.SavedRecord is not null)
             await OnScanned.InvokeAsync();
+    }
+
+    private async Task ShowIdentityMismatchDialogIfNeeded()
+    {
+        if (ViewModel.IdentityMismatch is not { IsValid: false } mismatch) return;
+
+        var parameters = new DialogParameters<IdentityMismatchDialog>
+        {
+            { x => x.Result, mismatch }
+        };
+
+        var options = new DialogOptions
+        {
+            NoHeader = false,
+            BackdropClick = false,
+            CloseOnEscapeKey = false,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<IdentityMismatchDialog>(
+            "Identity Mismatch", parameters, options);
+        await dialog.Result;
     }
 
     private void ClearError()

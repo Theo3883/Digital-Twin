@@ -1,3 +1,4 @@
+using DigitalTwin.OCR.Policies;
 using DigitalTwin.OCR.Services;
 using DigitalTwin.OCR.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,6 +27,10 @@ public static class OcrServiceCollectionExtensions
         services.AddSingleton<HashingService>();
         services.AddSingleton<SensitiveDataSanitizer>();
         services.AddSingleton<MedicalHistoryExtractionService>();
+        services.AddSingleton<DocumentTypeClassifierService>();
+        services.AddSingleton<DocumentIdentityExtractorService>();
+        services.AddSingleton<NameMatchingService>();
+        services.AddSingleton<DocumentIdentityValidationPolicy>();
 
         // ── iOS-backed services (gracefully no-op on non-iOS) ────────────────
         services.AddSingleton<KeychainKeyStore>();

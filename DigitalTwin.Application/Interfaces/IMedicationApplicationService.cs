@@ -33,7 +33,7 @@ public interface IMedicationApplicationService
     /// <summary>
     /// Adds a medication for the specified patient.
     /// </summary>
-    Task<MedicationDto> AddMedicationAsync(Guid patientId, AddMedicationDto dto, AddedByRole addedBy);
+    Task<MedicationDto> AddMedicationAsync(Guid patientId, AddMedicationDto dto, AddedByRole addedBy, bool skipInteractionCheck = false);
 
     /// <summary>
     /// Soft-deletes a medication for the specified patient.
