@@ -14,4 +14,6 @@ public interface IEnvironmentReadingCache
     CoachingAdviceDto? GetLastAdvice();
 
     void SaveAdvice(CoachingAdviceDto advice);
+
+    void ClearAdvice();
 }

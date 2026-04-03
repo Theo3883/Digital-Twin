@@ -12,6 +12,8 @@ namespace DigitalTwin.Application.Services;
 /// </summary>
 public class CoachingApplicationService : ICoachingApplicationService
 {
+    private static readonly TimeSpan DefaultAdviceTtl = TimeSpan.FromHours(4);
+
     private readonly ICoachingProvider _coachingProvider;
     private readonly IPatientContextService _patientContextService;
     private readonly IEnvironmentReadingCache? _envCache;
@@ -63,6 +65,16 @@ public class CoachingApplicationService : ICoachingApplicationService
     /// <inheritdoc />
     public async Task<CoachingAdviceDto> GetEnvironmentAdviceAsync(EnvironmentReadingDto environment, CancellationToken ct = default)
     {
+        // Return cached advice if it is still fresh — avoids a Gemini call on every home-page load.
+        var cached = _envCache?.GetLastAdvice();
+        if (cached is not null && (DateTime.UtcNow - cached.Timestamp) < DefaultAdviceTtl)
+        {
+            if (_logger.IsEnabled(LogLevel.Information))
+                _logger.LogInformation("[Coaching] Returning cached environment advice (age: {Age:mm\\:ss}).",
+                    DateTime.UtcNow - cached.Timestamp);
+            return cached;
+        }
+
         var profile = await _patientContextService.BuildContextAsync(ct).ConfigureAwait(false);
         var domain = EnvironmentReadingMapper.ToDomain(environment);
 
@@ -84,4 +96,15 @@ public class CoachingApplicationService : ICoachingApplicationService
 
     /// <inheritdoc />
     public CoachingAdviceDto? GetLastEnvironmentAdvice() => _envCache?.GetLastAdvice();
+
+    /// <inheritdoc />
+    public bool IsEnvironmentAdviceFresh(TimeSpan? maxAge = null)
+    {
+        var cached = _envCache?.GetLastAdvice();
+        if (cached is null) return false;
+        return (DateTime.UtcNow - cached.Timestamp) < (maxAge ?? DefaultAdviceTtl);
+    }
+
+    /// <inheritdoc />
+    public void ClearEnvironmentAdviceCache() => _envCache?.ClearAdvice();
 }

@@ -29,4 +29,7 @@ public sealed class EnvironmentReadingPreferencesCache : IEnvironmentReadingCach
 
     public void SaveAdvice(CoachingAdviceDto advice) =>
         _prefs.Set(AdviceKey, advice);
+
+    public void ClearAdvice() =>
+        _prefs.Remove(AdviceKey);
 }

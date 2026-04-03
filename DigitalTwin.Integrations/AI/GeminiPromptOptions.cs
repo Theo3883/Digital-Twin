@@ -144,4 +144,9 @@ public class GeminiPromptOptions
 
     /// <summary>Fallback delay when the API does not provide a retryDelay value.</summary>
     public double DefaultRetryDelaySeconds { get; set; } = 5;
+
+    // ── Coaching cache ───────────────────────────────────────────────────────
+
+    /// <summary>How long cached environment advice is considered fresh before a new Gemini call is made. Default: 4 hours.</summary>
+    public int AdviceCacheTtlHours { get; set; } = 4;
 }

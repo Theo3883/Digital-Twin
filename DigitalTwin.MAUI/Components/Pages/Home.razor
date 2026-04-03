@@ -118,8 +118,9 @@
             // Leave defaults
         }
 
-        // Refresh env insight in background using cached env reading
-        if (_envReading is not null)
+        // Refresh env insight in background only when the cached advice is stale.
+        // IsEnvironmentAdviceFresh() is synchronous and avoids any Gemini call when hot.
+        if (_envReading is not null && !CoachingService.IsEnvironmentAdviceFresh())
         {
             var envSnapshot = _envReading;
             _ = Task.Run(async () =>
@@ -154,9 +155,12 @@
             // Leave previous reading
         }
 
-        // Refresh insight against the newly fetched env reading
+        // Pull-to-refresh explicitly requests fresh advice — bypass the TTL by
+        // calling GetEnvironmentAdviceAsync directly; the service will skip the
+        // cache check because we cleared it before calling.
         if (_envReading is not null)
         {
+            CoachingService.ClearEnvironmentAdviceCache();
             var envSnapshot = _envReading;
             _ = Task.Run(async () =>
             {
