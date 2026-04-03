@@ -83,6 +83,15 @@ public static class MauiProgram
 
         var app = builder.Build();
         ApplyDatabaseMigrations(app);
+
+        if (!config.UseGeminiAi)
+        {
+            var startupLog = app.Services.GetRequiredService<ILogger<MauiApp>>();
+            startupLog.LogWarning(
+                "[Gemini] GEMINI_API_KEY is not configured — ChatBot is running in mock mode. " +
+                "Add GEMINI_API_KEY=<your-key> to your .env file at the project root to enable real Gemini AI responses.");
+        }
+
         _ = app.Services.GetRequiredService<ConnectivityMonitor>();
         return app;
     }

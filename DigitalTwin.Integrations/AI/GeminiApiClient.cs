@@ -92,6 +92,12 @@ public class GeminiApiClient : IGeminiApiClient
 
             _logger.LogError("[GeminiApi] API returned {StatusCode}: {Body}", response.StatusCode, errorBody);
 
+            if ((int)response.StatusCode is 401 or 403)
+                _logger.LogError(
+                    "[GeminiApi] Authentication error ({StatusCode}) — the GEMINI_API_KEY is invalid or has been revoked. " +
+                    "Check that GEMINI_API_KEY is set correctly in your .env file.",
+                    (int)response.StatusCode);
+
             if ((int)response.StatusCode == 429)
                 return "The AI assistant is temporarily unavailable due to rate limits. Please try again in a minute.";
 

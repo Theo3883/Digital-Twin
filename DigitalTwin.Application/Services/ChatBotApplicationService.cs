@@ -57,7 +57,11 @@ public class ChatBotApplicationService : IChatBotApplicationService
             _profileLoaded = true;
         }
 
-        _logger.LogInformation("[ChatBot] Sending message to provider.");
+        var providerType = _chatBotProvider.GetType().Name;
+        _logger.LogInformation("[ChatBot] Sending message to provider ({Provider}).", providerType);
+        if (providerType.Contains("Mock", StringComparison.OrdinalIgnoreCase))
+            _logger.LogWarning("[ChatBot] Gemini is NOT active — GEMINI_API_KEY is not set. " +
+                "Add GEMINI_API_KEY=<your-key> to your .env file at the project root to enable real AI responses.");
 
         var response = await _chatBotProvider.SendMessageAsync(userMessage, _cachedProfile, ct);
 
