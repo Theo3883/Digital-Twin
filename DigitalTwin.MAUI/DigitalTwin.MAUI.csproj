@@ -21,7 +21,7 @@
         <ApplicationTitle>DigitalTwin</ApplicationTitle>
 
         <!-- App Identifier -->
-        <ApplicationId>com.companyname.digitaltwin</ApplicationId>
+        <ApplicationId>com.theo.digitaltwin</ApplicationId>
 
         <!-- Versions -->
         <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
@@ -34,6 +34,33 @@
         <DefineConstants>$(DefineConstants);MOCK_HEALTH</DefineConstants>
 
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <GeneratedSecretsFilePath>$(IntermediateOutputPath)build-secrets.env</GeneratedSecretsFilePath>
+        <BuildSecretPostgresHost Condition="'$(BuildSecretPostgresHost)' == ''">$([System.Text.RegularExpressions.Regex]::Match('$(EnvFileContent)', '(?m)^\s*(?:export\s+)?POSTGRES_HOST\s*=\s*(.*)\s*$').Groups[1].Value.Trim())</BuildSecretPostgresHost>
+        <BuildSecretPostgresPort Condition="'$(BuildSecretPostgresPort)' == ''">$([System.Text.RegularExpressions.Regex]::Match('$(EnvFileContent)', '(?m)^\s*(?:export\s+)?POSTGRES_PORT\s*=\s*(.*)\s*$').Groups[1].Value.Trim())</BuildSecretPostgresPort>
+        <BuildSecretPostgresUser Condition="'$(BuildSecretPostgresUser)' == ''">$([System.Text.RegularExpressions.Regex]::Match('$(EnvFileContent)', '(?m)^\s*(?:export\s+)?POSTGRES_USER\s*=\s*(.*)\s*$').Groups[1].Value.Trim())</BuildSecretPostgresUser>
+        <BuildSecretPostgresPassword Condition="'$(BuildSecretPostgresPassword)' == ''">$([System.Text.RegularExpressions.Regex]::Match('$(EnvFileContent)', '(?m)^\s*(?:export\s+)?POSTGRES_PASSWORD\s*=\s*(.*)\s*$').Groups[1].Value.Trim())</BuildSecretPostgresPassword>
+        <BuildSecretPostgresDb Condition="'$(BuildSecretPostgresDb)' == ''">$([System.Text.RegularExpressions.Regex]::Match('$(EnvFileContent)', '(?m)^\s*(?:export\s+)?POSTGRES_DB\s*=\s*(.*)\s*$').Groups[1].Value.Trim())</BuildSecretPostgresDb>
+        <BuildSecretGoogleOAuthClientId Condition="'$(BuildSecretGoogleOAuthClientId)' == ''">$([System.Text.RegularExpressions.Regex]::Match('$(EnvFileContent)', '(?m)^\s*(?:export\s+)?GOOGLE_OAUTH_CLIENT_ID\s*=\s*(.*)\s*$').Groups[1].Value.Trim())</BuildSecretGoogleOAuthClientId>
+        <BuildSecretGoogleOAuthRedirectUri Condition="'$(BuildSecretGoogleOAuthRedirectUri)' == ''">$([System.Text.RegularExpressions.Regex]::Match('$(EnvFileContent)', '(?m)^\s*(?:export\s+)?GOOGLE_OAUTH_REDIRECT_URI\s*=\s*(.*)\s*$').Groups[1].Value.Trim())</BuildSecretGoogleOAuthRedirectUri>
+        <BuildSecretOpenWeatherMapApiKey Condition="'$(BuildSecretOpenWeatherMapApiKey)' == ''">$([System.Text.RegularExpressions.Regex]::Match('$(EnvFileContent)', '(?m)^\s*(?:export\s+)?OPENWEATHERMAP_API_KEY\s*=\s*(.*)\s*$').Groups[1].Value.Trim())</BuildSecretOpenWeatherMapApiKey>
+        <BuildSecretGoogleAirQualityApiKey Condition="'$(BuildSecretGoogleAirQualityApiKey)' == ''">$([System.Text.RegularExpressions.Regex]::Match('$(EnvFileContent)', '(?m)^\s*(?:export\s+)?GOOGLE_AIR_QUALITY_API_KEY\s*=\s*(.*)\s*$').Groups[1].Value.Trim())</BuildSecretGoogleAirQualityApiKey>
+        <BuildSecretLatitude Condition="'$(BuildSecretLatitude)' == ''">$([System.Text.RegularExpressions.Regex]::Match('$(EnvFileContent)', '(?m)^\s*(?:export\s+)?LATITUDE\s*=\s*(.*)\s*$').Groups[1].Value.Trim())</BuildSecretLatitude>
+        <BuildSecretLongitude Condition="'$(BuildSecretLongitude)' == ''">$([System.Text.RegularExpressions.Regex]::Match('$(EnvFileContent)', '(?m)^\s*(?:export\s+)?LONGITUDE\s*=\s*(.*)\s*$').Groups[1].Value.Trim())</BuildSecretLongitude>
+        <BuildSecretEcgDeviceUrl Condition="'$(BuildSecretEcgDeviceUrl)' == ''">$([System.Text.RegularExpressions.Regex]::Match('$(EnvFileContent)', '(?m)^\s*(?:export\s+)?ECG_DEVICE_URL\s*=\s*(.*)\s*$').Groups[1].Value.Trim())</BuildSecretEcgDeviceUrl>
+        <BuildSecretGeminiApiKey Condition="'$(BuildSecretGeminiApiKey)' == ''">$([System.Text.RegularExpressions.Regex]::Match('$(EnvFileContent)', '(?m)^\s*(?:export\s+)?GEMINI_API_KEY\s*=\s*(.*)\s*$').Groups[1].Value.Trim())</BuildSecretGeminiApiKey>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <LiveContainerBuild Condition="'$(LiveContainerBuild)' == ''">false</LiveContainerBuild>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(LiveContainerBuild)' == 'true' and $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
+        <PublishAot>false</PublishAot>
+        <UseInterpreter>true</UseInterpreter>
+        <MtouchInterpreter>all</MtouchInterpreter>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -57,7 +84,7 @@
         <MauiImage Update="Resources\Images\dotnet_bot.svg" BaseSize="168,208" />
 
         <!-- Bundle OAuth config files for runtime discovery on iOS/MacCatalyst -->
-        <BundleResource Include="..\.env" Link=".env" />
+        <BundleResource Include="..\.env" Link=".env" Condition="'$(LiveContainerBuild)' != 'true'" />
         <BundleResource Include="..\client_*.plist" Link="%(Filename)%(Extension)" />
 
         <!-- Custom Fonts -->
@@ -87,5 +114,34 @@
     <ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
       <PartialAppManifest Include="Platforms\iOS\LocationUsage.partial.plist" />
     </ItemGroup>
+
+            <Target Name="GenerateLiveContainerSecrets"
+                BeforeTargets="_CollectBundleResources"
+                        Condition="'$(LiveContainerBuild)' == 'true' and Exists('$(EnvFilePath)')">
+            <ItemGroup>
+                <_BuildSecretLine Include="POSTGRES_HOST=$(BuildSecretPostgresHost)" Condition="'$(BuildSecretPostgresHost)' != ''" />
+                <_BuildSecretLine Include="POSTGRES_PORT=$(BuildSecretPostgresPort)" Condition="'$(BuildSecretPostgresPort)' != ''" />
+                <_BuildSecretLine Include="POSTGRES_USER=$(BuildSecretPostgresUser)" Condition="'$(BuildSecretPostgresUser)' != ''" />
+                <_BuildSecretLine Include="POSTGRES_PASSWORD=$(BuildSecretPostgresPassword)" Condition="'$(BuildSecretPostgresPassword)' != ''" />
+                <_BuildSecretLine Include="POSTGRES_DB=$(BuildSecretPostgresDb)" Condition="'$(BuildSecretPostgresDb)' != ''" />
+                <_BuildSecretLine Include="GOOGLE_OAUTH_CLIENT_ID=$(BuildSecretGoogleOAuthClientId)" Condition="'$(BuildSecretGoogleOAuthClientId)' != ''" />
+                <_BuildSecretLine Include="GOOGLE_OAUTH_REDIRECT_URI=$(BuildSecretGoogleOAuthRedirectUri)" Condition="'$(BuildSecretGoogleOAuthRedirectUri)' != ''" />
+                <_BuildSecretLine Include="OPENWEATHERMAP_API_KEY=$(BuildSecretOpenWeatherMapApiKey)" Condition="'$(BuildSecretOpenWeatherMapApiKey)' != ''" />
+                <_BuildSecretLine Include="GOOGLE_AIR_QUALITY_API_KEY=$(BuildSecretGoogleAirQualityApiKey)" Condition="'$(BuildSecretGoogleAirQualityApiKey)' != ''" />
+                <_BuildSecretLine Include="LATITUDE=$(BuildSecretLatitude)" Condition="'$(BuildSecretLatitude)' != ''" />
+                <_BuildSecretLine Include="LONGITUDE=$(BuildSecretLongitude)" Condition="'$(BuildSecretLongitude)' != ''" />
+                <_BuildSecretLine Include="ECG_DEVICE_URL=$(BuildSecretEcgDeviceUrl)" Condition="'$(BuildSecretEcgDeviceUrl)' != ''" />
+                <_BuildSecretLine Include="GEMINI_API_KEY=$(BuildSecretGeminiApiKey)" Condition="'$(BuildSecretGeminiApiKey)' != ''" />
+            </ItemGroup>
+
+            <WriteLinesToFile File="$(GeneratedSecretsFilePath)"
+                                                Lines="@(_BuildSecretLine)"
+                                                Overwrite="true"
+                                                WriteOnlyWhenDifferent="true" />
+
+            <ItemGroup>
+                <BundleResource Include="$(GeneratedSecretsFilePath)" Link="build-secrets.env" />
+            </ItemGroup>
+        </Target>
 
 </Project>

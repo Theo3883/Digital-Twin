@@ -11,7 +11,7 @@ public class AppDelegate : MauiUIApplicationDelegate
     /// <summary>
     /// Unique task identifier registered in Info.plist → BGTaskSchedulerPermittedIdentifiers.
     /// </summary>
-    private const string BackgroundSyncTaskId = "com.digitaltwin.health.sync";
+    private const string BackgroundSyncTaskId = "com.theo.digitaltwin.health.sync";
 
     protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
 

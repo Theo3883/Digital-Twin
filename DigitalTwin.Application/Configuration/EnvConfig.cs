@@ -101,11 +101,14 @@ public class EnvConfig
 
     /// <summary>
     /// Gets the PostgreSQL connection string when a password is configured; otherwise returns <see langword="null"/>.
+    /// Connection timeout is capped at 5 s so the app fails fast when the cloud DB
+    /// is unreachable (e.g. during sign-up with Docker not running) instead of
+    /// blocking on the OS TCP SYN retransmit timeout.
     /// </summary>
     public string? PostgresConnectionString =>
         PostgresPassword is null
             ? null
-            : $"Host={PostgresHost};Port={PostgresPort};Database={PostgresDb};Username={PostgresUser};Password={PostgresPassword}";
+            : $"Host={PostgresHost};Port={PostgresPort};Database={PostgresDb};Username={PostgresUser};Password={PostgresPassword};Timeout=5;Command Timeout=10";
 
     /// <summary>
     /// Gets a value indicating whether OpenWeatherMap integration is enabled.

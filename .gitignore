@@ -490,3 +490,5 @@ healthapp.db
 digital-twin-health/
 
 .sonarqube
+
+build-secrets.env

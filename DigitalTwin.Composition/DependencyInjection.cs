@@ -172,7 +172,8 @@ public static class DependencyInjection
         services.AddSingleton<IHealthDataSyncService>(sp => new HealthDataSyncService(
             sp.GetRequiredService<IServiceScopeFactory>(),
             sp.GetRequiredService<ILogger<HealthDataSyncService>>(),
-            sp.GetRequiredService<ITransientFailurePolicy>()));
+            sp.GetRequiredService<ITransientFailurePolicy>(),
+            sp.GetService<ICloudHealthService>()));
         services.AddScoped<IMedicationApplicationService>(sp => new MedicationApplicationService(
             sp.GetRequiredService<IMedicationInteractionProvider>(),
             sp.GetRequiredService<IDrugSearchProvider>(),
@@ -196,7 +197,10 @@ public static class DependencyInjection
         services.AddScoped<IChatBotApplicationService, ChatBotApplicationService>();
         services.AddScoped<ICoachingApplicationService, CoachingApplicationService>();
         services.AddScoped<IEnvironmentAnalyticsService, EnvironmentAnalyticsService>();
-        services.AddScoped<IDoctorAssignmentApplicationService, DoctorAssignmentApplicationService>();
+        services.AddScoped<IDoctorAssignmentApplicationService>(sp => new DoctorAssignmentApplicationService(
+            sp.GetRequiredService<IDoctorPatientAssignmentService>(),
+            sp.GetRequiredService<ILogger<DoctorAssignmentApplicationService>>(),
+            sp.GetService<ICloudHealthService>()));
 
         // ── Cloud identity resolution (local ↔ cloud use different ID spaces) ──
         services.AddScoped<ICloudIdentityResolver>(sp => new CloudIdentityResolver(

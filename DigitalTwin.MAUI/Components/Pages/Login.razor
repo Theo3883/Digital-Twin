@@ -290,7 +290,13 @@
     private async Task SyncAndNavigateHome()
     {
         await SyncService.StartSyncAsync();
-        await SyncService.PushToCloudAsync();
+        // Fire cloud sync in the background — navigation must not wait for it.
+        // If the cloud DB is unreachable the drain timer will retry.
+        _ = Task.Run(async () =>
+        {
+            try   { await SyncService.PushToCloudAsync(); }
+            catch { /* cloud unavailable — drain timer retries */ }
+        });
         Navigation.NavigateTo("/");
     }
 }

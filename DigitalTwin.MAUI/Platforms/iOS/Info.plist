@@ -59,7 +59,7 @@
     <!-- Permitted background task identifiers -->
     <key>BGTaskSchedulerPermittedIdentifiers</key>
     <array>
-        <string>com.digitaltwin.health.sync</string>
+        <string>com.theo.digitaltwin.health.sync</string>
     </array>
 
 </dict>

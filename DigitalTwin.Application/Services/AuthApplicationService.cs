@@ -46,7 +46,7 @@ public class AuthApplicationService : IAuthApplicationService
         {
             if (_logger.IsEnabled(LogLevel.Debug))
                 _logger.LogDebug("[Auth] Returning user. UserId={UserId}", result.User!.Id);
-            await TriggerCloudSync();
+            TriggerCloudSync();
             var authResult = await BuildAuthResultAsync(result.User!);
             _cachedUser = authResult;
 
@@ -88,7 +88,7 @@ public class AuthApplicationService : IAuthApplicationService
         if (_logger.IsEnabled(LogLevel.Debug))
             _logger.LogDebug("[Auth] User created. UserId={UserId}", user.Id);
 
-        await TriggerCloudSync();
+        TriggerCloudSync();
 
         var authResult = await BuildAuthResultAsync(user);
         _cachedUser = authResult;
@@ -126,7 +126,7 @@ public class AuthApplicationService : IAuthApplicationService
         if (_logger.IsEnabled(LogLevel.Debug))
             _logger.LogDebug("[Auth] Patient profile saved for UserId={UserId}.", current.UserId);
 
-        await TriggerCloudSync();
+        TriggerCloudSync();
 
         user = (await _authService.GetCurrentUserAsync())!;
         var authResult = await BuildAuthResultAsync(user);
@@ -220,19 +220,25 @@ public class AuthApplicationService : IAuthApplicationService
         };
     }
 
-    private async Task TriggerCloudSync()
+    private void TriggerCloudSync()
     {
-        if (_logger.IsEnabled(LogLevel.Debug))
-            _logger.LogDebug("[Auth] Triggering cloud sync for auth entities...");
-        try
+        // Fire-and-forget: cloud sync must not block sign-in/sign-up navigation.
+        // If the cloud DB is unreachable the Npgsql connection will time out quickly
+        // (Timeout=5 in the connection string) and the drain timer will retry later.
+        _ = Task.Run(async () =>
         {
-            await _syncService.PushToCloudAsync();
             if (_logger.IsEnabled(LogLevel.Debug))
-                _logger.LogDebug("[Auth] Cloud sync complete.");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "[Auth] Cloud sync failed. Records will retry on next drain cycle.");
-        }
+                _logger.LogDebug("[Auth] Triggering cloud sync for auth entities...");
+            try
+            {
+                await _syncService.PushToCloudAsync();
+                if (_logger.IsEnabled(LogLevel.Debug))
+                    _logger.LogDebug("[Auth] Cloud sync complete.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[Auth] Cloud sync failed. Records will retry on next drain cycle.");
+            }
+        });
     }
 }

@@ -26,7 +26,8 @@ public class HealthDataSyncService : IHealthDataSyncService
 
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<HealthDataSyncService> _logger;
-    private readonly ITransientFailurePolicy _transientPolicy;  
+    private readonly ITransientFailurePolicy _transientPolicy;
+    private readonly ICloudHealthService? _cloudHealth;
 
     // ── State ────────────────────────────────────────────────────────────────────
     private readonly ConcurrentQueue<VitalSign> _queue  = new();
@@ -46,11 +47,13 @@ public class HealthDataSyncService : IHealthDataSyncService
     public HealthDataSyncService(
         IServiceScopeFactory scopeFactory,
         ILogger<HealthDataSyncService> logger,
-        ITransientFailurePolicy transientPolicy)
+        ITransientFailurePolicy transientPolicy,
+        ICloudHealthService? cloudHealth = null)
     {
         _scopeFactory    = scopeFactory;
         _logger          = logger;
         _transientPolicy = transientPolicy;
+        _cloudHealth     = cloudHealth;
     }
 
     /// <summary>
@@ -348,6 +351,14 @@ public class HealthDataSyncService : IHealthDataSyncService
 
     private async Task DrainAllTablesAsync(CancellationToken ct = default)
     {
+        // Fast path: skip the entire drain cycle if the cloud is known to be unreachable.
+        if (_cloudHealth is not null && !await _cloudHealth.IsAvailableAsync())
+        {
+            if (_logger.IsEnabled(LogLevel.Debug))
+                _logger.LogDebug("[Sync] Cloud unavailable (circuit open) — skipping drain cycle.");
+            return;
+        }
+
         using var scope   = _scopeFactory.CreateScope();
         var drainers = scope.ServiceProvider.GetServices<ISyncDrainer>().OrderBy(d => d.Order);
 
@@ -363,6 +374,9 @@ public class HealthDataSyncService : IHealthDataSyncService
             catch (Exception ex) when (_transientPolicy.IsTransient(ex))
             {
                 _logger.LogWarning(ex, "[Sync] {Table}: cloud unavailable — skipping, will retry next cycle.", drainer.TableName);
+                // Trip the circuit breaker so the next drain cycle skips immediately.
+                _cloudHealth?.ReportFailure();
+                return;  // no point trying remaining drainers this cycle
             }
             catch (Exception ex)
             {

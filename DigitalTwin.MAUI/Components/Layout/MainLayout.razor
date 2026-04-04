@@ -85,20 +85,15 @@
 
         if (_currentUser is not null)
         {
-            // Step 2 — push dirty local records to cloud
-            _syncStatus = "pull";
-            await InvokeAsync(StateHasChanged);
-
-            // PushToCloudAsync does a full bidirectional drain (push dirty rows +
-            // pull recent cloud rows) WITHOUT starting live HealthKit streaming.
-            // StartSyncAsync (which starts live vitals) is called AFTER the gate
-            // dismisses so no sensor data flows in during the loading screen.
-            await SyncService.PushToCloudAsync();
-
-            // Step 3 — merge is already done inside PushToCloudAsync; just
-            // advance the label so the user sees progress.
-            _syncStatus = "merge";
-            await InvokeAsync(StateHasChanged);
+            // Step 2 — fire cloud sync in the background so the loading gate is
+            // never blocked by an unreachable cloud DB (Timeout=5 in connection
+            // string, but N drainers × 5 s would still stall the UI).
+            // The drain timer will retry any records that didn't make it.
+            _ = Task.Run(async () =>
+            {
+                try   { await SyncService.PushToCloudAsync(); }
+                catch { /* cloud unavailable — drain timer retries */ }
+            });
         }
 
         // Step 4 — all done, unlock the app

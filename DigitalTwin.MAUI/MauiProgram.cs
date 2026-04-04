@@ -10,8 +10,10 @@ using DigitalTwin.OCR.Models.Enums;
 using DigitalTwin.Services;
 using DigitalTwin.Application.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 #if IOS
+using Foundation;
 using Microsoft.AspNetCore.Components.WebView.Maui;
 #endif
 // Composition is the single DI entry point — MAUI passes integrations via callback.
@@ -98,6 +100,13 @@ public static class MauiProgram
 
     private static void ApplyDatabaseMigrations(MauiApp app)
     {
+        if (!RuntimeFeature.IsDynamicCodeSupported)
+        {
+            var startupLog = app.Services.GetService<ILogger<MauiApp>>();
+            startupLog?.LogWarning("[Database] Skipping EF Core runtime migrations because dynamic code is unavailable in this iOS runtime.");
+            return;
+        }
+
         using var scope = app.Services.CreateScope();
         var services = scope.ServiceProvider;
 
@@ -113,24 +122,111 @@ public static class MauiProgram
 
     private static void LoadEnv()
     {
-        var candidates = new[]
+        var secretsPath = FindSecretsFile();
+        if (!string.IsNullOrWhiteSpace(secretsPath))
         {
-            Path.Combine(Directory.GetCurrentDirectory(), ".env"),
-            Path.Combine(AppContext.BaseDirectory, ".env"),
-            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".env"),
-        };
-
-        foreach (var path in candidates)
-        {
-            var normalized = Path.GetFullPath(path);
-            if (File.Exists(normalized))
-            {
-                DotNetEnv.Env.Load(normalized);
-                break;
-            }
+            LoadEnvironmentVariables(secretsPath);
         }
 
         LoadOAuthFromClientPlist();
+    }
+
+    private static string? FindSecretsFile()
+    {
+#if IOS
+        var bundledSecretsPath = Path.Combine(NSBundle.MainBundle.BundlePath, "build-secrets.env");
+        if (File.Exists(bundledSecretsPath))
+        {
+            return bundledSecretsPath;
+        }
+
+        var bundledPath = Path.Combine(NSBundle.MainBundle.BundlePath, ".env");
+        if (File.Exists(bundledPath))
+        {
+            return bundledPath;
+        }
+#endif
+
+        var currentDirectoryPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
+        if (File.Exists(currentDirectoryPath))
+        {
+            return currentDirectoryPath;
+        }
+
+        var baseDirectoryPath = Path.Combine(AppContext.BaseDirectory, ".env");
+        if (File.Exists(baseDirectoryPath))
+        {
+            return baseDirectoryPath;
+        }
+
+        var relativeBasePath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".env");
+        return File.Exists(relativeBasePath) ? relativeBasePath : null;
+    }
+
+    private static void LoadEnvironmentVariables(string path)
+    {
+        string[] lines;
+
+        try
+        {
+            lines = File.ReadAllLines(path);
+        }
+        catch
+        {
+            return;
+        }
+
+        foreach (var rawLine in lines)
+        {
+            if (string.IsNullOrWhiteSpace(rawLine))
+            {
+                continue;
+            }
+
+            var line = rawLine.Trim();
+            if (line.StartsWith("#", StringComparison.Ordinal) || line.StartsWith("export ", StringComparison.Ordinal))
+            {
+                line = line.StartsWith("export ", StringComparison.Ordinal)
+                    ? line.Substring("export ".Length).Trim()
+                    : line;
+            }
+
+            if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var separatorIndex = line.IndexOf('=');
+            if (separatorIndex <= 0)
+            {
+                continue;
+            }
+
+            var key = line.Substring(0, separatorIndex).Trim();
+            var value = line.Substring(separatorIndex + 1).Trim();
+
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                continue;
+            }
+
+            Environment.SetEnvironmentVariable(key, TrimQuotes(value));
+        }
+    }
+
+    private static string TrimQuotes(string value)
+    {
+        if (value.Length >= 2)
+        {
+            var first = value[0];
+            var last = value[value.Length - 1];
+            if ((first == '"' && last == '"') || (first == '\'' && last == '\''))
+            {
+                return value.Substring(1, value.Length - 2);
+            }
+        }
+
+        return value;
     }
 
     private static void LoadOAuthFromClientPlist()
