@@ -738,7 +738,9 @@ body {
   background: transparent;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  transition: background 0.25s ease, backdrop-filter 0.25s ease, -webkit-backdrop-filter 0.25s ease;
+  transition: background 0.3s ease, backdrop-filter 0.3s ease, -webkit-backdrop-filter 0.3s ease,
+              top 0.35s cubic-bezier(0.4, 0, 0.2, 1), padding-top 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s ease, border-bottom-color 0.3s ease;
 }
 
 .home-top-bar.scrolled {
