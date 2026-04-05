@@ -558,3 +558,124 @@ input, select, textarea {
   background: rgba(0, 212, 200, 0.12) !important;
   color: var(--teal-primary) !important;
 }
+
+/* ============================================================
+   intl-tel-input Country Dropdown — Liquid Glass
+   ============================================================ */
+
+/* When dropdownContainer:document.body is used, iti creates a root-level
+   .iti wrapper containing .iti__dropdown-content. Ensure it floats above everything. */
+body > .iti {
+  z-index: 9999 !important;
+}
+
+/* Dropdown panel */
+.iti__dropdown-content {
+  background: rgba(12, 18, 32, 0.82) !important;
+  backdrop-filter: blur(40px) saturate(200%) brightness(1.1) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(200%) brightness(1.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border-top-color: rgba(255, 255, 255, 0.32) !important;
+  border-left-color: rgba(255, 255, 255, 0.22) !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: 0 16px 56px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.06) !important;
+  overflow: hidden !important;
+  /* Isolate compositing so backdrop-filter sees through to the page */
+  isolation: isolate;
+}
+
+/* Animate open — only downward (above case handled by iti flipping class) */
+.iti__dropdown-content:not(.iti__dropdown-content--above) {
+  transform-origin: top center;
+  animation: iti-glass-enter 0.24s var(--spring, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
+}
+
+.iti__dropdown-content.iti__dropdown-content--above {
+  transform-origin: bottom center;
+  animation: iti-glass-enter-up 0.24s var(--spring, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
+}
+
+@keyframes iti-glass-enter {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+
+@keyframes iti-glass-enter-up {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+
+/* Country list — transparent so glass bg shows through */
+.iti__country-list {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Each country row */
+.iti__country {
+  color: rgba(255, 255, 255, 0.88) !important;
+  padding: 10px 14px !important;
+  transition: background 0.12s ease !important;
+}
+
+.iti__country.iti__highlight,
+.iti__country:hover {
+  background: rgba(255, 255, 255, 0.10) !important;
+}
+
+/* Active / selected country check */
+.iti__country[aria-selected="true"] {
+  background: rgba(0, 212, 200, 0.14) !important;
+}
+
+.iti__country-name {
+  color: rgba(255, 255, 255, 0.90) !important;
+  font-family: var(--font-text, -apple-system, sans-serif);
+}
+
+.iti__dial-code {
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+
+/* Divider line between preferred / all countries */
+.iti__divider {
+  border-top: 1px solid rgba(255, 255, 255, 0.10) !important;
+  margin: 4px 0 !important;
+}
+
+/* Search input wrapper spacing */
+.iti__search-input-wrapper {
+  padding: 10px 10px 4px !important;
+}
+
+/* Search field */
+.iti__search-input {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-radius: var(--radius-chip, 14px) !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+  font-size: 16px !important;
+  font-family: var(--font-text, -apple-system, sans-serif);
+  padding: 10px 36px 10px 14px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  outline: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+  caret-color: var(--teal-primary, #00D4C8);
+}
+
+.iti__search-input::placeholder {
+  color: rgba(255, 255, 255, 0.35) !important;
+}
+
+.iti__search-input:focus {
+  border-color: var(--teal-primary, #00D4C8) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 0 0 2px rgba(0, 212, 200, 0.20) !important;
+}
+
+/* Search clear button */
+.iti__search-clear-bg {
+  background: rgba(255, 255, 255, 0.12) !important;
+}

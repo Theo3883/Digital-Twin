@@ -1,0 +1,117 @@
+/* ── Date-of-birth native date input ─────────────────────────────────────── */
+
+.dob-field-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.dob-field-wrapper label {
+    position: absolute;
+    top: -10px;
+    left: 12px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.55);
+    background: transparent;
+    padding: 0 4px;
+    pointer-events: none;
+    z-index: 1;
+    letter-spacing: 0.02em;
+}
+
+.dob-field-wrapper input[type="date"] {
+    width: 100%;
+    height: 56px;
+    padding: 0 14px 0 42px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.23);
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.87);
+    font-family: -apple-system, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 500;
+    box-sizing: border-box;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+    /* iOS WKWebView: show the value in white */
+    color-scheme: dark;
+}
+
+.dob-field-wrapper input[type="date"]:focus {
+    border-color: var(--mud-palette-primary);
+    border-width: 2px;
+}
+
+.dob-field-wrapper .dob-icon {
+    position: absolute;
+    top: 50%;
+    left: 12px;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.55);
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+}
+
+/* ── intl-tel-input phone input wrapper ──────────────────────────────────── */
+
+.iti-wrapper {
+    width: 100%;
+}
+
+/* Override iti styles to match the glass/MudBlazor theme */
+.iti {
+    width: 100%;
+}
+
+.iti__tel-input {
+    width: 100%;
+    height: 56px;
+    padding-top: 0;
+    background: transparent !important;
+    border: 1px solid rgba(255, 255, 255, 0.23) !important;
+    border-radius: 4px !important;
+    color: rgba(255, 255, 255, 0.87) !important;
+    font-family: -apple-system, 'SF Pro Text', 'Helvetica Neue', sans-serif !important;
+    font-size: 1rem !important;
+    outline: none !important;
+    box-sizing: border-box !important;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.iti__tel-input:focus {
+    border-color: var(--mud-palette-primary) !important;
+    border-width: 2px !important;
+}
+
+/* Dropdown styles live in liquid-glass.css (global) so they apply to JS-created elements */
+
+/* Flag button */
+.iti__flag-container {
+    padding: 0 6px !important;
+}
+
+.iti__selected-country {
+    padding: 0 8px !important;
+    background: transparent !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.iti__selected-country-primary:hover,
+.iti__selected-country-primary:focus {
+    background: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Phone field label mimics MudBlazor floating label */
+.phone-field-label {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.55);
+    margin-bottom: 4px;
+    padding-left: 2px;
+    letter-spacing: 0.02em;
+    display: block;
+}

@@ -75,6 +75,7 @@ public static class MauiProgram
                 });
                 
                 svc.AddDocumentPreviewService();
+                svc.AddLocationSearchService();
             });
 
 #if DEBUG

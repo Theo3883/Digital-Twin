@@ -2,6 +2,9 @@
 @inject IAuthApplicationService AuthService
 @inject IHealthDataSyncService SyncService
 @inject NavigationManager Navigation
+@inject IJSRuntime Js
+@inject DigitalTwin.Services.ILocationSearchService LocationSearch
+@implements IAsyncDisposable
 
 <div class="login-root">
     <div class="page-enter" style="width: 100%;">
@@ -98,43 +101,32 @@
 
                     <div style="width: 100%; height: 1px; background: rgba(255, 255, 255, 0.08);"></div>
 
-                    <MudTextField @bind-Value="_phone"
-                                  Label="Phone Number"
-                                  Variant="Variant.Outlined"
-                                  InputType="InputType.Telephone"
-                                  Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Filled.Phone"
-                                  Placeholder="+33 6 12 34 56 78" />
+                    <div class="iti-wrapper">
+                        <span class="phone-field-label">Phone Number</span>
+                        <input type="tel" id="iti-phone-input" placeholder="Phone number" autocomplete="tel" />
+                    </div>
 
-                    <MudTextField @bind-Value="_dateOfBirthText"
-                                  Label="Date of Birth"
-                                  Variant="Variant.Outlined"
-                                  Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Filled.CalendarMonth"
-                                  Placeholder="DD/MM/YYYY"
-                                  HelperText="Format: DD/MM/YYYY" />
+                    <div class="dob-field-wrapper">
+                        <span class="dob-icon">
+                            <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Size="Size.Small" />
+                        </span>
+                        <label>Date of Birth</label>
+                        <input type="date" @bind="_dateOfBirth" @bind:format="yyyy-MM-dd" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                    </div>
 
-                    <MudTextField @bind-Value="_address"
-                                  Label="Address"
-                                  Variant="Variant.Outlined"
-                                  Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Filled.Home"
-                                  Placeholder="123 Main Street" />
-
-                    <MudStack Row="true" Spacing="2">
-                        <MudTextField @bind-Value="_city"
-                                      Label="City"
-                                      Variant="Variant.Outlined"
-                                      Adornment="Adornment.Start"
-                                      AdornmentIcon="@Icons.Material.Filled.LocationCity"
-                                      Placeholder="Paris" />
-                        <MudTextField @bind-Value="_country"
-                                      Label="Country"
-                                      Variant="Variant.Outlined"
-                                      Adornment="Adornment.Start"
-                                      AdornmentIcon="@Icons.Material.Filled.Public"
-                                      Placeholder="France" />
-                    </MudStack>
+                    <MudAutocomplete T="DigitalTwin.Services.LocationResult"
+                                    Label="City / Location"
+                                    Variant="Variant.Outlined"
+                                    @bind-Value="_location"
+                                    SearchFunc="SearchLocationsAsync"
+                                    ToStringFunc="@(r => r?.DisplayName ?? string.Empty)"
+                                    MinCharacters="2"
+                                    DebounceInterval="350"
+                                    Adornment="Adornment.Start"
+                                    AdornmentIcon="@Icons.Material.Filled.LocationOn"
+                                    Placeholder="Start typing a city…"
+                                    CoerceText="false"
+                                    ResetValueOnEmptyText="true" />
 
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Primary"
@@ -178,10 +170,11 @@
     private string _firstName = string.Empty;
     private string _lastName = string.Empty;
     private string? _phone;
-    private string? _address;
-    private string? _city;
-    private string? _country;
-    private string? _dateOfBirthText;
+    private DateTime? _dateOfBirth;
+    private DigitalTwin.Services.LocationResult? _location;
+
+    // Track whether iti has been initialised so we only run it once per form show.
+    private bool _itiInitialised;
 
     protected override async Task OnInitializedAsync()
     {
@@ -189,6 +182,18 @@
         if (user is not null)
         {
             await SyncAndNavigateHome();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_showRegistrationForm && !_itiInitialised)
+        {
+            _itiInitialised = true;
+            await Js.InvokeVoidAsync(
+                "signupFields.initPhoneInput",
+                "#iti-phone-input",
+                "lib/intl-tel-input/img/flags.webp");
         }
     }
 
@@ -238,20 +243,9 @@
             return;
         }
 
-        DateTime? dateOfBirth = null;
-        if (!string.IsNullOrWhiteSpace(_dateOfBirthText))
-        {
-            if (DateTime.TryParseExact(_dateOfBirthText.Trim(), new[] { "dd/MM/yyyy", "d/M/yyyy", "dd-MM-yyyy", "yyyy-MM-dd" },
-                System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var parsed))
-            {
-                dateOfBirth = parsed;
-            }
-            else
-            {
-                _errorMessage = "Invalid date format. Please use DD/MM/YYYY.";
-                return;
-            }
-        }
+        // Retrieve the E.164 phone number (with country code) from intl-tel-input.
+        _phone = await Js.InvokeAsync<string>("signupFields.getPhoneNumber", "#iti-phone-input");
+        if (string.IsNullOrWhiteSpace(_phone)) _phone = null;
 
         _isLoading = true;
 
@@ -262,10 +256,10 @@
                 FirstName = _firstName.Trim(),
                 LastName = _lastName.Trim(),
                 Phone = _phone,
-                Address = _address,
-                City = _city,
-                Country = _country,
-                DateOfBirth = dateOfBirth
+                Address = null,
+                City = _location?.City,
+                Country = _location?.Country,
+                DateOfBirth = _dateOfBirth,
             };
 
             await AuthService.CompleteRegistrationAsync(profile);
@@ -281,10 +275,30 @@
         }
     }
 
-    private void CancelRegistration()
+    private async void CancelRegistration()
     {
         _showRegistrationForm = false;
+        _itiInitialised = false;
         _errorMessage = null;
+        await Js.InvokeVoidAsync("signupFields.destroyPhoneInput", "#iti-phone-input");
+    }
+
+    private async Task<IEnumerable<DigitalTwin.Services.LocationResult>> SearchLocationsAsync(
+        string value, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Length < 2)
+            return Enumerable.Empty<DigitalTwin.Services.LocationResult>();
+
+        return await LocationSearch.SearchAsync(value, ct);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await Js.InvokeVoidAsync("signupFields.destroyPhoneInput", "#iti-phone-input");
+        }
+        catch { /* JS runtime may already be disposed on hot-reload */ }
     }
 
     private async Task SyncAndNavigateHome()
