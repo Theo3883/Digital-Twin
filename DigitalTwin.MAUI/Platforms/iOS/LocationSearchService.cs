@@ -105,24 +105,51 @@ public sealed class LocationSearchService : ILocationSearchService, IDisposable
 
             foreach (var completion in completer.Results)
             {
-                // Title    = city/address name  e.g. "Bucharest"
-                // Subtitle = context            e.g. "Bucharest, Romania" or "Romania"
+                // Title    = place/street name   e.g. "Calea Cristești, 35"  or "Iași"
+                // Subtitle = broader context     e.g. "Holboca, Romania"     or "Romania"
                 var title    = completion.Title ?? string.Empty;
                 var subtitle = completion.Subtitle ?? string.Empty;
 
-                // Extract country: last comma-separated segment of subtitle.
                 var country = string.Empty;
+                var city    = title; // fallback: title is the place name (e.g. pure city result)
+
                 if (!string.IsNullOrWhiteSpace(subtitle))
                 {
                     var parts = subtitle.Split(',');
                     country = parts[^1].Trim();
+
+                    if (parts.Length == 1)
+                    {
+                        // Subtitle is just "<Country>" — the title IS the city/place.
+                        city = title;
+                    }
+                    else if (parts.Length == 2)
+                    {
+                        // "<City>, <Country>" — straightforward.
+                        city = parts[0].Trim();
+                    }
+                    else
+                    {
+                        // 3+ segments: "Street, Number, City, PostalCode, Country"
+                        // Walk backwards (skipping country) to find the first non-numeric segment.
+                        city = title; // keep title as fallback
+                        for (var i = parts.Length - 2; i >= 0; i--)
+                        {
+                            var seg = parts[i].Trim();
+                            if (!string.IsNullOrWhiteSpace(seg) && !seg.All(char.IsDigit))
+                            {
+                                city = seg;
+                                break;
+                            }
+                        }
+                    }
                 }
 
                 var display = string.IsNullOrWhiteSpace(subtitle)
                     ? title
                     : $"{title}, {subtitle}";
 
-                results.Add(new LocationResult(display, title, country));
+                results.Add(new LocationResult(display, city, country));
 
                 if (results.Count >= 8) break;
             }

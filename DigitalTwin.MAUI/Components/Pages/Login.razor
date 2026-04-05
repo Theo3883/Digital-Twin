@@ -256,7 +256,7 @@
                 FirstName = _firstName.Trim(),
                 LastName = _lastName.Trim(),
                 Phone = _phone,
-                Address = null,
+                Address = _location?.DisplayName,
                 City = _location?.City,
                 Country = _location?.Country,
                 DateOfBirth = _dateOfBirth,
