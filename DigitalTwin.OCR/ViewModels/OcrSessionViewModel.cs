@@ -1,8 +1,12 @@
+using System.Diagnostics;
 using DigitalTwin.Application.Interfaces;
 using DigitalTwin.OCR.Models;
 using DigitalTwin.OCR.Models.Enums;
+using DigitalTwin.OCR.Models.Structured;
 using DigitalTwin.OCR.Policies;
 using DigitalTwin.OCR.Services;
+using DigitalTwin.OCR.Services.Extraction;
+using DigitalTwin.OCR.Services.ML;
 using Microsoft.Extensions.Logging;
 
 namespace DigitalTwin.OCR.ViewModels;
@@ -31,6 +35,9 @@ public sealed class OcrSessionViewModel
     private readonly IAuthApplicationService _authService;
     private readonly DocumentIdentityExtractorService _identityExtractor;
     private readonly DocumentIdentityValidationPolicy _identityPolicy;
+    private readonly StructuredDocumentBuilder _structuredBuilder;
+    private readonly IDocumentTypeClassifier _mlClassifier;
+    private readonly MlPipelineAuditService _mlAudit;
 
     // ── Observable state ──────────────────────────────────────────────────────
     public bool IsLoading { get; private set; }
@@ -40,6 +47,7 @@ public sealed class OcrSessionViewModel
     public OcrDocumentSyncRecord? SavedRecord { get; private set; }
     public string? ErrorMessage { get; private set; }
     public IdentityValidationResult? IdentityMismatch { get; private set; }
+    public StructuredMedicalDocument? StructuredResult { get; private set; }
     public Action? StateChanged { get; set; }
 
     public OcrSessionViewModel(
@@ -59,7 +67,10 @@ public sealed class OcrSessionViewModel
         ILogger<OcrSessionViewModel> logger,
         IAuthApplicationService authService,
         DocumentIdentityExtractorService identityExtractor,
-        DocumentIdentityValidationPolicy identityPolicy)
+        DocumentIdentityValidationPolicy identityPolicy,
+        StructuredDocumentBuilder structuredBuilder,
+        IDocumentTypeClassifier mlClassifier,
+        MlPipelineAuditService mlAudit)
     {
         _scanner = scanner;
         _fileImport = fileImport;
@@ -78,6 +89,9 @@ public sealed class OcrSessionViewModel
         _authService = authService;
         _identityExtractor = identityExtractor;
         _identityPolicy = identityPolicy;
+        _structuredBuilder = structuredBuilder;
+        _mlClassifier = mlClassifier;
+        _mlAudit = mlAudit;
     }
 
     /// <summary>Initializes the vault for the first time (creates directories + keychain entry).</summary>
@@ -183,6 +197,13 @@ public sealed class OcrSessionViewModel
 
         try
         {
+            _logger.LogInformation(
+                "[OCR Flags] AccurateOcr={Accurate} UseMlClassification={UseMlClassify} UseMlExtraction={UseMlExtract} MlThreshold={Threshold:F2}",
+                _options.UseAccurateOcr,
+                _options.UseMlClassification,
+                _options.UseMlExtraction,
+                _options.MlConfidenceThreshold);
+
             // 1 — Normalise
             SetLoading("Normalizing document…");
             var normalizeResult = await _normalizer.NormalizeAsync(quarantinePath, mimeType);
@@ -200,11 +221,67 @@ public sealed class OcrSessionViewModel
 
             // 4 — OCR (operates on the normalized plaintext)
             SetLoading("Running OCR…");
-            var ocrResult = await _ocr.RunOcrAsync(quarantinePath, mimeType, _options.UseAccurateOcr, ct);
+            var ocrSw = Stopwatch.StartNew();
+            var ocrResult = await _ocr.RunOcrAsync(
+                quarantinePath, mimeType, _options.UseAccurateOcr,
+                buildGraph: _options.UseMlClassification, ct);
+            ocrSw.Stop();
             if (!ocrResult.IsSuccess) { SetError(ocrResult.Error!); return; }
             OcrResult = ocrResult.Value;
+            _logger.LogInformation(
+                "[OCR Perf] OCR completed in {Ms}ms. Pages={Pages} Tokens={Tokens}",
+                ocrSw.ElapsedMilliseconds,
+                ocrResult.Value?.Pages.Count ?? 0,
+                ocrResult.Value?.Pages.Sum(p => p.Blocks.Count) ?? 0);
 
-            // 4b — Identity verification (name + CNP must match the logged-in patient)
+            // 4b — Structured extraction (classification + field extraction + table parsing)
+            if (_options.UseMlClassification)
+            {
+                SetLoading("Classifying document…");
+                var classifySw = Stopwatch.StartNew();
+                var classifyResult = await _mlClassifier.ClassifyAsync(
+                    ocrResult.Value!.RawText, quarantinePath, ct);
+                classifySw.Stop();
+                _logger.LogInformation(
+                    "[OCR Perf] Classification: DocType={DocType} Conf={Conf:F3} Method={Method} in {Ms}ms",
+                    classifyResult.Type, classifyResult.Confidence,
+                    classifyResult.Method, classifySw.ElapsedMilliseconds);
+
+                StructuredResult = _structuredBuilder.Build(
+                    documentId,
+                    ocrResult.Value!.RawText,
+                    classifyResult.Type,
+                    classifyResult.Confidence,
+                    classifyResult.Method,
+                    graph: ocrResult.Value.Graph,
+                    ocrDuration: ocrSw.Elapsed,
+                    classificationDuration: classifySw.Elapsed,
+                    useMlExtraction: _options.UseMlExtraction);
+                _logger.LogInformation(
+                    "[OCR Perf] Structured extraction: DocType={DocType} ReviewFlags={Flags}",
+                    StructuredResult.DocumentType, StructuredResult.ReviewFlags.Count);
+
+                // Record non-PII audit metrics (no text, no patient data)
+                _mlAudit.Record(new MlAuditRecord(
+                    DocumentId: documentId,
+                    PredictedType: StructuredResult.DocumentType,
+                    ClassificationConfidence: classifyResult.Confidence,
+                    ClassificationMethod: classifyResult.Method,
+                    ModelVersion: "v1",
+                    TokenCount: StructuredResult.Metrics.TotalTokens,
+                    BertUsed: StructuredResult.PrimaryExtractionMethod == ExtractionMethod.MlBertTokenClassifier,
+                    OcrDuration: StructuredResult.Metrics.OcrDuration,
+                    ClassificationDuration: StructuredResult.Metrics.ClassificationDuration,
+                    ExtractionDuration: StructuredResult.Metrics.ExtractionDuration,
+                    ReviewFlagCount: StructuredResult.ReviewFlags.Count,
+                    RecordedAt: DateTime.UtcNow));
+            }
+            else
+            {
+                _logger.LogDebug("[OCR ML] ML classification disabled — keyword-only + heuristic extraction.");
+            }
+
+            // 4c — Identity verification (name + CNP must match the logged-in patient)
             SetLoading("Verifying document identity…");
             var docIdentity = _identityExtractor.Extract(ocrResult.Value!.RawText);
             var user = await _authService.GetCurrentUserAsync();
@@ -290,6 +367,7 @@ public sealed class OcrSessionViewModel
         SanitizedPreview = null;
         SavedRecord = null;
         IdentityMismatch = null;
+        StructuredResult = null;
         StateChanged?.Invoke();
     }
 

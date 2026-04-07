@@ -492,3 +492,14 @@ digital-twin-health/
 .sonarqube
 
 build-secrets.env
+# ML training pipeline — temp build artefacts (never committed)
+models/output/
+
+# Python bytecode from training scripts
+scripts/__pycache__/
+scripts/*.pyc
+__pycache__/
+
+# Python virtual environments
+.venv/
+venv/

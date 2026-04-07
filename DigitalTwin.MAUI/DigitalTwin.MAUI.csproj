@@ -87,6 +87,19 @@
         <BundleResource Include="..\.env" Link=".env" Condition="'$(LiveContainerBuild)' != 'true'" />
         <BundleResource Include="..\client_*.plist" Link="%(Filename)%(Extension)" />
 
+        <!-- OCR ML artifacts (shipped in the app bundle; built by scripts/train.sh)
+             IMPORTANT: must NOT create a top-level 'Resources/' directory in the .app bundle. -->
+        <BundleResource Include="..\DigitalTwin.OCR\Resources\Models\doc_type_classifier_v1.mlmodelc\**"
+                        Link="Models\doc_type_classifier_v1.mlmodelc\%(RecursiveDir)%(Filename)%(Extension)"
+                        Condition="Exists('..\DigitalTwin.OCR\Resources\Models\doc_type_classifier_v1.mlmodelc')">
+          <PublishFolderType>RootDirectory</PublishFolderType>
+        </BundleResource>
+        <BundleResource Include="..\DigitalTwin.OCR\Resources\Models\reference_feature_prints.json"
+                        Link="Models\reference_feature_prints.json"
+                        Condition="Exists('..\DigitalTwin.OCR\Resources\Models\reference_feature_prints.json')">
+          <PublishFolderType>RootDirectory</PublishFolderType>
+        </BundleResource>
+
         <!-- Custom Fonts -->
         <MauiFont Include="Resources\Fonts\*" />
 

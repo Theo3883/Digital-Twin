@@ -1,5 +1,7 @@
 using DigitalTwin.OCR.Policies;
 using DigitalTwin.OCR.Services;
+using DigitalTwin.OCR.Services.Extraction;
+using DigitalTwin.OCR.Services.ML;
 using DigitalTwin.OCR.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -22,6 +24,29 @@ public static class OcrServiceCollectionExtensions
         // ── Core services ────────────────────────────────────────────────────
         services.AddSingleton<OcrSheetService>();
         services.AddSingleton<IOcrSheetService>(sp => sp.GetRequiredService<OcrSheetService>());
+
+        // ── Extraction pipeline ──────────────────────────────────────────────
+        services.AddSingleton<HeuristicFieldExtractor>();
+        services.AddSingleton<GeometricTableExtractor>();
+        // StructuredDocumentBuilder receives BertFieldExtractor as optional dependency
+        services.AddSingleton<StructuredDocumentBuilder>(sp => new StructuredDocumentBuilder(
+            sp.GetRequiredService<HeuristicFieldExtractor>(),
+            sp.GetRequiredService<GeometricTableExtractor>(),
+            sp.GetService<BertFieldExtractor>()));
+
+        // ── ML classification pipeline (on-device, iOS-only inference) ───────
+        services.AddSingleton<NlDocumentTypeClassifier>();
+        services.AddSingleton<FeaturePrintDocumentClassifier>();
+        services.AddSingleton<ClassificationOrchestrator>();
+        services.AddSingleton<IDocumentTypeClassifier>(sp =>
+            sp.GetRequiredService<ClassificationOrchestrator>());
+
+        // ── BERT field extractor (Phase 3, gated by UseMlExtraction) ─────────
+        services.AddSingleton<WordPieceTokenizer>(_ => WordPieceTokenizer.FromBundledVocab());
+        services.AddSingleton<BertFieldExtractor>();
+
+        // ── Non-PII audit metrics (local-only, in-memory) ────────────────────
+        services.AddSingleton<MlPipelineAuditService>();
 
         services.AddSingleton<DocumentEncryptionService>();
         services.AddSingleton<HashingService>();

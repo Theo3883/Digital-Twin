@@ -56,4 +56,67 @@ public class DocumentTypeClassifierTests
         Assert.Equal(MedicalDocumentType.Unknown, _svc.Classify(""));
         Assert.Equal(MedicalDocumentType.Unknown, _svc.Classify("   "));
     }
+
+    [Fact]
+    public void Classify_MedicalCertificate_WithCertificatMedical()
+    {
+        var text = "CERTIFICAT MEDICAL\nNumar: 42/2023\nNume: Ionescu Maria\nDiagnostic: Hipertensiune arteriala";
+        Assert.Equal(MedicalDocumentType.MedicalCertificate, _svc.Classify(text));
+    }
+
+    [Fact]
+    public void Classify_MedicalCertificate_WithConcediuMedical()
+    {
+        var text = "CONCEDIU MEDICAL\nSerie: OPSNAJ Nr: 12345678\nNume asigurat: Popescu Ion";
+        Assert.Equal(MedicalDocumentType.MedicalCertificate, _svc.Classify(text));
+    }
+
+    [Fact]
+    public void Classify_ImagingReport_WithEcografie()
+    {
+        var text = "ECOGRAFIE ABDOMINALA\nPatient: Sandu Teodor\nDescrierea imaginilor: ficat normoecogen.";
+        Assert.Equal(MedicalDocumentType.ImagingReport, _svc.Classify(text));
+    }
+
+    [Fact]
+    public void Classify_ImagingReport_WithDescriere()
+    {
+        var text = "DESCRIERE IMAGISTICĂ\nRMN cerebral: structuri normale.";
+        Assert.Equal(MedicalDocumentType.ImagingReport, _svc.Classify(text));
+    }
+
+    [Fact]
+    public void Classify_EcgReport_WithElectrocardiograma()
+    {
+        var text = "ELECTROCARDIOGRAMĂ\nRitm sinusal, frecventa cardiaca 72 bpm\nAxa electrica normala.";
+        Assert.Equal(MedicalDocumentType.EcgReport, _svc.Classify(text));
+    }
+
+    [Fact]
+    public void Classify_EcgReport_WithEcgKeywords()
+    {
+        var text = "ECG de repaus\nRitm: sinusal regulat\nFrecventa cardiaca: 68 bpm";
+        Assert.Equal(MedicalDocumentType.EcgReport, _svc.Classify(text));
+    }
+
+    [Fact]
+    public void Classify_OperativeReport_WithProtocolOperator()
+    {
+        var text = "PROTOCOL OPERATOR\nData interventiei: 15.03.2024\nTip interventie: colecistectomie laparoscopica";
+        Assert.Equal(MedicalDocumentType.OperativeReport, _svc.Classify(text));
+    }
+
+    [Fact]
+    public void Classify_ConsultationNote_WithConsultatieSpecialitate()
+    {
+        var text = "CONSULTAȚIE DE SPECIALITATE\nSpecialitate: Cardiologie\nExamen clinic: TA 130/80 mmHg";
+        Assert.Equal(MedicalDocumentType.ConsultationNote, _svc.Classify(text));
+    }
+
+    [Fact]
+    public void Classify_ConsultationNote_WithExamenClinic()
+    {
+        var text = "Examen clinic\nDiagnostic: angina pectorala stabila\nTratament: Aspirina 100mg";
+        Assert.Equal(MedicalDocumentType.ConsultationNote, _svc.Classify(text));
+    }
 }

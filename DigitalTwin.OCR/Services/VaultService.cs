@@ -21,7 +21,7 @@ public sealed class VaultService
     private bool _isUnlocked;
     private byte[]? _masterKey;
 
-    public bool IsInitialized => Directory.Exists(VaultPath("encrypted"));
+    public bool IsInitialized => Directory.Exists(VaultPath("encrypted")) && _keychain.KeyExists();
     public bool IsUnlocked => _isUnlocked;
 
     public VaultService(

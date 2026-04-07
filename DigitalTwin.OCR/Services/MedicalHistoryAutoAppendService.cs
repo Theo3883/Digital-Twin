@@ -105,10 +105,16 @@ public sealed class MedicalHistoryAutoAppendService
     {
         var typeLabel = docType switch
         {
-            MedicalDocumentType.Prescription => "Prescription",
-            MedicalDocumentType.Referral => "Referral",
-            MedicalDocumentType.LabResult => "Lab Result",
-            MedicalDocumentType.Discharge => "Discharge Summary",
+            MedicalDocumentType.Prescription      => "Prescription",
+            MedicalDocumentType.Referral          => "Referral",
+            MedicalDocumentType.LabResult         => "Lab Result",
+            MedicalDocumentType.Discharge         => "Discharge Summary",
+            MedicalDocumentType.MedicalCertificate => "Medical Certificate",
+            MedicalDocumentType.ImagingReport     => "Imaging Report",
+            MedicalDocumentType.EcgReport         => "ECG Report",
+            MedicalDocumentType.OperativeReport   => "Operative Report",
+            MedicalDocumentType.ConsultationNote  => "Consultation Note",
+            MedicalDocumentType.GenericClinicForm => "Clinic Form",
             _ => "OCR Document"
         };
 

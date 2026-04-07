@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "generated_at": "2026-04-07T12:33:57.207733Z",
+  "artifacts": {
+    ".gitkeep": {
+      "type": "file",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "doc_type_classifier_v1.mlmodelc": {
+      "type": "directory",
+      "sha256": "452b61e5516ae5aef419e221b5646eab9dec27fad25968e24cbf82abb04ff89c"
+    },
+    "reference_feature_prints.json": {
+      "type": "file",
+      "size_bytes": 59222,
+      "sha256": "55852e9ff85aae4d7f0891d92164b151e14ef0a2873d00475202d3297dcee732"
+    }
+  }
+}

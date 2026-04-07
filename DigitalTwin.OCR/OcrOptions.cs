@@ -11,4 +11,24 @@ public sealed class OcrOptions
 
     /// <summary>Maximum preview characters shown in the sanitized result panel.</summary>
     public int MaxSanitizedPreviewLength { get; set; } = 2000;
+
+    // ── ML feature flags (all off by default — purely additive) ──────────────
+
+    /// <summary>
+    /// Enable the ML document-type classifier (NL Text Classifier + Vision Feature Print).
+    /// When false the existing keyword classifier runs as the sole signal.
+    /// </summary>
+    public bool UseMlClassification { get; set; } = false;
+
+    /// <summary>
+    /// Enable the BERT-based field extractor for structured extraction.
+    /// When false heuristic/regex extraction is used.
+    /// </summary>
+    public bool UseMlExtraction { get; set; } = false;
+
+    /// <summary>
+    /// Minimum ML confidence required before accepting an ML result.
+    /// Below this threshold the fusion falls back to the next layer.
+    /// </summary>
+    public float MlConfidenceThreshold { get; set; } = 0.65f;
 }

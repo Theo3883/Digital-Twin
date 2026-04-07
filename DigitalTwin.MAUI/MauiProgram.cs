@@ -72,6 +72,21 @@ public static class MauiProgram
 #else
                     opts.SecurityMode = SecurityMode.Strict;
 #endif
+
+                    // ML feature flags are off by default. Enable via .env without changing code:
+                    //   OCR_USE_ML_CLASSIFICATION=1
+                    //   OCR_USE_ML_EXTRACTION=1
+                    //   OCR_ML_CONFIDENCE_THRESHOLD=0.65
+                    opts.UseMlClassification = Environment.GetEnvironmentVariable("OCR_USE_ML_CLASSIFICATION") == "1";
+                    opts.UseMlExtraction = Environment.GetEnvironmentVariable("OCR_USE_ML_EXTRACTION") == "1";
+                    if (float.TryParse(
+                            Environment.GetEnvironmentVariable("OCR_ML_CONFIDENCE_THRESHOLD"),
+                            System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture,
+                            out var threshold))
+                    {
+                        opts.MlConfidenceThreshold = threshold;
+                    }
                 });
                 
                 svc.AddDocumentPreviewService();

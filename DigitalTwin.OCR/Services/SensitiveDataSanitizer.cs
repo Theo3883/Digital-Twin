@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using DigitalTwin.OCR.Models.Structured;
 
 namespace DigitalTwin.OCR.Services;
 
@@ -58,5 +59,26 @@ public sealed class SensitiveDataSanitizer
             return sanitized;
 
         return sanitized[..maxLength] + "\n[…truncated for preview]";
+    }
+
+    /// <summary>
+    /// Redacts all PII fields from a StructuredMedicalDocument for safe logging/display.
+    /// Returns a new instance with sensitive fields replaced by placeholder tokens.
+    /// The original document is never mutated.
+    /// </summary>
+    public StructuredMedicalDocument RedactStructured(StructuredMedicalDocument doc)
+    {
+        static ExtractedField<string>? RedactField(ExtractedField<string>? field, string placeholder) =>
+            field is null ? null : field with { Value = placeholder };
+
+        return doc with
+        {
+            PatientName = RedactField(doc.PatientName, "[PATIENT_NAME]"),
+            PatientId   = RedactField(doc.PatientId,   "[CNP]"),
+            DateOfBirth = RedactField(doc.DateOfBirth, "[DOB]"),
+            // DoctorName is not PII of the patient — keep it
+            // Diagnosis may be PHI in some contexts — keep but note it
+            ReportDate  = RedactField(doc.ReportDate,  "[DATE]"),
+        };
     }
 }
