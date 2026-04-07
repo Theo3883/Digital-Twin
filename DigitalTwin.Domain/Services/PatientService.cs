@@ -24,37 +24,28 @@ public class PatientService : IPatientService
     /// </summary>
     public async Task<Patient> CreateOrUpdateProfileAsync(
         Guid userId,
-        string? bloodType,
-        string? allergies,
-        string? medicalHistoryNotes,
-        decimal? weight,
-        decimal? height,
-        int? bloodPressureSystolic,
-        int? bloodPressureDiastolic,
-        decimal? cholesterol,
-        string? cnp,
-        DateTime? userDateOfBirth)
+        PatientProfileUpdate update)
     {
-        if (!string.IsNullOrWhiteSpace(cnp) && userDateOfBirth.HasValue)
+        if (!string.IsNullOrWhiteSpace(update.Cnp) && update.UserDateOfBirth.HasValue
+            && !CnpValidator.MatchesDateOfBirth(update.Cnp, update.UserDateOfBirth.Value))
         {
-            if (!CnpValidator.MatchesDateOfBirth(cnp, userDateOfBirth.Value))
-                throw new DomainException(
-                    "The date of birth embedded in the CNP does not match the patient's date of birth.");
+            throw new DomainException(
+                "The date of birth embedded in the CNP does not match the patient's date of birth.");
         }
 
         var existing = await _patientRepo.GetByUserIdAsync(userId);
 
         if (existing is not null)
         {
-            existing.BloodType           = bloodType;
-            existing.Allergies           = allergies;
-            existing.MedicalHistoryNotes = medicalHistoryNotes;
-            existing.Weight = weight;
-            existing.Height = height;
-            existing.BloodPressureSystolic = bloodPressureSystolic;
-            existing.BloodPressureDiastolic = bloodPressureDiastolic;
-            existing.Cholesterol = cholesterol;
-            existing.Cnp = cnp;
+            existing.BloodType           = update.BloodType;
+            existing.Allergies           = update.Allergies;
+            existing.MedicalHistoryNotes = update.MedicalHistoryNotes;
+            existing.Weight = update.Weight;
+            existing.Height = update.Height;
+            existing.BloodPressureSystolic = update.BloodPressureSystolic;
+            existing.BloodPressureDiastolic = update.BloodPressureDiastolic;
+            existing.Cholesterol = update.Cholesterol;
+            existing.Cnp = update.Cnp;
             await _patientRepo.UpdateAsync(existing);
             return existing;
         }
@@ -62,15 +53,15 @@ public class PatientService : IPatientService
         var patient = new Patient
         {
             UserId              = userId,
-            BloodType           = bloodType,
-            Allergies           = allergies,
-            MedicalHistoryNotes = medicalHistoryNotes,
-            Weight = weight,
-            Height = height,
-            BloodPressureSystolic = bloodPressureSystolic,
-            BloodPressureDiastolic = bloodPressureDiastolic,
-            Cholesterol = cholesterol,
-            Cnp = cnp
+            BloodType           = update.BloodType,
+            Allergies           = update.Allergies,
+            MedicalHistoryNotes = update.MedicalHistoryNotes,
+            Weight = update.Weight,
+            Height = update.Height,
+            BloodPressureSystolic = update.BloodPressureSystolic,
+            BloodPressureDiastolic = update.BloodPressureDiastolic,
+            Cholesterol = update.Cholesterol,
+            Cnp = update.Cnp
         };
         await _patientRepo.AddAsync(patient);
         return patient;

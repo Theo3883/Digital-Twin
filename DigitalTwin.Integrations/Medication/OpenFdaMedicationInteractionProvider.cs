@@ -5,7 +5,9 @@ using DigitalTwin.Domain.Enums;
 using DigitalTwin.Domain.Interfaces.Providers;
 using DigitalTwin.Domain.Models;
 using DigitalTwin.Integrations.Medication.DTOs;
-using Microsoft.Extensions.Logging;
+using DigitalTwin.Domain.Services;
+
+using DigitalTwin.Application.Configuration;
 
 namespace DigitalTwin.Integrations.Medication;
 
@@ -20,8 +22,8 @@ namespace DigitalTwin.Integrations.Medication;
 /// </summary>
 public sealed class OpenFdaMedicationInteractionProvider : IMedicationInteractionProvider
 {
-    private const string RxNavBaseUrl = "https://rxnav.nlm.nih.gov/REST";
-    private const string OpenFdaBaseUrl = "https://api.fda.gov/drug/label.json";
+    private readonly string _rxNavBaseUrl;
+    private readonly string _openFdaBaseUrl;
     private const int OpenFdaLimit = 20;
 
     private static readonly string[] HighRiskSignals =
@@ -37,14 +39,17 @@ public sealed class OpenFdaMedicationInteractionProvider : IMedicationInteractio
     ];
 
     private readonly HttpClient _http;
-    private readonly ILogger<OpenFdaMedicationInteractionProvider> _logger;
+    private readonly AppDebugLogger<OpenFdaMedicationInteractionProvider> _logger;
 
     public OpenFdaMedicationInteractionProvider(
         HttpClient http,
-        ILogger<OpenFdaMedicationInteractionProvider> logger)
+        AppDebugLogger<OpenFdaMedicationInteractionProvider> logger,
+        MedicationApiOptions options)
     {
         _http = http;
         _logger = logger;
+        _rxNavBaseUrl = options.RxNavBaseUrl;
+        _openFdaBaseUrl = options.OpenFdaBaseUrl;
     }
 
     public async Task<IEnumerable<MedicationInteraction>> GetInteractionsAsync(
@@ -59,7 +64,13 @@ public sealed class OpenFdaMedicationInteractionProvider : IMedicationInteractio
         if (requested.Count < 2)
             return [];
 
-        // Resolve RxCUI -> ingredient RxCUI -> canonical drug name.
+        var resolved = await ResolveDrugsAsync(requested, ct);
+        var corpora = await BuildCorporaAsync(resolved, ct);
+        return DetectPairwiseInteractions(resolved, corpora);
+    }
+
+    private async Task<List<ResolvedDrug>> ResolveDrugsAsync(List<string> requested, CancellationToken ct)
+    {
         var resolved = new List<ResolvedDrug>(requested.Count);
         foreach (var rxcui in requested)
         {
@@ -68,44 +79,52 @@ public sealed class OpenFdaMedicationInteractionProvider : IMedicationInteractio
             if (string.IsNullOrWhiteSpace(name) &&
                 !ingredient.Equals(rxcui, StringComparison.OrdinalIgnoreCase))
             {
-                // Fallback: if ingredient CUI has no properties, try original CUI.
                 name = await ResolveNameAsync(rxcui, ct);
             }
 
             if (string.IsNullOrWhiteSpace(name))
             {
-                _logger.LogWarning(
+                _logger.Warn(
                     "[DDI] Name resolution failed for RxCUI {OriginalRxCui} (ingredient {IngredientRxCui}); skipping drug from interaction check.",
                     rxcui, ingredient);
                 continue;
             }
 
-            _logger.LogInformation(
+            _logger.Info(
                 "[DDI] Resolved RxCUI {OriginalRxCui} -> ingredient {IngredientRxCui} -> name '{DrugName}'.",
                 rxcui, ingredient, name);
 
             resolved.Add(new ResolvedDrug(rxcui, ingredient, NormalizeDrugName(name)));
         }
+        return resolved;
+    }
 
-        // Build a text corpus per drug from openFDA sections.
+    private async Task<Dictionary<string, string>> BuildCorporaAsync(List<ResolvedDrug> resolved, CancellationToken ct)
+    {
         var corpora = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var drug in resolved)
         {
             var corpus = await FetchInteractionCorpusAsync(drug.NormalizedName, ct);
             if (corpus is null)
             {
-                _logger.LogWarning(
+                _logger.Warn(
                     "[DDI] openFDA lookup failed for '{DrugName}' (ingredient {IngredientRxCui}); skipping drug from interaction check.",
                     drug.NormalizedName, drug.IngredientRxCui);
                 continue;
             }
 
-            _logger.LogInformation(
+            _logger.Info(
                 "[DDI] openFDA corpus loaded for '{DrugName}' ({IngredientRxCui}), chars={Chars}.",
                 drug.NormalizedName, drug.IngredientRxCui, corpus.Length);
             corpora[drug.IngredientRxCui] = corpus;
         }
+        return corpora;
+    }
 
+    private List<MedicationInteraction> DetectPairwiseInteractions(
+        List<ResolvedDrug> resolved,
+        Dictionary<string, string> corpora)
+    {
         var results = new List<MedicationInteraction>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -128,14 +147,14 @@ public sealed class OpenFdaMedicationInteractionProvider : IMedicationInteractio
                 var bMentionsA = ContainsDrugMention(corpusB, a.NormalizedName);
                 if (!aMentionsB && !bMentionsA)
                 {
-                    _logger.LogDebug(
+                    _logger.Debug(
                         "[DDI] No cross-mention found between '{DrugA}' and '{DrugB}'.",
                         a.NormalizedName, b.NormalizedName);
                     continue;
                 }
 
                 var severity = EvaluateSeverity(corpusA, corpusB);
-                _logger.LogInformation(
+                _logger.Info(
                     "[DDI] Interaction detected: '{DrugA}' <-> '{DrugB}', severity={Severity}.",
                     a.NormalizedName, b.NormalizedName, severity);
                 results.Add(new MedicationInteraction
@@ -155,7 +174,7 @@ public sealed class OpenFdaMedicationInteractionProvider : IMedicationInteractio
     {
         try
         {
-            var url = $"{RxNavBaseUrl}/rxcui/{rxCui}/related.json?tty=IN";
+            var url = $"{_rxNavBaseUrl}/rxcui/{rxCui}/related.json?tty=IN";
             var resp = await _http.GetFromJsonAsync<RxNavRelatedResponse>(url, ct);
             var ingredient = resp?.RelatedGroup?.ConceptGroup
                 ?.SelectMany(g => g.ConceptProperties ?? [])
@@ -164,7 +183,7 @@ public sealed class OpenFdaMedicationInteractionProvider : IMedicationInteractio
 
             if (string.IsNullOrWhiteSpace(ingredient))
             {
-                _logger.LogWarning(
+                _logger.Warn(
                     "[DDI] No ingredient mapping for RxCUI {RxCui}; using original value.",
                     rxCui);
                 return rxCui;
@@ -172,9 +191,9 @@ public sealed class OpenFdaMedicationInteractionProvider : IMedicationInteractio
 
             return ingredient;
         }
-        catch
+        catch (Exception ex)
         {
-            _logger.LogWarning("[DDI] Ingredient mapping failed for RxCUI {RxCui}; using original value.", rxCui);
+            _logger.Warn(ex, "[DDI] Ingredient mapping failed for RxCUI {RxCui}; using original value.", rxCui);
             return rxCui;
         }
     }
@@ -183,7 +202,7 @@ public sealed class OpenFdaMedicationInteractionProvider : IMedicationInteractio
     {
         try
         {
-            var url = $"{RxNavBaseUrl}/rxcui/{rxCui}/properties.json";
+            var url = $"{_rxNavBaseUrl}/rxcui/{rxCui}/properties.json";
             using var stream = await _http.GetStreamAsync(url, ct);
             using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
             if (doc.RootElement.TryGetProperty("properties", out var properties) &&
@@ -194,9 +213,9 @@ public sealed class OpenFdaMedicationInteractionProvider : IMedicationInteractio
 
             return null;
         }
-        catch
+        catch (Exception ex)
         {
-            _logger.LogWarning("[DDI] Properties lookup failed for RxCUI {RxCui}.", rxCui);
+            _logger.Warn(ex, "[DDI] Properties lookup failed for RxCUI {RxCui}.", rxCui);
             return null;
         }
     }
@@ -207,7 +226,7 @@ public sealed class OpenFdaMedicationInteractionProvider : IMedicationInteractio
         {
             var substance = Uri.EscapeDataString($"\"{normalizedDrugName.ToUpperInvariant()}\"");
             var query = $"search=openfda.substance_name:{substance}&limit={OpenFdaLimit}";
-            var url = $"{OpenFdaBaseUrl}?{query}";
+            var url = $"{_openFdaBaseUrl}?{query}";
 
             using var stream = await _http.GetStreamAsync(url, ct);
             using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);

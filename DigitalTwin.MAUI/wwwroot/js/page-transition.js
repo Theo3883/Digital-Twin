@@ -3,7 +3,7 @@
  * Drives page-enter animation without destroying/recreating the DOM.
  * Called from MainLayout.razor via JSInterop on every navigation.
  */
-window.pageTransition = {
+globalThis.pageTransition = {
   /**
    * @param {HTMLElement} el  The .page-content wrapper element.
    */
@@ -15,7 +15,7 @@ window.pageTransition = {
 
     // 2. Force a reflow so the browser registers the class removal before
     //    re-adding. This is the cheapest way to restart a CSS animation.
-    void el.offsetWidth;
+    el.offsetWidth; // eslint-disable-line no-unused-expressions
 
     // 3. Add the enter class — the CSS animation fires from its @keyframes.
     el.classList.add('page-enter');

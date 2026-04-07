@@ -4,8 +4,6 @@ namespace DigitalTwin.OCR.Tests;
 
 public class AesGcmRoundtripTests
 {
-    private readonly DocumentEncryptionService _sut = new();
-
     [Fact]
     public void Encrypt_Decrypt_Roundtrip_ProducesOriginalPlaintext()
     {
@@ -14,8 +12,8 @@ public class AesGcmRoundtripTests
         var documentId = Guid.NewGuid();
         var sha256 = HashingService.ComputeSha256Hex(plaintext);
 
-        var payload = _sut.Encrypt(plaintext, masterKey, documentId, "application/pdf", 1, sha256);
-        var decrypted = _sut.Decrypt(payload.Ciphertext, payload.Descriptor, masterKey);
+        var payload = DocumentEncryptionService.Encrypt(plaintext, masterKey, documentId, "application/pdf", 1, sha256);
+        var decrypted = DocumentEncryptionService.Decrypt(payload.Ciphertext, payload.Descriptor, masterKey);
 
         Assert.Equal(plaintext, decrypted);
     }
@@ -27,8 +25,8 @@ public class AesGcmRoundtripTests
         var plaintext = new byte[] { 1, 2, 3, 4, 5 };
         var sha256 = HashingService.ComputeSha256Hex(plaintext);
 
-        var p1 = _sut.Encrypt(plaintext, masterKey, Guid.NewGuid(), "image/jpeg", 1, sha256);
-        var p2 = _sut.Encrypt(plaintext, masterKey, Guid.NewGuid(), "image/jpeg", 1, sha256);
+        var p1 = DocumentEncryptionService.Encrypt(plaintext, masterKey, Guid.NewGuid(), "image/jpeg", 1, sha256);
+        var p2 = DocumentEncryptionService.Encrypt(plaintext, masterKey, Guid.NewGuid(), "image/jpeg", 1, sha256);
 
         // Different nonces must yield different ciphertexts
         Assert.NotEqual(p1.Descriptor.NonceB64, p2.Descriptor.NonceB64);
@@ -43,10 +41,10 @@ public class AesGcmRoundtripTests
         var plaintext = new byte[] { 10, 20, 30 };
         var sha256 = HashingService.ComputeSha256Hex(plaintext);
 
-        var payload = _sut.Encrypt(plaintext, masterKey, Guid.NewGuid(), "image/jpeg", 1, sha256);
+        var payload = DocumentEncryptionService.Encrypt(plaintext, masterKey, Guid.NewGuid(), "image/jpeg", 1, sha256);
 
         Assert.ThrowsAny<Exception>(() =>
-            _sut.Decrypt(payload.Ciphertext, payload.Descriptor, wrongKey));
+            DocumentEncryptionService.Decrypt(payload.Ciphertext, payload.Descriptor, wrongKey));
     }
 
     [Fact]
@@ -56,8 +54,8 @@ public class AesGcmRoundtripTests
         var plaintext = Array.Empty<byte>();
         var sha256 = HashingService.ComputeSha256Hex(plaintext);
 
-        var payload = _sut.Encrypt(plaintext, masterKey, Guid.NewGuid(), "application/pdf", 0, sha256);
-        var decrypted = _sut.Decrypt(payload.Ciphertext, payload.Descriptor, masterKey);
+        var payload = DocumentEncryptionService.Encrypt(plaintext, masterKey, Guid.NewGuid(), "application/pdf", 0, sha256);
+        var decrypted = DocumentEncryptionService.Decrypt(payload.Ciphertext, payload.Descriptor, masterKey);
 
         Assert.Empty(decrypted);
     }

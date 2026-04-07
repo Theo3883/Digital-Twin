@@ -2,7 +2,7 @@ using System.Linq;
 using DigitalTwin.Domain.Enums;
 using DigitalTwin.Domain.Interfaces.Providers;
 using DigitalTwin.Domain.Models;
-using Microsoft.Extensions.Logging;
+using DigitalTwin.Domain.Services;
 #if IOS || ANDROID
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.Devices.Sensors;
@@ -28,13 +28,13 @@ public sealed class EnvironmentLocationSource : IEnvironmentLocationSource
     private readonly OpenWeatherGeocodingClient _geocoding;
     private readonly double _fallbackLat;
     private readonly double _fallbackLon;
-    private readonly ILogger<EnvironmentLocationSource>? _logger;
+    private readonly AppDebugLogger<EnvironmentLocationSource>? _logger;
 
     public EnvironmentLocationSource(
         OpenWeatherGeocodingClient geocoding,
         double fallbackLat,
         double fallbackLon,
-        ILogger<EnvironmentLocationSource>? logger = null)
+        AppDebugLogger<EnvironmentLocationSource>? logger = null)
     {
         _geocoding = geocoding;
         _fallbackLat = fallbackLat;
@@ -98,7 +98,7 @@ public sealed class EnvironmentLocationSource : IEnvironmentLocationSource
             var status = await Permissions.RequestAsync<Permissions.LocationWhenInUse>().ConfigureAwait(false);
             if (status != PermissionStatus.Granted)
             {
-                _logger?.LogWarning("Location permission not granted ({Status}); trying cache or fallback.", status);
+                _logger?.Warn("Location permission not granted ({Status}); trying cache or fallback.", status);
                 return TryCacheOrFallback("Location permission not granted");
             }
 
@@ -118,7 +118,7 @@ public sealed class EnvironmentLocationSource : IEnvironmentLocationSource
         }
         catch (Exception ex)
         {
-            _logger?.LogWarning(ex, "Device location failed; trying cache or fallback.");
+            _logger?.Warn(ex, "Device location failed; trying cache or fallback.");
         }
 
         return TryCacheOrFallback("Could not get device location");
@@ -137,9 +137,11 @@ public sealed class EnvironmentLocationSource : IEnvironmentLocationSource
             if (p is null)
                 return null;
 
-            var locality = !string.IsNullOrWhiteSpace(p.Locality)
-                ? p.Locality.Trim()
-                : (!string.IsNullOrWhiteSpace(p.SubLocality) ? p.SubLocality.Trim() : null);
+            string? locality = null;
+            if (!string.IsNullOrWhiteSpace(p.Locality))
+                locality = p.Locality.Trim();
+            else if (!string.IsNullOrWhiteSpace(p.SubLocality))
+                locality = p.SubLocality.Trim();
 
             var country = !string.IsNullOrWhiteSpace(p.CountryCode)
                 ? p.CountryCode.Trim().ToUpperInvariant()
@@ -158,7 +160,7 @@ public sealed class EnvironmentLocationSource : IEnvironmentLocationSource
         }
         catch (Exception ex)
         {
-            _logger?.LogDebug(ex, "Reverse geocoding failed; using generic location label.");
+            _logger?.Debug(ex, "Reverse geocoding failed; using generic location label.");
             return null;
         }
     }
@@ -172,11 +174,11 @@ public sealed class EnvironmentLocationSource : IEnvironmentLocationSource
             double.TryParse(lonStr, System.Globalization.CultureInfo.InvariantCulture, out var lon))
         {
             var label = Preferences.Get(PrefCacheLabel, "Last known location");
-            _logger?.LogInformation("Using cached coordinates ({Reason})", logReason);
+            _logger?.Info("Using cached coordinates ({Reason})", logReason);
             return new EnvironmentLocationResult(lat, lon, label);
         }
 
-        _logger?.LogWarning("{Reason}; using configured LATITUDE/LONGITUDE fallback.", logReason);
+        _logger?.Warn("{Reason}; using configured LATITUDE/LONGITUDE fallback.", logReason);
         return new EnvironmentLocationResult(_fallbackLat, _fallbackLon, "Default location");
     }
 

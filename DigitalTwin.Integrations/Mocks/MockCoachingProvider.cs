@@ -41,13 +41,13 @@ public class MockCoachingProvider : ICoachingProvider
         CancellationToken cancellationToken = default)
     {
         var pm = environment.PM25;
-        var aqiHint = pm <= 12
-            ? "Air quality looks good."
-            : pm <= 35
-                ? "Air quality is acceptable for most people."
-                : pm <= 55
-                    ? "Consider reducing prolonged outdoor exertion."
-                    : "Unhealthy air — limit outdoor activity and keep windows closed when possible.";
+        var aqiHint = pm switch
+        {
+            <= 12 => "Air quality looks good.",
+            <= 35 => "Air quality is acceptable for most people.",
+            <= 55 => "Consider reducing prolonged outdoor exertion.",
+            _ => "Unhealthy air — limit outdoor activity and keep windows closed when possible."
+        };
 
         var activity = pm <= 35
             ? " A walk earlier in the day is reasonable if you feel well."

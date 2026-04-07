@@ -112,16 +112,17 @@ public class AuthApplicationService : IAuthApplicationService
 
         await _patientService.CreateOrUpdateProfileAsync(
             current.UserId,
-            profile.BloodType,
-            profile.Allergies,
-            profile.MedicalHistoryNotes,
-            profile.Weight,
-            profile.Height,
-            profile.BloodPressureSystolic,
-            profile.BloodPressureDiastolic,
-            profile.Cholesterol,
-            profile.Cnp,
-            user?.DateOfBirth);
+            new Domain.Models.PatientProfileUpdate(
+                profile.BloodType,
+                profile.Allergies,
+                profile.MedicalHistoryNotes,
+                profile.Weight,
+                profile.Height,
+                profile.BloodPressureSystolic,
+                profile.BloodPressureDiastolic,
+                profile.Cholesterol,
+                profile.Cnp,
+                user?.DateOfBirth));
 
         if (_logger.IsEnabled(LogLevel.Debug))
             _logger.LogDebug("[Auth] Patient profile saved for UserId={UserId}.", current.UserId);

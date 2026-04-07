@@ -7,7 +7,7 @@ using DigitalTwin.Domain.Exceptions;
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Interfaces.Providers;
 using DigitalTwin.Domain.Interfaces.Services;
-using Microsoft.Extensions.Logging;
+using DigitalTwin.Domain.Services;
 
 namespace DigitalTwin.Application.Services;
 
@@ -26,7 +26,12 @@ public class MedicationApplicationService : IMedicationApplicationService
     private readonly IDomainEventDispatcher          _events;
     private readonly IHealthDataSyncService?         _sync;
     private readonly IPreferencesJsonCache?            _prefs;
-    private readonly ILogger<MedicationApplicationService>? _logger;
+    private readonly AppDebugLogger<MedicationApplicationService>? _logger;
+
+    public sealed record OptionalDependencies(
+        IHealthDataSyncService? Sync = null,
+        IPreferencesJsonCache? Prefs = null,
+        AppDebugLogger<MedicationApplicationService>? Logger = null);
 
     public MedicationApplicationService(
         IMedicationInteractionProvider interactionProvider,
@@ -36,9 +41,7 @@ public class MedicationApplicationService : IMedicationApplicationService
         IMedicationService medicationService,
         IMedicationManagementService medications,
         IDomainEventDispatcher events,
-        IHealthDataSyncService? sync = null,
-        IPreferencesJsonCache? prefs = null,
-        ILogger<MedicationApplicationService>? logger = null)
+        OptionalDependencies? optional = null)
     {
         _interactionProvider = interactionProvider;
         _drugSearch          = drugSearch;
@@ -47,9 +50,9 @@ public class MedicationApplicationService : IMedicationApplicationService
         _medicationService   = medicationService;
         _medications         = medications;
         _events              = events;
-        _sync                = sync;
-        _prefs               = prefs;
-        _logger              = logger;
+        _sync                = optional?.Sync;
+        _prefs               = optional?.Prefs;
+        _logger              = optional?.Logger;
     }
 
     /// <inheritdoc/>
@@ -176,7 +179,7 @@ public class MedicationApplicationService : IMedicationApplicationService
             try { await _sync.PushToCloudAsync().ConfigureAwait(false); }
             catch (Exception ex)
             {
-                _logger?.LogWarning(ex, "[Medications] Background cloud pull failed — using local data for cache.");
+                _logger?.Warn(ex, "[Medications] Background cloud pull failed — using local data for cache.");
             }
         }
 
@@ -233,7 +236,7 @@ public class MedicationApplicationService : IMedicationApplicationService
         }
         catch (Exception ex)
         {
-            _logger?.LogDebug(ex, "[Medications] Auto interaction check failed.");
+            _logger?.Debug(ex, "[Medications] Auto interaction check failed.");
             return [];
         }
     }

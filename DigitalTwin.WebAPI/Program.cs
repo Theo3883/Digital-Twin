@@ -98,10 +98,7 @@ builder.Services.AddScoped<IMedicationApplicationService>(sp => new MedicationAp
     sp.GetRequiredService<IMedicationInteractionService>(),
     sp.GetRequiredService<IMedicationService>(),
     sp.GetRequiredService<IMedicationManagementService>(),
-    sp.GetRequiredService<IDomainEventDispatcher>(),
-    sync: null,
-    prefs: null,
-    logger: sp.GetService<ILogger<MedicationApplicationService>>()));
+    sp.GetRequiredService<IDomainEventDispatcher>()));
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();

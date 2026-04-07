@@ -2,6 +2,7 @@ using DigitalTwin.Application.Configuration;
 using DigitalTwin.Application.Interfaces;
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Interfaces.Providers;
+using DigitalTwin.Domain.Services;
 using DigitalTwin.Integrations.AI;
 using DigitalTwin.Integrations.Auth;
 using DigitalTwin.Integrations.Caching;
@@ -80,7 +81,7 @@ public static class DependencyInjection
             sp.GetRequiredService<OpenWeatherGeocodingClient>(),
             config.Latitude,
             config.Longitude,
-            sp.GetService<ILogger<EnvironmentLocationSource>>() ?? NullLogger<EnvironmentLocationSource>.Instance));
+            sp.GetService<AppDebugLogger<EnvironmentLocationSource>>()));
         services.AddScoped<IEnvironmentDataProvider>(sp => new HttpEnvironmentProvider(
             sp.GetRequiredService<OpenWeatherMapProvider>(),
             sp.GetRequiredService<OpenWeatherAirQualityProvider>(),
@@ -130,6 +131,7 @@ public static class DependencyInjection
         // Medication integrations:
         // - RxNav for search + RxCUI resolution
         // - openFDA-backed interaction provider (built from active APIs)
+        services.AddSingleton(new MedicationApiOptions());
         services.AddHttpClient<RxNavRxCuiResolver>();
         services.AddHttpClient<IMedicationInteractionProvider, OpenFdaMedicationInteractionProvider>();
         services.AddHttpClient<IDrugSearchProvider, RxNavDrugSearchProvider>();

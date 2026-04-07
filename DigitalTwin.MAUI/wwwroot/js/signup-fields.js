@@ -1,7 +1,7 @@
 // signup-fields.js — JS interop for the registration form
 // Manages the intl-tel-input phone widget lifecycle.
 
-window.signupFields = (function () {
+globalThis.signupFields = (function () {
     const itiInstances = {};
 
     function initPhoneInput(inputSelector, flagsPath) {
@@ -14,7 +14,7 @@ window.signupFields = (function () {
             delete itiInstances[inputSelector];
         }
 
-        const iti = window.intlTelInput(el, {
+        const iti = globalThis.intlTelInput(el, {
             initialCountry: 'ro',
             // Use the locally bundled utils (already loaded via the utils script bundle)
             loadUtils: () => Promise.resolve(),

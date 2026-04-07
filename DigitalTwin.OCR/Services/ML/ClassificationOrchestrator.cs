@@ -20,20 +20,17 @@ namespace DigitalTwin.OCR.Services.ML;
 /// </summary>
 public sealed class ClassificationOrchestrator : IDocumentTypeClassifier
 {
-    private readonly DocumentTypeClassifierService _keyword;
     private readonly NlDocumentTypeClassifier _nlClassifier;
     private readonly FeaturePrintDocumentClassifier _featurePrint;
     private readonly float _confidenceThreshold;
     private readonly ILogger<ClassificationOrchestrator> _logger;
 
     public ClassificationOrchestrator(
-        DocumentTypeClassifierService keyword,
         NlDocumentTypeClassifier nlClassifier,
         FeaturePrintDocumentClassifier featurePrint,
         OcrOptions options,
         ILogger<ClassificationOrchestrator> logger)
     {
-        _keyword = keyword;
         _nlClassifier = nlClassifier;
         _featurePrint = featurePrint;
         _confidenceThreshold = options.MlConfidenceThreshold;
@@ -44,7 +41,7 @@ public sealed class ClassificationOrchestrator : IDocumentTypeClassifier
         string ocrText, string? imagePath, CancellationToken ct = default)
     {
         // Layer 1 — Keyword (always on, O(1))
-        var keywordType = _keyword.Classify(ocrText);
+        var keywordType = DocumentTypeClassifierService.Classify(ocrText);
 
         // Layer 2 — NL Text Classifier (always run for validation)
         var nlResult = await _nlClassifier.ClassifyAsync(ocrText, imagePath, ct);

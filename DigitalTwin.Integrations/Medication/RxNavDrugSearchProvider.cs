@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using DigitalTwin.Application.Configuration;
 using DigitalTwin.Domain.Interfaces.Providers;
 using DigitalTwin.Domain.Models;
 using DigitalTwin.Integrations.Medication.DTOs;
@@ -11,13 +12,13 @@ namespace DigitalTwin.Integrations.Medication;
 /// </summary>
 public sealed class RxNavDrugSearchProvider : IDrugSearchProvider
 {
-    private const string BaseUrl = "https://rxnav.nlm.nih.gov/REST";
-
+    private readonly string _baseUrl;
     private readonly HttpClient _http;
 
-    public RxNavDrugSearchProvider(HttpClient http)
+    public RxNavDrugSearchProvider(HttpClient http, MedicationApiOptions options)
     {
         _http = http;
+        _baseUrl = options.RxNavBaseUrl;
     }
 
     public async Task<IEnumerable<DrugSearchResult>> SearchByNameAsync(
@@ -30,7 +31,7 @@ public sealed class RxNavDrugSearchProvider : IDrugSearchProvider
 
         try
         {
-            var url = $"{BaseUrl}/drugs.json?name={Uri.EscapeDataString(query)}";
+            var url = $"{_baseUrl}/drugs.json?name={Uri.EscapeDataString(query)}";
             var response = await _http.GetFromJsonAsync<RxNavDrugsResponse>(url, ct);
 
             if (response?.DrugGroup?.ConceptGroup is null)

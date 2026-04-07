@@ -6,7 +6,7 @@ namespace DigitalTwin.Domain.Interfaces;
 /// local records as dirty for the sync drain cycle).
 /// This keeps infrastructure persistence concerns out of application services.
 /// </summary>
-public interface IPersistenceGateway<T>
+public interface IPersistenceGateway<in T>
 {
     Task PersistAsync(T entity, CancellationToken ct = default);
 }

@@ -66,7 +66,16 @@ public static class DependencyInjection
         services.AddCoreDomainServices();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IPatientService, PatientService>();
-        services.AddScoped<IDoctorPortalDomainService, DoctorPortalDomainService>();
+        services.AddScoped<IDoctorPortalDomainService>(sp => new DoctorPortalDomainService(
+            new DoctorPortalDomainService.Repositories(
+                sp.GetRequiredService<IUserRepository>(),
+                sp.GetRequiredService<IPatientRepository>(),
+                sp.GetRequiredService<IDoctorPatientAssignmentRepository>(),
+                sp.GetRequiredService<IVitalSignRepository>(),
+                sp.GetRequiredService<ISleepSessionRepository>(),
+                sp.GetRequiredService<IMedicationRepository>()),
+            sp.GetRequiredService<IMedicationService>(),
+            sp.GetRequiredService<IDomainEventDispatcher>()));
 
         // ── Infrastructure services ──────────────────────────────────────────
         services.AddSingleton<ITransientFailurePolicy, NpgsqlTransientFailurePolicy>();
@@ -85,12 +94,11 @@ public static class DependencyInjection
         // ── Application services ─────────────────────────────────────────────
         services.AddScoped<IDoctorPortalApplicationService>(sp => new DoctorPortalApplicationService(
             sp.GetRequiredService<IDoctorPortalDomainService>(),
-            sp.GetRequiredService<IMedicationService>(),
             sp.GetRequiredService<IRxCuiLookupProvider>(),
             sp.GetRequiredService<IVitalSignService>(),
             sp.GetRequiredService<IMedicalHistoryEntryRepository>(),
             sp.GetRequiredService<IMedicationInteractionProvider>(),
-            sp.GetRequiredService<ILogger<DoctorPortalApplicationService>>()));
+            sp.GetRequiredService<AppDebugLogger<DoctorPortalApplicationService>>()));
 
         // ── Validators ───────────────────────────────────────────────────────
         services.AddValidation();
@@ -130,7 +138,16 @@ public static class DependencyInjection
         services.AddScoped<IPatientService, PatientService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IPatientContextService, PatientContextService>();
-        services.AddScoped<IDoctorPortalDomainService, DoctorPortalDomainService>();
+        services.AddScoped<IDoctorPortalDomainService>(sp => new DoctorPortalDomainService(
+            new DoctorPortalDomainService.Repositories(
+                sp.GetRequiredService<IUserRepository>(),
+                sp.GetRequiredService<IPatientRepository>(),
+                sp.GetRequiredService<IDoctorPatientAssignmentRepository>(),
+                sp.GetRequiredService<IVitalSignRepository>(),
+                sp.GetRequiredService<ISleepSessionRepository>(),
+                sp.GetRequiredService<IMedicationRepository>()),
+            sp.GetRequiredService<IMedicationService>(),
+            sp.GetRequiredService<IDomainEventDispatcher>()));
 
         // Doctor assignments: prefer cloud repositories when configured.
         services.AddScoped<IDoctorPatientAssignmentService>(sp =>
@@ -166,7 +183,6 @@ public static class DependencyInjection
             sp.GetRequiredService<IEnvironmentDataProvider>(),
             sp.GetRequiredService<IEnvironmentAssessmentService>(),
             sp.GetRequiredService<IPersistenceGateway<EnvironmentReading>>(),
-            sp.GetRequiredService<ILogger<EnvironmentApplicationService>>(),
             sp.GetService<IEnvironmentReadingCache>()));
         services.AddScoped<IAuthApplicationService, AuthApplicationService>();
         services.AddSingleton<IHealthDataSyncService>(sp => new HealthDataSyncService(
@@ -182,17 +198,17 @@ public static class DependencyInjection
             sp.GetRequiredService<IMedicationService>(),
             sp.GetRequiredService<IMedicationManagementService>(),
             sp.GetRequiredService<IDomainEventDispatcher>(),
-            sp.GetService<IHealthDataSyncService>(),
-            sp.GetService<IPreferencesJsonCache>(),
-            sp.GetService<ILogger<MedicationApplicationService>>()));
+            new MedicationApplicationService.OptionalDependencies(
+                sp.GetService<IHealthDataSyncService>(),
+                sp.GetService<IPreferencesJsonCache>(),
+                sp.GetService<AppDebugLogger<MedicationApplicationService>>())));
         services.AddScoped<IDoctorPortalApplicationService>(sp => new DoctorPortalApplicationService(
             sp.GetRequiredService<IDoctorPortalDomainService>(),
-            sp.GetRequiredService<IMedicationService>(),
             sp.GetRequiredService<IRxCuiLookupProvider>(),
             sp.GetRequiredService<IVitalSignService>(),
             sp.GetRequiredService<IMedicalHistoryEntryRepository>(),
             sp.GetRequiredService<IMedicationInteractionProvider>(),
-            sp.GetRequiredService<ILogger<DoctorPortalApplicationService>>()));
+            sp.GetRequiredService<AppDebugLogger<DoctorPortalApplicationService>>()));
         services.AddScoped<IEcgApplicationService, EcgApplicationService>();
         services.AddScoped<IChatBotApplicationService, ChatBotApplicationService>();
         services.AddScoped<ICoachingApplicationService, CoachingApplicationService>();
@@ -295,6 +311,9 @@ public static class DependencyInjection
     /// </summary>
     private static IServiceCollection AddCoreDomainServices(this IServiceCollection services)
     {
+        // ── Shared debug logger wrapper (guards expensive arg evaluation) ────
+        services.AddSingleton(typeof(AppDebugLogger<>));
+
         services.AddScoped<IVitalSignService, VitalSignService>();
         services.AddScoped<IEnvironmentHealthAnalyticsService, EnvironmentHealthAnalyticsService>();
         services.AddScoped<IEnvironmentAssessmentService, EnvironmentAssessmentService>();

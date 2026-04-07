@@ -4,7 +4,6 @@ namespace DigitalTwin.OCR.Tests;
 
 public class DocumentIdentityExtractorTests
 {
-    private readonly DocumentIdentityExtractorService _sut = new();
 
     [Fact]
     public void Extract_UnlabeledName_NearCnpAndAnchors_ExtractsNameAndCnp()
@@ -18,7 +17,7 @@ public class DocumentIdentityExtractorTests
             Telefon 0756677624
             """;
 
-        var result = _sut.Extract(text);
+        var result = DocumentIdentityExtractorService.Extract(text);
 
         Assert.Equal("Sandu Theodor", result.ExtractedName);
         Assert.Equal("6030405315420", result.ExtractedCnp);
@@ -35,7 +34,7 @@ public class DocumentIdentityExtractorTests
             Data 01.05.1998
             """;
 
-        var result = _sut.Extract(text);
+        var result = DocumentIdentityExtractorService.Extract(text);
 
         Assert.Equal("Popescu Ion", result.ExtractedName);
         Assert.Equal("1980512345678", result.ExtractedCnp);
@@ -50,7 +49,7 @@ public class DocumentIdentityExtractorTests
     {
         var text = $"{labelLine}\nCNP 2900101123456\nTelefon 0741234567";
 
-        var result = _sut.Extract(text);
+        var result = DocumentIdentityExtractorService.Extract(text);
 
         Assert.Equal("Ionescu Maria-Elena", result.ExtractedName);
     }
@@ -65,7 +64,7 @@ public class DocumentIdentityExtractorTests
             Sex Masculin
             """;
 
-        var result = _sut.Extract(text);
+        var result = DocumentIdentityExtractorService.Extract(text);
 
         Assert.Null(result.ExtractedCnp);
         Assert.Equal(0f, result.CnpConfidence);
@@ -81,7 +80,7 @@ public class DocumentIdentityExtractorTests
             Diagnostic: normal
             """;
 
-        var result = _sut.Extract(text);
+        var result = DocumentIdentityExtractorService.Extract(text);
 
         Assert.Null(result.ExtractedName);
         Assert.Equal("6030405315420", result.ExtractedCnp);
@@ -98,7 +97,7 @@ public class DocumentIdentityExtractorTests
             CNP 2950615123456
             """;
 
-        var result = _sut.Extract(text);
+        var result = DocumentIdentityExtractorService.Extract(text);
 
         Assert.Equal("Ștefănescu Ioana-Maria", result.ExtractedName);
     }
@@ -113,7 +112,7 @@ public class DocumentIdentityExtractorTests
             CNP medic 1750301123456
             """;
 
-        var result = _sut.Extract(text);
+        var result = DocumentIdentityExtractorService.Extract(text);
 
         Assert.Equal("1980512345678", result.ExtractedCnp);
     }
@@ -121,7 +120,7 @@ public class DocumentIdentityExtractorTests
     [Fact]
     public void Extract_EmptyText_ReturnsEmptyIdentity()
     {
-        var result = _sut.Extract("");
+        var result = DocumentIdentityExtractorService.Extract("");
 
         Assert.Null(result.ExtractedName);
         Assert.Null(result.ExtractedCnp);
@@ -132,7 +131,7 @@ public class DocumentIdentityExtractorTests
     [Fact]
     public void Extract_NullText_ReturnsEmptyIdentity()
     {
-        var result = _sut.Extract(null!);
+        var result = DocumentIdentityExtractorService.Extract(null!);
 
         Assert.Null(result.ExtractedName);
         Assert.Null(result.ExtractedCnp);
@@ -152,7 +151,7 @@ public class DocumentIdentityExtractorTests
             Rezultate analize
             """;
 
-        var result = _sut.Extract(text);
+        var result = DocumentIdentityExtractorService.Extract(text);
 
         Assert.Equal("Marinescu Alexandru", result.ExtractedName);
         Assert.True(result.NameConfidence >= 0.7f, $"Expected ≥0.7 but got {result.NameConfidence}");
@@ -175,7 +174,7 @@ public class DocumentIdentityExtractorTests
             Diagnostic: Fibrilație atrială paroxistică (I48.0)
             """;
 
-        var result = _sut.Extract(text);
+        var result = DocumentIdentityExtractorService.Extract(text);
 
         Assert.Equal("Sandu Teodor", result.ExtractedName);
         Assert.Equal("6030405315420", result.ExtractedCnp);
@@ -190,7 +189,7 @@ public class DocumentIdentityExtractorTests
             CNP: 2690215123456
             """;
 
-        var result = _sut.Extract(text);
+        var result = DocumentIdentityExtractorService.Extract(text);
 
         Assert.Equal("Ionescu Maria", result.ExtractedName);
         Assert.Equal("2690215123456", result.ExtractedCnp);

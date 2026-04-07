@@ -12,13 +12,12 @@ public sealed class DocumentEncryptionService
 {
     private const int NonceSize = 12;   // 96-bit nonce
     private const int TagSize = 16;     // 128-bit authentication tag
-    private const int KeySize = 32;     // 256-bit key
 
     /// <summary>
     /// Encrypts <paramref name="plaintext"/> using a freshly generated DEK wrapped with <paramref name="masterKey"/>.
     /// Returns a descriptor containing the nonce, tag, and wrapped DEK (all base64-encoded) suitable for the manifest.
     /// </summary>
-    public EncryptedPayload Encrypt(ReadOnlySpan<byte> plaintext, ReadOnlySpan<byte> masterKey, Guid documentId, string mimeType, int pageCount, string sha256)
+    public static EncryptedPayload Encrypt(ReadOnlySpan<byte> plaintext, ReadOnlySpan<byte> masterKey, Guid documentId, string mimeType, int pageCount, string sha256)
     {
         var dek = HashingService.GenerateKey256();
         var nonce = HashingService.GenerateNonce96();
@@ -46,7 +45,7 @@ public sealed class DocumentEncryptionService
     }
 
     /// <summary>Decrypts a vault payload using the wrapped DEK and master key.</summary>
-    public byte[] Decrypt(ReadOnlySpan<byte> ciphertext, EncryptedDocumentDescriptor descriptor, ReadOnlySpan<byte> masterKey)
+    public static byte[] Decrypt(ReadOnlySpan<byte> ciphertext, EncryptedDocumentDescriptor descriptor, ReadOnlySpan<byte> masterKey)
     {
         var nonce = Convert.FromBase64String(descriptor.NonceB64);
         var tag = Convert.FromBase64String(descriptor.TagB64);

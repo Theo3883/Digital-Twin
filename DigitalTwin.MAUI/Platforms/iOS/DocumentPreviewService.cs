@@ -143,8 +143,6 @@ public sealed class DocumentPreviewService(
         TaskCompletionSource<OcrResult<bool>> dismissalTcs)
         : UIViewController
     {
-        private readonly Guid _documentId = documentId;
-
         private string? _previewError;
         private PdfView? _pdfView;
         private UIImageView? _imageView;

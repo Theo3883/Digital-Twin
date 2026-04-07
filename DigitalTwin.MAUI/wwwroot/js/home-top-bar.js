@@ -1,14 +1,14 @@
-window.HomeTopBar = {
+globalThis.HomeTopBar = {
     init: function (el) {
         if (!el) return;
-        var onScroll = function () {
-            if (window.scrollY > 10) {
+        let onScroll = function () {
+            if (globalThis.scrollY > 10) {
                 el.classList.add('scrolled');
             } else {
                 el.classList.remove('scrolled');
             }
         };
-        window.addEventListener('scroll', onScroll, { passive: true });
+        globalThis.addEventListener('scroll', onScroll, { passive: true });
         onScroll();
     }
 };

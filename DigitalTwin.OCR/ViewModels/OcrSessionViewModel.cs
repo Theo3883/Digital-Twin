@@ -33,7 +33,6 @@ public sealed class OcrSessionViewModel
     private readonly OcrOptions _options;
     private readonly ILogger<OcrSessionViewModel> _logger;
     private readonly IAuthApplicationService _authService;
-    private readonly DocumentIdentityExtractorService _identityExtractor;
     private readonly DocumentIdentityValidationPolicy _identityPolicy;
     private readonly StructuredDocumentBuilder _structuredBuilder;
     private readonly IDocumentTypeClassifier _mlClassifier;
@@ -66,7 +65,6 @@ public sealed class OcrSessionViewModel
         OcrOptions options,
         ILogger<OcrSessionViewModel> logger,
         IAuthApplicationService authService,
-        DocumentIdentityExtractorService identityExtractor,
         DocumentIdentityValidationPolicy identityPolicy,
         StructuredDocumentBuilder structuredBuilder,
         IDocumentTypeClassifier mlClassifier,
@@ -87,7 +85,6 @@ public sealed class OcrSessionViewModel
         _options = options;
         _logger = logger;
         _authService = authService;
-        _identityExtractor = identityExtractor;
         _identityPolicy = identityPolicy;
         _structuredBuilder = structuredBuilder;
         _mlClassifier = mlClassifier;
@@ -283,7 +280,7 @@ public sealed class OcrSessionViewModel
 
             // 4c — Identity verification (name + CNP must match the logged-in patient)
             SetLoading("Verifying document identity…");
-            var docIdentity = _identityExtractor.Extract(ocrResult.Value!.RawText);
+            var docIdentity = DocumentIdentityExtractorService.Extract(ocrResult.Value!.RawText);
             var user = await _authService.GetCurrentUserAsync();
             var profile = await _authService.GetPatientProfileAsync();
             if (user is not null && profile is not null)

@@ -8,25 +8,26 @@ namespace DigitalTwin.OCR.Services.Extraction;
 /// Extracts structured fields from raw OCR text using regex/keyword heuristics.
 /// This is the Phase 1 extractor and the permanent fallback when ML extraction is disabled.
 /// </summary>
-public sealed class HeuristicFieldExtractor
+public sealed partial class HeuristicFieldExtractor
 {
     // CNP: 13-digit Romanian personal numeric code
-    private static readonly Regex CnpRegex = new(@"\b(\d{13})\b", RegexOptions.Compiled);
+    [GeneratedRegex(@"\b(\d{13})\b")]
+    private static partial Regex CnpRegex();
     // Date: DD.MM.YYYY or DD/MM/YYYY
-    private static readonly Regex DateRegex = new(@"\b(\d{1,2}[./]\d{1,2}[./]\d{4})\b", RegexOptions.Compiled);
+    [GeneratedRegex(@"\b(\d{1,2}[./]\d{1,2}[./]\d{4})\b")]
+    private static partial Regex DateRegex();
     // Name after "Nume:" / "Pacient:" labels
-    private static readonly Regex NameAfterLabelRegex = new(
-        @"(?:Nume|Pacient|Numar)\s*:?\s*([A-ZĂÂÎȘȚ][a-zăâîșțA-ZĂÂÎȘȚ\s\-]{2,40})", RegexOptions.Compiled);
+    [GeneratedRegex(@"(?:Nume|Pacient|Numar)\s*:?\s*([A-ZĂÂÎȘȚ][a-zăâîșțA-ZĂÂÎȘȚ\s\-]{2,40})")]
+    private static partial Regex NameAfterLabelRegex();
     // Doctor name after "Dr." / "Medic" labels
-    private static readonly Regex DoctorRegex = new(
-        @"(?:Dr\.?|Medic(?:\s+primar)?)\s+([A-ZĂÂÎȘȚ][a-zăâîșțA-ZĂÂÎȘȚ\s\-]{2,40})", RegexOptions.Compiled);
+    [GeneratedRegex(@"(?:Dr\.?|Medic(?:\s+primar)?)\s+([A-ZĂÂÎȘȚ][a-zăâîșțA-ZĂÂÎȘȚ\s\-]{2,40})")]
+    private static partial Regex DoctorRegex();
     // Diagnosis after "Diagnostic:" label
-    private static readonly Regex DiagnosisRegex = new(
-        @"Diagnostic\s*(?:prezumtiv)?\s*:?\s*(.{5,120})", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    [GeneratedRegex(@"Diagnostic\s*(?:prezumtiv)?\s*:?\s*(.{5,120})", RegexOptions.IgnoreCase)]
+    private static partial Regex DiagnosisRegex();
     // Medication: numbered lines with dosage
-    private static readonly Regex MedicationRegex = new(
-        @"(?:Rp\.?\s*:?\s*)?\d+[\.\)]\s*([A-Za-zĂÂÎȘȚăâîșț][\w\s\-]*?)\s+(\d+\s*(?:mg|g|mcg|ml)\b)(.*)",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    [GeneratedRegex(@"(?:Rp\.?\s*:?\s*)?\d+[\.\)]\s*([A-Za-zĂÂÎȘȚăâîșț][\w\s\-]*?)\s+(\d+\s*(?:mg|g|mcg|ml)\b)(.*)", RegexOptions.IgnoreCase)]
+    private static partial Regex MedicationRegex();
 
     public HeuristicExtractionResult Extract(string? rawText, MedicalDocumentType docType)
     {
@@ -53,7 +54,7 @@ public sealed class HeuristicFieldExtractor
 
     private static ExtractedField<string>? ExtractCnp(string text)
     {
-        var m = CnpRegex.Match(text);
+        var m = CnpRegex().Match(text);
         return m.Success
             ? new ExtractedField<string>(m.Groups[1].Value, 0.92f, ExtractionMethod.HeuristicRegex)
             : null;
@@ -61,7 +62,7 @@ public sealed class HeuristicFieldExtractor
 
     private static ExtractedField<string>? ExtractPatientName(string text)
     {
-        var m = NameAfterLabelRegex.Match(text);
+        var m = NameAfterLabelRegex().Match(text);
         if (!m.Success) return null;
         var name = m.Groups[1].Value.Trim();
         return string.IsNullOrWhiteSpace(name)
@@ -71,7 +72,7 @@ public sealed class HeuristicFieldExtractor
 
     private static ExtractedField<string>? ExtractDate(string text)
     {
-        var m = DateRegex.Match(text);
+        var m = DateRegex().Match(text);
         return m.Success
             ? new ExtractedField<string>(m.Groups[1].Value, 0.85f, ExtractionMethod.HeuristicRegex)
             : null;
@@ -79,7 +80,7 @@ public sealed class HeuristicFieldExtractor
 
     private static ExtractedField<string>? ExtractDoctor(string text)
     {
-        var m = DoctorRegex.Match(text);
+        var m = DoctorRegex().Match(text);
         if (!m.Success) return null;
         var name = m.Groups[1].Value.Trim();
         return string.IsNullOrWhiteSpace(name)
@@ -89,7 +90,7 @@ public sealed class HeuristicFieldExtractor
 
     private static ExtractedField<string>? ExtractDiagnosis(string text)
     {
-        var m = DiagnosisRegex.Match(text);
+        var m = DiagnosisRegex().Match(text);
         if (!m.Success) return null;
         var value = m.Groups[1].Value.Trim();
         return string.IsNullOrWhiteSpace(value)
@@ -100,7 +101,7 @@ public sealed class HeuristicFieldExtractor
     private static IReadOnlyList<ExtractedMedication> ExtractMedications(string text)
     {
         var results = new List<ExtractedMedication>();
-        foreach (Match m in MedicationRegex.Matches(text))
+        foreach (Match m in MedicationRegex().Matches(text))
         {
             var name = m.Groups[1].Value.Trim();
             var dose = m.Groups[2].Value.Trim();

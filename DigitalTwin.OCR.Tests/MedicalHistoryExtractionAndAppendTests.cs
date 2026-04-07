@@ -190,13 +190,11 @@ public class MedicalHistoryExtractionAndAppendTests
         var patientRepo = new FakePatientRepository();
         var historyRepo = new FakeHistoryRepository();
         var extractor = new MedicalHistoryExtractionService();
-        var classifier = new DocumentTypeClassifierService();
         var medSvc = new FakeMedicationService();
         var svc = new MedicalHistoryAutoAppendService(
             patientRepo,
             historyRepo,
             extractor,
-            classifier,
             medSvc,
             NullLogger<MedicalHistoryAutoAppendService>.Instance);
         return (svc, patientRepo, historyRepo, medSvc);

@@ -8,30 +8,27 @@ namespace DigitalTwin.OCR.Services;
 /// Handles both labeled formats ("Nume: Popescu Ion") and unlabeled formats
 /// where the name appears as a standalone line near known field anchors.
 /// </summary>
-public sealed class DocumentIdentityExtractorService
+public sealed partial class DocumentIdentityExtractorService
 {
-    private static readonly Regex CnpRegex = new(
-        @"\b[1-8]\d{12}\b", RegexOptions.Compiled);
+    [GeneratedRegex(@"\b[1-8]\d{12}\b")]
+    private static partial Regex CnpRegex();
 
-    private static readonly Regex LabeledNameRegex = new(
-        @"(?:Nume\s+pacient(?:ului)?|Nume(?:\s+(?:și|si)\s+prenume(?:le)?)?|Prenume|Pacient)\s*[:\-–]?\s*(?<name>.+)",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    [GeneratedRegex(@"(?:Nume\s+pacient(?:ului)?|Nume(?:\s+(?:și|si)\s+prenume(?:le)?)?|Prenume|Pacient)\s*[:\-–]?\s*(?<name>.+)", RegexOptions.IgnoreCase)]
+    private static partial Regex LabeledNameRegex();
 
-    private static readonly Regex DateRegex = new(
-        @"\b\d{1,2}[./]\d{1,2}[./]\d{4}\b|\b\d{4}-\d{2}-\d{2}\b", RegexOptions.Compiled);
+    [GeneratedRegex(@"\b\d{1,2}[./]\d{1,2}[./]\d{4}\b|\b\d{4}-\d{2}-\d{2}\b")]
+    private static partial Regex DateRegex();
 
     // Strips inline fields that appear on the same OCR line as the name
     // (e.g. discharge letters format "Sandu Teodor    Vârstă: 68 ani" on one line).
-    private static readonly Regex InlineFieldRegex = new(
-        @"\s+(?:V[aâ]rst[aă]|V[aâ]rsta|CNP|Adres[aă]|Data|Sex|Prenume|Medic|Diagnostic)\s*[:\-\u2013].*$",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    [GeneratedRegex(@"\s+(?:V[aâ]rst[aă]|V[aâ]rsta|CNP|Adres[aă]|Data|Sex|Prenume|Medic|Diagnostic)\s*[:\-\u2013].*$", RegexOptions.IgnoreCase)]
+    private static partial Regex InlineFieldRegex();
 
-    private static readonly Regex PhoneRegex = new(
-        @"(\+40|0040)?[\s.\-]?(7[0-9]{2}|2[1-9][0-9]|3[0-9]{2})[\s.\-]?\d{3}[\s.\-]?\d{3}",
-        RegexOptions.Compiled);
+    [GeneratedRegex(@"(\+40|0040)?[\s.\-]?(7[0-9]{2}|2[1-9][0-9]|3[0-9]{2})[\s.\-]?\d{3}[\s.\-]?\d{3}")]
+    private static partial Regex PhoneRegex();
 
-    private static readonly Regex PurelyNumericRegex = new(
-        @"^\d[\d\s./\-]*$", RegexOptions.Compiled);
+    [GeneratedRegex(@"^\d[\d\s./\-]*$")]
+    private static partial Regex PurelyNumericRegex();
 
     /// <summary>
     /// Known Romanian medical document field labels that indicate a line is NOT a patient name.
@@ -47,13 +44,13 @@ public sealed class DocumentIdentityExtractorService
     /// <summary>
     /// Alphabetic characters valid in Romanian names (letters, hyphens, spaces, diacritics).
     /// </summary>
-    private static readonly Regex NameCandidateRegex = new(
-        @"^[A-Za-zĂÂÎȘȚăâîșțÁÉÍÓÚáéíóú\-\s]+$", RegexOptions.Compiled);
+    [GeneratedRegex(@"^[A-Za-zĂÂÎȘȚăâîșțÁÉÍÓÚáéíóú\-\s]+$")]
+    private static partial Regex NameCandidateRegex();
 
     /// <summary>
     /// Extracts name and CNP from the given raw OCR text.
     /// </summary>
-    public DocumentIdentity Extract(string rawText)
+    public static DocumentIdentity Extract(string rawText)
     {
         if (string.IsNullOrWhiteSpace(rawText))
             return new DocumentIdentity(null, null, 0f, 0f);
@@ -68,7 +65,7 @@ public sealed class DocumentIdentityExtractorService
 
     private static string? ExtractCnp(string text)
     {
-        var match = CnpRegex.Match(text);
+        var match = CnpRegex().Match(text);
         return match.Success ? match.Value : null;
     }
 
@@ -77,7 +74,7 @@ public sealed class DocumentIdentityExtractorService
         // Strategy A: Try ALL labeled name matches (highest confidence).
         // Some documents (e.g. discharge letters) have an empty "Nume: _____" line before
         // the real one — iterating all matches ensures we find the first plausible name.
-        foreach (Match labelMatch in LabeledNameRegex.Matches(text))
+        foreach (Match labelMatch in LabeledNameRegex().Matches(text))
         {
             var name = CleanNameValue(labelMatch.Groups["name"].Value);
             if (IsPlausibleName(name))
@@ -103,13 +100,13 @@ public sealed class DocumentIdentityExtractorService
             // Skip empty, known labels, dates, phone numbers, CNP, purely numeric
             if (string.IsNullOrWhiteSpace(line)) continue;
             if (IsFieldAnchor(line)) continue;
-            if (CnpRegex.IsMatch(line)) continue;
-            if (DateRegex.IsMatch(line)) continue;
-            if (PhoneRegex.IsMatch(line)) continue;
-            if (PurelyNumericRegex.IsMatch(line)) continue;
+            if (CnpRegex().IsMatch(line)) continue;
+            if (DateRegex().IsMatch(line)) continue;
+            if (PhoneRegex().IsMatch(line)) continue;
+            if (PurelyNumericRegex().IsMatch(line)) continue;
 
             // Must look like a name: 2-4 alphabetic words
-            if (!NameCandidateRegex.IsMatch(line)) continue;
+            if (!NameCandidateRegex().IsMatch(line)) continue;
 
             var words = line.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             if (words.Length < 2 || words.Length > 5) continue;
@@ -127,9 +124,7 @@ public sealed class DocumentIdentityExtractorService
             }
         }
 
-        return bestCandidate is not null && bestConfidence >= 0.5f
-            ? (bestCandidate, bestConfidence)
-            : (bestCandidate, bestConfidence);
+        return (bestCandidate, bestConfidence);
     }
 
     private static float ScoreNameCandidate(string[] lines, int candidateIndex)
@@ -155,7 +150,7 @@ public sealed class DocumentIdentityExtractorService
         for (var j = Math.Max(0, candidateIndex - 5); j < Math.Min(lines.Length, candidateIndex + 6); j++)
         {
             if (j == candidateIndex) continue;
-            if (CnpRegex.IsMatch(lines[j]))
+            if (CnpRegex().IsMatch(lines[j]))
             {
                 score += 0.15f;
                 break;
@@ -175,12 +170,12 @@ public sealed class DocumentIdentityExtractorService
     {
         // Strip inline fields that appear on the same OCR line as the name
         // (e.g. "Sandu Teodor    Vârstă: 68 ani" → "Sandu Teodor")
-        var cleaned = InlineFieldRegex.Replace(raw, "").Trim();
+        var cleaned = InlineFieldRegex().Replace(raw, "").Trim();
         // Remove blank-field underscores (e.g. "_____")
         cleaned = Regex.Replace(cleaned, @"_+", "").Trim();
         // Remove trailing dates, numbers, special chars
-        cleaned = DateRegex.Replace(cleaned, "").Trim();
-        cleaned = PurelyNumericRegex.Replace(cleaned, "").Trim();
+        cleaned = DateRegex().Replace(cleaned, "").Trim();
+        cleaned = PurelyNumericRegex().Replace(cleaned, "").Trim();
         // Remove trailing punctuation
         return cleaned.TrimEnd(':', '-', '–', ' ');
     }

@@ -52,8 +52,6 @@ public static class OcrServiceCollectionExtensions
         services.AddSingleton<HashingService>();
         services.AddSingleton<SensitiveDataSanitizer>();
         services.AddSingleton<MedicalHistoryExtractionService>();
-        services.AddSingleton<DocumentTypeClassifierService>();
-        services.AddSingleton<DocumentIdentityExtractorService>();
         services.AddSingleton<NameMatchingService>();
         services.AddSingleton<DocumentIdentityValidationPolicy>();
 

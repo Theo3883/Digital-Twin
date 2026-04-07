@@ -17,7 +17,6 @@ public sealed class MedicalHistoryAutoAppendService
     private readonly IPatientRepository _patientRepository;
     private readonly IMedicalHistoryEntryRepository _historyRepository;
     private readonly MedicalHistoryExtractionService _extractor;
-    private readonly DocumentTypeClassifierService _classifier;
     private readonly IMedicationApplicationService _medicationService;
     private readonly ILogger<MedicalHistoryAutoAppendService> _logger;
 
@@ -25,14 +24,12 @@ public sealed class MedicalHistoryAutoAppendService
         IPatientRepository patientRepository,
         IMedicalHistoryEntryRepository historyRepository,
         MedicalHistoryExtractionService extractor,
-        DocumentTypeClassifierService classifier,
         IMedicationApplicationService medicationService,
         ILogger<MedicalHistoryAutoAppendService> logger)
     {
         _patientRepository = patientRepository;
         _historyRepository = historyRepository;
         _extractor = extractor;
-        _classifier = classifier;
         _medicationService = medicationService;
         _logger = logger;
     }
@@ -55,10 +52,10 @@ public sealed class MedicalHistoryAutoAppendService
 
         var parsed = _extractor.Extract(sanitizedPreview);
         _logger.LogInformation("[OCR History] Extracted {Count} medication item(s) from doc {DocId}. DocType={DocType}.",
-            parsed.Count, sourceDocumentId, _classifier.Classify(sanitizedPreview));
+            parsed.Count, sourceDocumentId, DocumentTypeClassifierService.Classify(sanitizedPreview));
 
         var now = DateTime.UtcNow;
-        var docType = _classifier.Classify(sanitizedPreview);
+        var docType = DocumentTypeClassifierService.Classify(sanitizedPreview);
 
         // Build a single consolidated medical history entry for the entire document.
         // Always created — even when no structured medications were extracted (e.g. discharge letters, referrals).

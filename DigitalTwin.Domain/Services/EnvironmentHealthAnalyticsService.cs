@@ -2,7 +2,6 @@ using DigitalTwin.Domain.Enums;
 using DigitalTwin.Domain.Interfaces.Repositories;
 using DigitalTwin.Domain.Interfaces.Services;
 using DigitalTwin.Domain.Models;
-using Microsoft.Extensions.Logging;
 
 namespace DigitalTwin.Domain.Services;
 
@@ -16,12 +15,12 @@ public sealed class EnvironmentHealthAnalyticsService : IEnvironmentHealthAnalyt
 
     private readonly IEnvironmentReadingRepository _environmentReadings;
     private readonly IVitalSignRepository _vitalSigns;
-    private readonly ILogger<EnvironmentHealthAnalyticsService> _logger;
+    private readonly AppDebugLogger<EnvironmentHealthAnalyticsService> _logger;
 
     public EnvironmentHealthAnalyticsService(
         IEnvironmentReadingRepository environmentReadings,
         IVitalSignRepository vitalSigns,
-        ILogger<EnvironmentHealthAnalyticsService> logger)
+        AppDebugLogger<EnvironmentHealthAnalyticsService> logger)
     {
         _environmentReadings = environmentReadings;
         _vitalSigns = vitalSigns;
@@ -57,7 +56,7 @@ public sealed class EnvironmentHealthAnalyticsService : IEnvironmentHealthAnalyt
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "Failed to load heart rate vitals for analytics.");
+                _logger.Debug(ex, "Failed to load heart rate vitals for analytics.");
             }
         }
 
@@ -174,12 +173,18 @@ public sealed class EnvironmentHealthAnalyticsService : IEnvironmentHealthAnalyt
         var r = denom > 1e-12 ? sxy / denom : 0;
         r = Math.Clamp(r, -1, 1);
 
-        var interp = Math.Abs(r) < 0.15
-            ? "Little linear relationship between hourly PM2.5 and heart rate in this window."
-            : r > 0
-                ? "Higher PM2.5 tends to coincide with higher heart rate in this window."
-                : "Higher PM2.5 tends to coincide with lower heart rate in this window (many factors affect HR).";
+        var interp = InterpretCorrelation(r);
 
         return (Math.Round(r, 2), $"{interp} Pearson r ≈ {r:F2} over {pairs.Count} hourly buckets. Domain risk threshold: PM2.5 > 35 µg/m³.");
+    }
+
+    private static string InterpretCorrelation(double r)
+    {
+        if (Math.Abs(r) < 0.15)
+            return "Little linear relationship between hourly PM2.5 and heart rate in this window.";
+
+        return r > 0
+            ? "Higher PM2.5 tends to coincide with higher heart rate in this window."
+            : "Higher PM2.5 tends to coincide with lower heart rate in this window (many factors affect HR).";
     }
 }

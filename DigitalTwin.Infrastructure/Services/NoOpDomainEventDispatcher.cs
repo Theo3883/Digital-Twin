@@ -1,6 +1,6 @@
 using DigitalTwin.Domain.Events;
 using DigitalTwin.Domain.Interfaces;
-using Microsoft.Extensions.Logging;
+using DigitalTwin.Domain.Services;
 
 namespace DigitalTwin.Infrastructure.Services;
 
@@ -10,21 +10,21 @@ namespace DigitalTwin.Infrastructure.Services;
 /// </summary>
 public sealed class NoOpDomainEventDispatcher : IDomainEventDispatcher
 {
-    private readonly ILogger<NoOpDomainEventDispatcher> _logger;
+    private readonly AppDebugLogger<NoOpDomainEventDispatcher> _logger;
 
-    public NoOpDomainEventDispatcher(ILogger<NoOpDomainEventDispatcher> logger)
+    public NoOpDomainEventDispatcher(AppDebugLogger<NoOpDomainEventDispatcher> logger)
         => _logger = logger;
 
     public Task DispatchAsync(IEnumerable<IDomainEvent> events, CancellationToken ct = default)
     {
         foreach (var e in events)
-            _logger.LogDebug("[DomainEvent] {EventType} at {OccurredAt}", e.GetType().Name, e.OccurredAt);
+            _logger.Debug("[DomainEvent] {EventType} at {OccurredAt}", e.GetType().Name, e.OccurredAt);
         return Task.CompletedTask;
     }
 
     public Task DispatchAsync(IDomainEvent domainEvent, CancellationToken ct = default)
     {
-        _logger.LogDebug("[DomainEvent] {EventType} at {OccurredAt}", domainEvent.GetType().Name, domainEvent.OccurredAt);
+        _logger.Debug("[DomainEvent] {EventType} at {OccurredAt}", domainEvent.GetType().Name, domainEvent.OccurredAt);
         return Task.CompletedTask;
     }
 }

@@ -9,6 +9,7 @@ namespace DigitalTwin.OCR.Services;
 /// </summary>
 public sealed class DocumentScannerService
 {
+#if IOS || MACCATALYST
     private readonly VaultService _vault;
     private readonly FileProtectionService _fileProtection;
     private readonly ILogger<DocumentScannerService> _logger;
@@ -22,6 +23,12 @@ public sealed class DocumentScannerService
         _fileProtection = fileProtection;
         _logger = logger;
     }
+#else
+    public DocumentScannerService(
+        VaultService vault,
+        FileProtectionService fileProtection,
+        ILogger<DocumentScannerService> logger) { }
+#endif
 
 #if IOS || MACCATALYST
     public Task<OcrResult<IReadOnlyList<string>>> ScanAsync(CancellationToken ct = default)

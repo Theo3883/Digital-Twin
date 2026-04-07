@@ -8,30 +8,51 @@ namespace DigitalTwin.OCR.Services;
 /// This is NOT document editing — the source document is never altered.
 /// Raw OCR text must never appear in logs; always pass through this sanitizer first.
 /// </summary>
-public sealed class SensitiveDataSanitizer
+public sealed partial class SensitiveDataSanitizer
 {
+    [GeneratedRegex(@"\b[1-8]\d{12}\b")]
+    private static partial Regex CnpPattern();
+
+    [GeneratedRegex(@"\b[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}\b")]
+    private static partial Regex EmailPattern();
+
+    [GeneratedRegex(@"(\+40|0040)?[\s.\-]?(7[0-9]{2}|2[1-9][0-9]|3[0-9]{2})[\s.\-]?\d{3}[\s.\-]?\d{3}\b")]
+    private static partial Regex PhonePattern();
+
+    [GeneratedRegex(@"Bearer\s+[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+", RegexOptions.IgnoreCase)]
+    private static partial Regex TokenPattern();
+
+    [GeneratedRegex(@"\b(PNS|CNAS|MED)\d{6,}\b", RegexOptions.IgnoreCase)]
+    private static partial Regex MedIdPattern();
+
+    [GeneratedRegex(@"\b\d{12,}\b")]
+    private static partial Regex LongNumericPattern();
+
+    [GeneratedRegex(@"\b(\d{1,2}[./]\d{1,2}[./]\d{4}|\d{4}-\d{2}-\d{2})\b")]
+    private static partial Regex DatePattern();
+
     private static readonly (Regex Pattern, string Replacement)[] Rules =
     [
         // Romanian CNP (Personal Numeric Code) — 13 digits starting with 1-8
-        (new Regex(@"\b[1-8]\d{12}\b", RegexOptions.Compiled), "[CNP]"),
+        (CnpPattern(), "[CNP]"),
 
         // Email addresses
-        (new Regex(@"\b[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}\b", RegexOptions.Compiled), "[EMAIL]"),
+        (EmailPattern(), "[EMAIL]"),
 
         // Romanian phone numbers (+40 or 07x format)
-        (new Regex(@"(\+40|0040)?[\s.\-]?(7[0-9]{2}|2[1-9][0-9]|3[0-9]{2})[\s.\-]?\d{3}[\s.\-]?\d{3}\b", RegexOptions.Compiled), "[PHONE]"),
+        (PhonePattern(), "[PHONE]"),
 
         // Bearer / JWT tokens
-        (new Regex(@"Bearer\s+[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+\.[A-Za-z0-9\-_]+", RegexOptions.Compiled | RegexOptions.IgnoreCase), "[TOKEN]"),
+        (TokenPattern(), "[TOKEN]"),
 
         // Simple medical IDs (e.g. Romanian CNAS code patterns: prefix + 10+ digits)
-        (new Regex(@"\b(PNS|CNAS|MED)\d{6,}\b", RegexOptions.Compiled | RegexOptions.IgnoreCase), "[MED-ID]"),
+        (MedIdPattern(), "[MED-ID]"),
 
         // Long numeric sequences (12+ digits not already matched as CNP)
-        (new Regex(@"\b\d{12,}\b", RegexOptions.Compiled), "[NUM]"),
+        (LongNumericPattern(), "[NUM]"),
 
         // Calendar dates with year (dd.mm.yyyy, dd/mm/yyyy, yyyy-mm-dd)
-        (new Regex(@"\b(\d{1,2}[./]\d{1,2}[./]\d{4}|\d{4}-\d{2}-\d{2})\b", RegexOptions.Compiled), "[DATE]"),
+        (DatePattern(), "[DATE]"),
     ];
 
     /// <summary>

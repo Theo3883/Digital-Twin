@@ -30,22 +30,25 @@ public sealed class DoctorPortalDomainService : IDoctorPortalDomainService
     private readonly IMedicationService                   _medicationFactory;
     private readonly IDomainEventDispatcher               _events;
 
+    public sealed record Repositories(
+        IUserRepository Users,
+        IPatientRepository Patients,
+        IDoctorPatientAssignmentRepository Assignments,
+        IVitalSignRepository Vitals,
+        ISleepSessionRepository Sleep,
+        IMedicationRepository Medications);
+
     public DoctorPortalDomainService(
-        IUserRepository users,
-        IPatientRepository patients,
-        IDoctorPatientAssignmentRepository assignments,
-        IVitalSignRepository vitals,
-        ISleepSessionRepository sleep,
-        IMedicationRepository medications,
+        Repositories repos,
         IMedicationService medicationFactory,
         IDomainEventDispatcher events)
     {
-        _users             = users;
-        _patients          = patients;
-        _assignments       = assignments;
-        _vitals            = vitals;
-        _sleep             = sleep;
-        _medications       = medications;
+        _users             = repos.Users;
+        _patients          = repos.Patients;
+        _assignments       = repos.Assignments;
+        _vitals            = repos.Vitals;
+        _sleep             = repos.Sleep;
+        _medications       = repos.Medications;
         _medicationFactory = medicationFactory;
         _events            = events;
     }

@@ -11,6 +11,7 @@ namespace DigitalTwin.OCR.Services;
 /// </summary>
 public sealed class DocumentNormalizationService
 {
+#if IOS || MACCATALYST
     private readonly FileProtectionService _fileProtection;
     private readonly ILogger<DocumentNormalizationService> _logger;
 
@@ -21,6 +22,11 @@ public sealed class DocumentNormalizationService
         _fileProtection = fileProtection;
         _logger = logger;
     }
+#else
+    public DocumentNormalizationService(
+        FileProtectionService fileProtection,
+        ILogger<DocumentNormalizationService> logger) { }
+#endif
 
 #if IOS || MACCATALYST
     public async Task<OcrResult<(byte[] Normalized, int PageCount, string MimeType)>> NormalizeAsync(
@@ -28,15 +34,15 @@ public sealed class DocumentNormalizationService
     {
         try
         {
-            var tempPath = Path.GetTempFileName();
+            var tempPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             _fileProtection.ApplyCompleteProtection(tempPath);
 
             try
             {
                 return mimeType switch
                 {
-                    DocumentMimeType.Pdf => await NormalizePdfAsync(quarantinePath, tempPath),
-                    DocumentMimeType.Jpeg or DocumentMimeType.Png => await NormalizeImageAsync(quarantinePath, tempPath, mimeType),
+                    DocumentMimeType.Pdf => await NormalizePdfAsync(quarantinePath),
+                    DocumentMimeType.Jpeg or DocumentMimeType.Png => await NormalizeImageAsync(quarantinePath),
                     _ => OcrResult<(byte[], int, string)>.Fail($"Unsupported MIME type: {mimeType}")
                 };
             }
@@ -53,7 +59,7 @@ public sealed class DocumentNormalizationService
     }
 
     private static Task<OcrResult<(byte[] Normalized, int PageCount, string MimeType)>> NormalizePdfAsync(
-        string sourcePath, string tempPath)
+        string sourcePath)
     {
         var url = Foundation.NSUrl.FromFilename(sourcePath);
         var pdf = new PdfKit.PdfDocument(url);
@@ -79,7 +85,7 @@ public sealed class DocumentNormalizationService
     }
 
     private static Task<OcrResult<(byte[] Normalized, int PageCount, string MimeType)>> NormalizeImageAsync(
-        string sourcePath, string tempPath, DocumentMimeType mimeType)
+        string sourcePath)
     {
         var url = Foundation.NSUrl.FromFilename(sourcePath);
         var source = ImageIO.CGImageSource.FromUrl(url, (ImageIO.CGImageOptions?)null);

@@ -1,7 +1,9 @@
 using System.Net.Http.Json;
 using DigitalTwin.Domain.Interfaces.Providers;
+using DigitalTwin.Domain.Services;
 using DigitalTwin.Integrations.Medication.DTOs;
-using Microsoft.Extensions.Logging;
+
+using DigitalTwin.Application.Configuration;
 
 namespace DigitalTwin.Integrations.Medication;
 
@@ -18,16 +20,17 @@ namespace DigitalTwin.Integrations.Medication;
 /// </summary>
 public sealed class RxNavRxCuiResolver : IRxCuiLookupProvider
 {
-    private const string BaseUrl = "https://rxnav.nlm.nih.gov/REST";
+    private readonly string _baseUrl;
     private const int MaxCandidates = 5;
 
     private readonly HttpClient _http;
-    private readonly ILogger<RxNavRxCuiResolver> _logger;
+    private readonly AppDebugLogger<RxNavRxCuiResolver> _logger;
 
-    public RxNavRxCuiResolver(HttpClient http, ILogger<RxNavRxCuiResolver> logger)
+    public RxNavRxCuiResolver(HttpClient http, AppDebugLogger<RxNavRxCuiResolver> logger, MedicationApiOptions options)
     {
         _http = http;
         _logger = logger;
+        _baseUrl = options.RxNavBaseUrl;
     }
 
     public async Task<string?> LookupRxCuiAsync(string medicationName, CancellationToken ct = default)
@@ -50,18 +53,18 @@ public sealed class RxNavRxCuiResolver : IRxCuiLookupProvider
             var ingredientName = await ResolveNameAsync(ingredientCui, ct);
             if (!string.IsNullOrWhiteSpace(ingredientName))
             {
-                _logger.LogInformation(
+                _logger.Info(
                     "[RxCUI] Resolved '{Medication}' -> candidate {CandidateRxCui} -> ingredient {IngredientRxCui} ({IngredientName})",
                     medicationName, rxCui, ingredientCui, ingredientName);
                 return ingredientCui;
             }
 
-            _logger.LogWarning(
+            _logger.Warn(
                 "[RxCUI] Skipping unresolved candidate for '{Medication}': candidate={CandidateRxCui}, ingredient={IngredientRxCui} has no properties/name.",
                 medicationName, rxCui, ingredientCui);
         }
 
-        _logger.LogWarning("[RxCUI] No valid RxCUI could be resolved for '{Medication}'.", medicationName);
+        _logger.Warn("[RxCUI] No valid RxCUI could be resolved for '{Medication}'.", medicationName);
         return null;
     }
 
@@ -72,7 +75,7 @@ public sealed class RxNavRxCuiResolver : IRxCuiLookupProvider
     {
         try
         {
-            var url = $"{BaseUrl}/approximateTerm.json"
+            var url = $"{_baseUrl}/approximateTerm.json"
                     + $"?term={Uri.EscapeDataString(term)}"
                     + $"&maxEntries={MaxCandidates}";
 
@@ -95,7 +98,7 @@ public sealed class RxNavRxCuiResolver : IRxCuiLookupProvider
     {
         try
         {
-            var url = $"{BaseUrl}/rxcui/{rxCui}/properties.json";
+            var url = $"{_baseUrl}/rxcui/{rxCui}/properties.json";
             var response = await _http.GetFromJsonAsync<RxNavPropertiesResponse>(url, ct);
             return response?.Properties?.Name;
         }
@@ -114,7 +117,7 @@ public sealed class RxNavRxCuiResolver : IRxCuiLookupProvider
     {
         try
         {
-            var url = $"{BaseUrl}/rxcui/{rxCui}/related.json?tty=IN";
+            var url = $"{_baseUrl}/rxcui/{rxCui}/related.json?tty=IN";
             var resp = await _http.GetFromJsonAsync<RxNavRelatedResponse>(url, ct);
 
             var ingredient = resp?.RelatedGroup?.ConceptGroup

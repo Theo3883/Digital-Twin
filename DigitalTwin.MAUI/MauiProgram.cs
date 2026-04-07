@@ -194,40 +194,29 @@ public static class MauiProgram
 
         foreach (var rawLine in lines)
         {
-            if (string.IsNullOrWhiteSpace(rawLine))
-            {
-                continue;
-            }
-
-            var line = rawLine.Trim();
-            if (line.StartsWith("#", StringComparison.Ordinal) || line.StartsWith("export ", StringComparison.Ordinal))
-            {
-                line = line.StartsWith("export ", StringComparison.Ordinal)
-                    ? line.Substring("export ".Length).Trim()
-                    : line;
-            }
-
-            if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#", StringComparison.Ordinal))
-            {
-                continue;
-            }
+            var line = NormalizeEnvLine(rawLine);
+            if (line is null) continue;
 
             var separatorIndex = line.IndexOf('=');
-            if (separatorIndex <= 0)
-            {
-                continue;
-            }
+            if (separatorIndex <= 0) continue;
 
             var key = line.Substring(0, separatorIndex).Trim();
             var value = line.Substring(separatorIndex + 1).Trim();
 
-            if (string.IsNullOrWhiteSpace(key))
-            {
-                continue;
-            }
-
-            Environment.SetEnvironmentVariable(key, TrimQuotes(value));
+            if (!string.IsNullOrWhiteSpace(key))
+                Environment.SetEnvironmentVariable(key, TrimQuotes(value));
         }
+    }
+
+    private static string? NormalizeEnvLine(string rawLine)
+    {
+        if (string.IsNullOrWhiteSpace(rawLine)) return null;
+
+        var line = rawLine.Trim();
+        if (line.StartsWith("export ", StringComparison.Ordinal))
+            line = line.Substring("export ".Length).Trim();
+
+        return string.IsNullOrWhiteSpace(line) || line.StartsWith('#') ? null : line;
     }
 
     private static string TrimQuotes(string value)

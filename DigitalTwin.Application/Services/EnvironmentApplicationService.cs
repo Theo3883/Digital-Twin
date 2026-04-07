@@ -4,7 +4,6 @@ using DigitalTwin.Application.Interfaces;
 using DigitalTwin.Application.Mappers;
 using DigitalTwin.Domain.Interfaces;
 using DigitalTwin.Domain.Interfaces.Providers;
-using Microsoft.Extensions.Logging;
 
 namespace DigitalTwin.Application.Services;
 
@@ -17,7 +16,6 @@ public class EnvironmentApplicationService : IEnvironmentApplicationService
     private readonly IEnvironmentAssessmentService                    _assessmentService;
     private readonly IPersistenceGateway<Domain.Models.EnvironmentReading> _gateway;
     private readonly IEnvironmentReadingCache?                        _cache;
-    private readonly ILogger<EnvironmentApplicationService>           _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="EnvironmentApplicationService"/> class.
@@ -26,13 +24,11 @@ public class EnvironmentApplicationService : IEnvironmentApplicationService
         IEnvironmentDataProvider environmentDataProvider,
         IEnvironmentAssessmentService assessmentService,
         IPersistenceGateway<Domain.Models.EnvironmentReading> gateway,
-        ILogger<EnvironmentApplicationService> logger,
         IEnvironmentReadingCache? cache = null)
     {
         _environmentDataProvider = environmentDataProvider;
         _assessmentService       = assessmentService;
         _gateway                 = gateway;
-        _logger                  = logger;
         _cache                   = cache;
     }
 

@@ -4,7 +4,7 @@
  * called back once when the user drags past the dismiss threshold.
  * Supports multiple concurrent sheets keyed by the sheet element.
  */
-window.SheetDrag = {
+globalThis.SheetDrag = {
     _instances: new Map(),
 
     init(sheetEl, overlayEl, dotNetRef, dismissThreshold) {

@@ -8,7 +8,7 @@ using DigitalTwin.Domain.Interfaces.Providers;
 using DigitalTwin.Domain.Interfaces.Services;
 using DigitalTwin.Domain.Interfaces.Repositories;
 using DigitalTwin.Domain.Models;
-using Microsoft.Extensions.Logging;
+using DigitalTwin.Domain.Services;
 
 namespace DigitalTwin.Application.Services;
 
@@ -18,27 +18,24 @@ namespace DigitalTwin.Application.Services;
 public class DoctorPortalApplicationService : IDoctorPortalApplicationService
 {
     private readonly IDoctorPortalDomainService              _domain;
-    private readonly IMedicationService                      _medicationFactory;
     private readonly IRxCuiLookupProvider                    _rxCuiLookup;
     private readonly IVitalSignService                       _vitalSignService;
     private readonly IMedicalHistoryEntryRepository          _history;
     private readonly IMedicationInteractionProvider          _interactionsProvider;
-    private readonly ILogger<DoctorPortalApplicationService> _logger;
+    private readonly AppDebugLogger<DoctorPortalApplicationService> _logger;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DoctorPortalApplicationService"/> class.
     /// </summary>
     public DoctorPortalApplicationService(
         IDoctorPortalDomainService domain,
-        IMedicationService medicationFactory,
         IRxCuiLookupProvider rxCuiLookup,
         IVitalSignService vitalSignService,
         IMedicalHistoryEntryRepository history,
         IMedicationInteractionProvider interactionsProvider,
-        ILogger<DoctorPortalApplicationService> logger)
+        AppDebugLogger<DoctorPortalApplicationService> logger)
     {
         _domain            = domain;
-        _medicationFactory = medicationFactory;
         _rxCuiLookup       = rxCuiLookup;
         _vitalSignService  = vitalSignService;
         _history           = history;
@@ -329,12 +326,12 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
         }
         catch (NotFoundException ex)
         {
-            _logger.LogWarning("[DoctorPortal] Assignment failed: {Message}", ex.Message);
+            _logger.Warn(ex, "[DoctorPortal] Assignment failed: {Message}", ex.Message);
             return null;
         }
         catch (DuplicateAssignmentException ex)
         {
-            _logger.LogInformation("[DoctorPortal] {Message}", ex.Message);
+            _logger.Info("[DoctorPortal] {Message}", ex.Message);
             return null;
         }
     }

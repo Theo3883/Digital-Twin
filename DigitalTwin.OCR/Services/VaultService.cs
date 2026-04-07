@@ -13,7 +13,6 @@ namespace DigitalTwin.OCR.Services;
 /// </summary>
 public sealed class VaultService
 {
-    private readonly DocumentEncryptionService _encryption;
     private readonly KeychainKeyStore _keychain;
     private readonly FileProtectionService _fileProtection;
     private readonly ILogger<VaultService> _logger;
@@ -30,7 +29,6 @@ public sealed class VaultService
         FileProtectionService fileProtection,
         ILogger<VaultService> logger)
     {
-        _encryption = encryption;
         _keychain = keychain;
         _fileProtection = fileProtection;
         _logger = logger;
@@ -105,7 +103,7 @@ public sealed class VaultService
         try
         {
             var sha256 = HashingService.ComputeSha256Hex(normalizedBytes);
-            var payload = _encryption.Encrypt(normalizedBytes, _masterKey, documentId, mimeType, pageCount, sha256);
+            var payload = DocumentEncryptionService.Encrypt(normalizedBytes, _masterKey, documentId, mimeType, pageCount, sha256);
 
             var encPath = VaultPath($"encrypted/{documentId:N}.enc");
             await File.WriteAllBytesAsync(encPath, payload.Ciphertext);
@@ -161,7 +159,7 @@ public sealed class VaultService
                 return OcrResult<byte[]>.Fail("Encrypted file missing (vault metadata out of sync).");
 
             var ciphertext = await File.ReadAllBytesAsync(cipherPath);
-            var plaintext = _encryption.Decrypt(ciphertext, descriptor, _masterKey);
+            var plaintext = DocumentEncryptionService.Decrypt(ciphertext, descriptor, _masterKey);
             return OcrResult<byte[]>.Ok(plaintext);
         }
         catch (Exception ex)

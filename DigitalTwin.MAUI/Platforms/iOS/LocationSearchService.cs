@@ -105,45 +105,10 @@ public sealed class LocationSearchService : ILocationSearchService, IDisposable
 
             foreach (var completion in completer.Results)
             {
-                // Title    = place/street name   e.g. "Calea Cristești, 35"  or "Iași"
-                // Subtitle = broader context     e.g. "Holboca, Romania"     or "Romania"
                 var title    = completion.Title ?? string.Empty;
                 var subtitle = completion.Subtitle ?? string.Empty;
 
-                var country = string.Empty;
-                var city    = title; // fallback: title is the place name (e.g. pure city result)
-
-                if (!string.IsNullOrWhiteSpace(subtitle))
-                {
-                    var parts = subtitle.Split(',');
-                    country = parts[^1].Trim();
-
-                    if (parts.Length == 1)
-                    {
-                        // Subtitle is just "<Country>" — the title IS the city/place.
-                        city = title;
-                    }
-                    else if (parts.Length == 2)
-                    {
-                        // "<City>, <Country>" — straightforward.
-                        city = parts[0].Trim();
-                    }
-                    else
-                    {
-                        // 3+ segments: "Street, Number, City, PostalCode, Country"
-                        // Walk backwards (skipping country) to find the first non-numeric segment.
-                        city = title; // keep title as fallback
-                        for (var i = parts.Length - 2; i >= 0; i--)
-                        {
-                            var seg = parts[i].Trim();
-                            if (!string.IsNullOrWhiteSpace(seg) && !seg.All(char.IsDigit))
-                            {
-                                city = seg;
-                                break;
-                            }
-                        }
-                    }
-                }
+                var (city, country) = ExtractCityAndCountry(subtitle, title);
 
                 var display = string.IsNullOrWhiteSpace(subtitle)
                     ? title
@@ -155,6 +120,35 @@ public sealed class LocationSearchService : ILocationSearchService, IDisposable
             }
 
             _owner.OnResultsUpdated(results);
+        }
+
+        private static (string City, string Country) ExtractCityAndCountry(string subtitle, string fallbackTitle)
+        {
+            if (string.IsNullOrWhiteSpace(subtitle))
+                return (fallbackTitle, string.Empty);
+
+            var parts = subtitle.Split(',');
+            var country = parts[^1].Trim();
+
+            var city = parts.Length switch
+            {
+                1 => fallbackTitle,
+                2 => parts[0].Trim(),
+                _ => FindCityInMultipartAddress(parts, fallbackTitle)
+            };
+
+            return (city, country);
+        }
+
+        private static string FindCityInMultipartAddress(string[] parts, string fallback)
+        {
+            for (var i = parts.Length - 2; i >= 0; i--)
+            {
+                var seg = parts[i].Trim();
+                if (!string.IsNullOrWhiteSpace(seg) && !seg.All(char.IsDigit))
+                    return seg;
+            }
+            return fallback;
         }
 
         [Export("completer:didFailWithError:")]

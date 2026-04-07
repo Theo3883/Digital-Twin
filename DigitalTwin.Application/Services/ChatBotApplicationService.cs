@@ -3,7 +3,7 @@ using DigitalTwin.Application.Interfaces;
 using DigitalTwin.Domain.Interfaces.Providers;
 using DigitalTwin.Domain.Interfaces.Services;
 using DigitalTwin.Domain.Models;
-using Microsoft.Extensions.Logging;
+using DigitalTwin.Domain.Services;
 
 namespace DigitalTwin.Application.Services;
 
@@ -14,7 +14,7 @@ public class ChatBotApplicationService : IChatBotApplicationService
 {
     private readonly IChatBotProvider _chatBotProvider;
     private readonly IPatientContextService _patientContextService;
-    private readonly ILogger<ChatBotApplicationService> _logger;
+    private readonly AppDebugLogger<ChatBotApplicationService> _logger;
 
     // Cached per chat session (scoped lifetime). Built once on the first message with a
     // generous timeout so a slow Keychain/DB call never delays subsequent messages.
@@ -27,7 +27,7 @@ public class ChatBotApplicationService : IChatBotApplicationService
     public ChatBotApplicationService(
         IChatBotProvider chatBotProvider,
         IPatientContextService patientContextService,
-        ILogger<ChatBotApplicationService> logger)
+        AppDebugLogger<ChatBotApplicationService> logger)
     {
         _chatBotProvider       = chatBotProvider;
         _patientContextService = patientContextService;
@@ -52,15 +52,15 @@ public class ChatBotApplicationService : IChatBotApplicationService
             catch (Exception ex)
             {
                 _cachedProfile = null;
-                _logger.LogWarning(ex, "[ChatBot] Patient context unavailable; proceeding without personalisation.");
+                _logger.Warn(ex, "[ChatBot] Patient context unavailable; proceeding without personalisation.");
             }
             _profileLoaded = true;
         }
 
         var providerType = _chatBotProvider.GetType().Name;
-        _logger.LogInformation("[ChatBot] Sending message to provider ({Provider}).", providerType);
+        _logger.Info("[ChatBot] Sending message to provider ({Provider}).", providerType);
         if (providerType.Contains("Mock", StringComparison.OrdinalIgnoreCase))
-            _logger.LogWarning("[ChatBot] Gemini is NOT active — GEMINI_API_KEY is not set. " +
+            _logger.Warn("[ChatBot] Gemini is NOT active — GEMINI_API_KEY is not set. " +
                 "Add GEMINI_API_KEY=<your-key> to your .env file at the project root to enable real AI responses.");
 
         var response = await _chatBotProvider.SendMessageAsync(userMessage, _cachedProfile, ct);

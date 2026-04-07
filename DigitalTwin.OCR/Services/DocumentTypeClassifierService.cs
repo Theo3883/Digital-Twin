@@ -8,7 +8,7 @@ namespace DigitalTwin.OCR.Services;
 /// </summary>
 public sealed class DocumentTypeClassifierService
 {
-    public MedicalDocumentType Classify(string? ocrText)
+    public static MedicalDocumentType Classify(string? ocrText)
     {
         if (string.IsNullOrWhiteSpace(ocrText))
             return MedicalDocumentType.Unknown;

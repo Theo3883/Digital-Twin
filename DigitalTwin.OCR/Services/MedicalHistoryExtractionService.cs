@@ -2,17 +2,15 @@ using System.Text.RegularExpressions;
 
 namespace DigitalTwin.OCR.Services;
 
-public sealed class MedicalHistoryExtractionService
+public sealed partial class MedicalHistoryExtractionService
 {
     // Handles optional "Rp.:" / "Rp:" prefix, optional numbering, multi-word drug names, dosage.
-    private static readonly Regex MedicationLineRegex = new(
-        @"^\s*(?:Rp\.?\s*:?\s*)?(?:\d+[\.\)]\s*)?(?<name>[A-Za-zĂÂÎȘȚăâîșț][\w\s\-]*?)\s+(?<dosage>\d+\s*(?:mg|g|mcg|ml)\b)(?<rest>.*)$",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    [GeneratedRegex(@"^\s*(?:Rp\.?\s*:?\s*)?(?:\d+[\.\)]\s*)?(?<name>[A-Za-zĂÂÎȘȚăâîșț][\w\s\-]*?)\s+(?<dosage>\d+\s*(?:mg|g|mcg|ml)\b)(?<rest>.*)$", RegexOptions.IgnoreCase)]
+    private static partial Regex MedicationLineRegex();
 
     // Detects lines that start a new medication entry (numbered or Rp.: prefixed).
-    private static readonly Regex EntryStartRegex = new(
-        @"^\s*(?:Rp\.?\s*:?\s*)?\d+[\.\)]",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    [GeneratedRegex(@"^\s*(?:Rp\.?\s*:?\s*)?\d+[\.\)]", RegexOptions.IgnoreCase)]
+    private static partial Regex EntryStartRegex();
 
     public IReadOnlyList<ExtractedHistoryItem> Extract(string? sanitizedText)
     {
@@ -27,7 +25,7 @@ public sealed class MedicalHistoryExtractionService
 
         foreach (var line in merged)
         {
-            var match = MedicationLineRegex.Match(line);
+            var match = MedicationLineRegex().Match(line);
             if (!match.Success)
                 continue;
 
@@ -64,14 +62,14 @@ public sealed class MedicalHistoryExtractionService
 
         foreach (var line in lines)
         {
-            if (EntryStartRegex.IsMatch(line) || merged.Count == 0)
+            if (EntryStartRegex().IsMatch(line) || merged.Count == 0)
             {
                 merged.Add(line);
             }
             else
             {
                 // Check if the line itself looks like a standalone medication (has dosage).
-                if (MedicationLineRegex.IsMatch(line))
+                if (MedicationLineRegex().IsMatch(line))
                     merged.Add(line);
                 else
                     merged[^1] = $"{merged[^1]} {line}";
