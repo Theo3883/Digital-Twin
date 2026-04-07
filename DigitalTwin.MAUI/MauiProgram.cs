@@ -77,8 +77,10 @@ public static class MauiProgram
                     //   OCR_USE_ML_CLASSIFICATION=1
                     //   OCR_USE_ML_EXTRACTION=1
                     //   OCR_ML_CONFIDENCE_THRESHOLD=0.65
+                    //   OCR_USE_IDENTITY_V2=1
                     opts.UseMlClassification = Environment.GetEnvironmentVariable("OCR_USE_ML_CLASSIFICATION") == "1";
                     opts.UseMlExtraction = Environment.GetEnvironmentVariable("OCR_USE_ML_EXTRACTION") == "1";
+                    opts.UseIdentityV2 = Environment.GetEnvironmentVariable("OCR_USE_IDENTITY_V2") == "1";
                     if (float.TryParse(
                             Environment.GetEnvironmentVariable("OCR_ML_CONFIDENCE_THRESHOLD"),
                             System.Globalization.NumberStyles.Float,

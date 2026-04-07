@@ -34,6 +34,7 @@ public sealed class OcrSessionViewModel
     private readonly ILogger<OcrSessionViewModel> _logger;
     private readonly IAuthApplicationService _authService;
     private readonly DocumentIdentityValidationPolicy _identityPolicy;
+    private readonly DocumentIdentityExtractorService _identityExtractor;
     private readonly StructuredDocumentBuilder _structuredBuilder;
     private readonly IDocumentTypeClassifier _mlClassifier;
     private readonly MlPipelineAuditService _mlAudit;
@@ -66,6 +67,7 @@ public sealed class OcrSessionViewModel
         ILogger<OcrSessionViewModel> logger,
         IAuthApplicationService authService,
         DocumentIdentityValidationPolicy identityPolicy,
+        DocumentIdentityExtractorService identityExtractor,
         StructuredDocumentBuilder structuredBuilder,
         IDocumentTypeClassifier mlClassifier,
         MlPipelineAuditService mlAudit)
@@ -86,6 +88,7 @@ public sealed class OcrSessionViewModel
         _logger = logger;
         _authService = authService;
         _identityPolicy = identityPolicy;
+        _identityExtractor = identityExtractor;
         _structuredBuilder = structuredBuilder;
         _mlClassifier = mlClassifier;
         _mlAudit = mlAudit;
@@ -221,7 +224,7 @@ public sealed class OcrSessionViewModel
             var ocrSw = Stopwatch.StartNew();
             var ocrResult = await _ocr.RunOcrAsync(
                 quarantinePath, mimeType, _options.UseAccurateOcr,
-                buildGraph: _options.UseMlClassification, ct);
+                buildGraph: _options.UseMlClassification || _options.UseIdentityV2, ct);
             ocrSw.Stop();
             if (!ocrResult.IsSuccess) { SetError(ocrResult.Error!); return; }
             OcrResult = ocrResult.Value;
@@ -280,7 +283,16 @@ public sealed class OcrSessionViewModel
 
             // 4c — Identity verification (name + CNP must match the logged-in patient)
             SetLoading("Verifying document identity…");
-            var docIdentity = DocumentIdentityExtractorService.Extract(ocrResult.Value!.RawText);
+            var docIdentity = _options.UseIdentityV2
+                ? _identityExtractor.Extract(ocrResult.Value!.RawText, ocrResult.Value.Graph)
+                : _identityExtractor.Extract(ocrResult.Value!.RawText);
+            _logger.LogDebug(
+                "[OCR Identity] Extractor={Extractor}",
+                _options.UseIdentityV2 ? "v2" : "v1");
+            _logger.LogDebug(
+                "[OCR Identity] Extracted: Name={Name} CNP={Cnp} NameConf={NC:F2} CnpConf={CC:F2}",
+                docIdentity.ExtractedName, docIdentity.ExtractedCnp,
+                docIdentity.NameConfidence, docIdentity.CnpConfidence);
             var user = await _authService.GetCurrentUserAsync();
             var profile = await _authService.GetPatientProfileAsync();
             if (user is not null && profile is not null)
@@ -288,6 +300,9 @@ public sealed class OcrSessionViewModel
                 var validation = _identityPolicy.Validate(docIdentity, user.DisplayName, profile.Cnp);
                 if (!validation.IsValid)
                 {
+                    _logger.LogWarning(
+                        "[OCR Identity] Validation failed: Reason={Reason} ExtractedName={ExtName} ExtractedCnp={ExtCnp}",
+                        validation.FailureReason, validation.ExtractedName, validation.ExtractedCnp);
                     IdentityMismatch = validation;
                     SetError(validation.ToUserMessage());
                     return;
@@ -319,7 +334,12 @@ public sealed class OcrSessionViewModel
             {
                 try
                 {
-                    await _historyAutoAppend.AppendAsync(patientId, record.Id, SanitizedPreview, ct);
+                    await _historyAutoAppend.AppendAsync(
+                        patientId,
+                        record.Id,
+                        SanitizedPreview,
+                        docTypeOverride: StructuredResult?.DocumentType,
+                        ct: ct);
                 }
                 catch (Exception ex)
                 {

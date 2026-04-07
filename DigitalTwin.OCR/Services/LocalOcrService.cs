@@ -19,6 +19,11 @@ public sealed class LocalOcrService
     public LocalOcrService(ILogger<LocalOcrService> logger) => _logger = logger;
 
 #if IOS || MACCATALYST
+    private sealed record PdfTextExtraction(
+        int PageCount,
+        IReadOnlyList<string> PageTexts,
+        float TextQualityScore);
+
     public async Task<OcrResult<OcrExtractionResult>> RunOcrAsync(
         string documentPath,
         DocumentMimeType mimeType,
@@ -45,10 +50,37 @@ public sealed class LocalOcrService
 
             if (mimeType == DocumentMimeType.Pdf)
             {
-                var (pdfPages, pdfGraphPages) = await RecognizePdfPagesAsync(
-                    documentPath, languages, accurateMode, buildGraph, ct);
-                pages.AddRange(pdfPages);
-                graphPages?.AddRange(pdfGraphPages);
+                // Prefer direct text extraction for selectable-text PDFs to avoid OCR noise on tables.
+                var pdfText = TryExtractPdfText(documentPath);
+                if (pdfText is not null && pdfText.TextQualityScore >= 0.35f)
+                {
+                    _logger.LogDebug(
+                        "[OCR PDF] Using direct PDF text extraction. Pages={Pages} Quality={Q:F2}",
+                        pdfText.PageCount, pdfText.TextQualityScore);
+
+                    for (var i = 0; i < pdfText.PageCount; i++)
+                    {
+                        var text = pdfText.PageTexts[i];
+                        pages.Add(new OcrPage(
+                            PageIndex: i,
+                            Blocks:
+                            [
+                                new OcrTextBlock(
+                                    Text: text,
+                                    Confidence: 1.0f,
+                                    Lines: [new OcrLine(text, 1.0f, 0, 0, 1, 1)])
+                            ],
+                            Status: OcrExecutionStatus.Success,
+                            DetectedLanguage: languages.FirstOrDefault()));
+                    }
+                }
+                else
+                {
+                    var (pdfPages, pdfGraphPages) = await RecognizePdfPagesAsync(
+                        documentPath, languages, accurateMode, buildGraph, ct);
+                    pages.AddRange(pdfPages);
+                    graphPages?.AddRange(pdfGraphPages);
+                }
             }
             else
             {
@@ -104,7 +136,8 @@ public sealed class LocalOcrService
 
         var pages = new List<OcrPage>();
         var graphPages = new List<OcrGraphPage>();
-        var thumbSize = new CoreGraphics.CGSize(1653, 2339); // A4 @ 200 DPI
+        // 2480x3508 ≈ A4 @ 300 DPI (helps small fonts in lab PDFs).
+        var thumbSize = new CoreGraphics.CGSize(2480, 3508);
 
         for (var i = 0; i < (int)pdf.PageCount; i++)
         {
@@ -118,7 +151,27 @@ public sealed class LocalOcrService
             {
                 ctx.CGContext.SetFillColor(UIKit.UIColor.White.CGColor);
                 ctx.CGContext.FillRect(new CoreGraphics.CGRect(CoreGraphics.CGPoint.Empty, thumbSize));
+
+                // Fit the PDF page into the render bitmap. Without this, some PDFs end up tiny/misaligned.
+                var pageRect = page.GetBoundsForBox(PdfKit.PdfDisplayBox.Media);
+                var scaleX = thumbSize.Width / pageRect.Width;
+                var scaleY = thumbSize.Height / pageRect.Height;
+                var scale = Math.Min(scaleX, scaleY);
+
+                var scaledW = pageRect.Width * scale;
+                var scaledH = pageRect.Height * scale;
+                var offsetX = (thumbSize.Width - scaledW) / 2.0;
+                var offsetY = (thumbSize.Height - scaledH) / 2.0;
+
+                ctx.CGContext.SaveState();
+                // Flip Y to match PDF coordinate system.
+                ctx.CGContext.TranslateCTM(0, thumbSize.Height);
+                ctx.CGContext.ScaleCTM(1, -1);
+                ctx.CGContext.TranslateCTM((nfloat)offsetX, (nfloat)offsetY);
+                ctx.CGContext.ScaleCTM((nfloat)scale, (nfloat)scale);
+                ctx.CGContext.TranslateCTM(-pageRect.X, -pageRect.Y);
                 page.Draw(PdfKit.PdfDisplayBox.Media, ctx.CGContext);
+                ctx.CGContext.RestoreState();
             });
 
             using var cgImage = uiImage.CGImage;
@@ -131,6 +184,45 @@ public sealed class LocalOcrService
                 graphPages.Add(graphPage);
         }
         return (pages, graphPages);
+    }
+
+    private PdfTextExtraction? TryExtractPdfText(string pdfPath)
+    {
+        try
+        {
+            var url = Foundation.NSUrl.FromFilename(pdfPath);
+            var pdf = new PdfKit.PdfDocument(url);
+            if (pdf is null) return null;
+
+            var pageCount = (int)pdf.PageCount;
+            if (pageCount <= 0) return null;
+
+            var texts = new List<string>(capacity: pageCount);
+            int totalChars = 0;
+            int alphaChars = 0;
+
+            for (var i = 0; i < pageCount; i++)
+            {
+                var page = pdf.GetPage((nint)i);
+                var pageText = page?.Text ?? string.Empty;
+                texts.Add(pageText);
+
+                totalChars += pageText.Length;
+                alphaChars += pageText.Count(char.IsLetter);
+            }
+
+            // Quality heuristic: per-page text density + alphabetic ratio.
+            var density = totalChars / (float)Math.Max(1, pageCount);
+            var alphaRatio = alphaChars / (float)Math.Max(1, totalChars);
+            var quality = Math.Clamp((density / 300f) * 0.6f + alphaRatio * 0.4f, 0f, 1f);
+
+            return new PdfTextExtraction(pageCount, texts, quality);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "[OCR PDF] PDF text extraction failed; falling back to OCR.");
+            return null;
+        }
     }
 
     private static async Task<(OcrPage page, OcrGraphPage? graphPage)> RecognizeImagePageAsync(

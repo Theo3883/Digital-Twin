@@ -31,4 +31,12 @@ public sealed class OcrOptions
     /// Below this threshold the fusion falls back to the next layer.
     /// </summary>
     public float MlConfidenceThreshold { get; set; } = 0.65f;
+
+    // ── Identity extraction flags ────────────────────────────────────────────
+
+    /// <summary>
+    /// Enable the improved identity extractor that uses PDF-text extraction (when available),
+    /// OCR graph tokens, and digit/anchor normalization for more robust Name/CNP parsing.
+    /// </summary>
+    public bool UseIdentityV2 { get; set; } = false;
 }

@@ -34,7 +34,12 @@ public sealed class MedicalHistoryAutoAppendService
         _logger = logger;
     }
 
-    public async Task AppendAsync(Guid userId, Guid sourceDocumentId, string? sanitizedPreview, CancellationToken ct = default)
+    public async Task AppendAsync(
+        Guid userId,
+        Guid sourceDocumentId,
+        string? sanitizedPreview,
+        MedicalDocumentType? docTypeOverride = null,
+        CancellationToken ct = default)
     {
         var patient = await _patientRepository.GetByUserIdAsync(userId);
         if (patient is null)
@@ -51,11 +56,13 @@ public sealed class MedicalHistoryAutoAppendService
         }
 
         var parsed = _extractor.Extract(sanitizedPreview);
-        _logger.LogInformation("[OCR History] Extracted {Count} medication item(s) from doc {DocId}. DocType={DocType}.",
-            parsed.Count, sourceDocumentId, DocumentTypeClassifierService.Classify(sanitizedPreview));
+        var keywordDocType = DocumentTypeClassifierService.Classify(sanitizedPreview);
+        var docType = docTypeOverride ?? keywordDocType;
+        _logger.LogInformation(
+            "[OCR History] Extracted {Count} medication item(s) from doc {DocId}. DocType={DocType} (override={Override} keyword={Keyword}).",
+            parsed.Count, sourceDocumentId, docType, docTypeOverride?.ToString() ?? "(null)", keywordDocType);
 
         var now = DateTime.UtcNow;
-        var docType = DocumentTypeClassifierService.Classify(sanitizedPreview);
 
         // Build a single consolidated medical history entry for the entire document.
         // Always created — even when no structured medications were extracted (e.g. discharge letters, referrals).

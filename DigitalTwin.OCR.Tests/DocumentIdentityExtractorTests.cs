@@ -1,9 +1,11 @@
 using DigitalTwin.OCR.Services;
+using DigitalTwin.OCR.Models.Graph;
 
 namespace DigitalTwin.OCR.Tests;
 
 public class DocumentIdentityExtractorTests
 {
+    private readonly DocumentIdentityExtractorService _sut = new();
 
     [Fact]
     public void Extract_UnlabeledName_NearCnpAndAnchors_ExtractsNameAndCnp()
@@ -17,7 +19,7 @@ public class DocumentIdentityExtractorTests
             Telefon 0756677624
             """;
 
-        var result = DocumentIdentityExtractorService.Extract(text);
+        var result = _sut.Extract(text);
 
         Assert.Equal("Sandu Theodor", result.ExtractedName);
         Assert.Equal("6030405315420", result.ExtractedCnp);
@@ -34,7 +36,7 @@ public class DocumentIdentityExtractorTests
             Data 01.05.1998
             """;
 
-        var result = DocumentIdentityExtractorService.Extract(text);
+        var result = _sut.Extract(text);
 
         Assert.Equal("Popescu Ion", result.ExtractedName);
         Assert.Equal("1980512345678", result.ExtractedCnp);
@@ -49,7 +51,7 @@ public class DocumentIdentityExtractorTests
     {
         var text = $"{labelLine}\nCNP 2900101123456\nTelefon 0741234567";
 
-        var result = DocumentIdentityExtractorService.Extract(text);
+        var result = _sut.Extract(text);
 
         Assert.Equal("Ionescu Maria-Elena", result.ExtractedName);
     }
@@ -64,7 +66,7 @@ public class DocumentIdentityExtractorTests
             Sex Masculin
             """;
 
-        var result = DocumentIdentityExtractorService.Extract(text);
+        var result = _sut.Extract(text);
 
         Assert.Null(result.ExtractedCnp);
         Assert.Equal(0f, result.CnpConfidence);
@@ -80,7 +82,7 @@ public class DocumentIdentityExtractorTests
             Diagnostic: normal
             """;
 
-        var result = DocumentIdentityExtractorService.Extract(text);
+        var result = _sut.Extract(text);
 
         Assert.Null(result.ExtractedName);
         Assert.Equal("6030405315420", result.ExtractedCnp);
@@ -97,7 +99,7 @@ public class DocumentIdentityExtractorTests
             CNP 2950615123456
             """;
 
-        var result = DocumentIdentityExtractorService.Extract(text);
+        var result = _sut.Extract(text);
 
         Assert.Equal("Ștefănescu Ioana-Maria", result.ExtractedName);
     }
@@ -112,7 +114,7 @@ public class DocumentIdentityExtractorTests
             CNP medic 1750301123456
             """;
 
-        var result = DocumentIdentityExtractorService.Extract(text);
+        var result = _sut.Extract(text);
 
         Assert.Equal("1980512345678", result.ExtractedCnp);
     }
@@ -120,7 +122,7 @@ public class DocumentIdentityExtractorTests
     [Fact]
     public void Extract_EmptyText_ReturnsEmptyIdentity()
     {
-        var result = DocumentIdentityExtractorService.Extract("");
+        var result = _sut.Extract("");
 
         Assert.Null(result.ExtractedName);
         Assert.Null(result.ExtractedCnp);
@@ -131,7 +133,7 @@ public class DocumentIdentityExtractorTests
     [Fact]
     public void Extract_NullText_ReturnsEmptyIdentity()
     {
-        var result = DocumentIdentityExtractorService.Extract(null!);
+        var result = _sut.Extract(null!);
 
         Assert.Null(result.ExtractedName);
         Assert.Null(result.ExtractedCnp);
@@ -151,7 +153,7 @@ public class DocumentIdentityExtractorTests
             Rezultate analize
             """;
 
-        var result = DocumentIdentityExtractorService.Extract(text);
+        var result = _sut.Extract(text);
 
         Assert.Equal("Marinescu Alexandru", result.ExtractedName);
         Assert.True(result.NameConfidence >= 0.7f, $"Expected ≥0.7 but got {result.NameConfidence}");
@@ -174,7 +176,7 @@ public class DocumentIdentityExtractorTests
             Diagnostic: Fibrilație atrială paroxistică (I48.0)
             """;
 
-        var result = DocumentIdentityExtractorService.Extract(text);
+        var result = _sut.Extract(text);
 
         Assert.Equal("Sandu Teodor", result.ExtractedName);
         Assert.Equal("6030405315420", result.ExtractedCnp);
@@ -189,9 +191,116 @@ public class DocumentIdentityExtractorTests
             CNP: 2690215123456
             """;
 
-        var result = DocumentIdentityExtractorService.Extract(text);
+        var result = _sut.Extract(text);
 
         Assert.Equal("Ionescu Maria", result.ExtractedName);
         Assert.Equal("2690215123456", result.ExtractedCnp);
+    }
+
+    [Fact]
+    public void Extract_CnpWithSpaces_LabelAnchored_ExtractsCnp()
+    {
+        const string text = """
+            Nume: Popescu Ion
+            CNP: 504 030 822 6720
+            Data 01.05.1998
+            """;
+
+        var result = _sut.Extract(text);
+
+        Assert.Equal("5040308226720", result.ExtractedCnp);
+        Assert.Equal(1.0f, result.CnpConfidence);
+    }
+
+    [Fact]
+    public void Extract_CnpWithDots_LabelAnchored_ExtractsCnp()
+    {
+        const string text = """
+            Nume: Popescu Ion
+            CNP 5040308.226720
+            Data 01.05.1998
+            """;
+
+        var result = _sut.Extract(text);
+
+        Assert.Equal("5040308226720", result.ExtractedCnp);
+    }
+
+    [Fact]
+    public void Extract_CnpWithInternalSpaces_NoLabel_ExtractsCnp()
+    {
+        const string text = """
+            Popescu Ion
+            Data nașterii
+            5040308 226720
+            Sex Masculin
+            """;
+
+        var result = _sut.Extract(text);
+
+        Assert.Equal("5040308226720", result.ExtractedCnp);
+    }
+
+    [Fact]
+    public void Extract_CnpWithOcrDigitConfusions_NormalizesAndExtracts()
+    {
+        const string text = """
+            Nume: Sandu Teodor
+            CNP: 504O30822672O
+            """;
+
+        var result = _sut.Extract(text);
+
+        Assert.Equal("5040308226720", result.ExtractedCnp);
+    }
+
+    [Fact]
+    public void Extract_WithGraphTokenStream_ReconstructsSplitCnp()
+    {
+        // Simulate OCR splitting digits across tokens/columns.
+        var graph = new OcrDocumentGraph(
+            Pages: [],
+            AllTokens:
+            [
+                new OcrToken(0, "CNP", 1f, new OcrBoundingBox(0, 0, 0, 0), 0, 0, 0, false),
+                new OcrToken(1, "5040308", 1f, new OcrBoundingBox(0, 0, 0, 0), 0, 0, 0, false),
+                new OcrToken(2, "226720", 1f, new OcrBoundingBox(0, 0, 0, 0), 0, 0, 0, false),
+            ],
+            DetectedLanguage: "ro-RO");
+
+        var result = _sut.Extract("no useful text", graph);
+
+        Assert.Equal("5040308226720", result.ExtractedCnp);
+    }
+
+    [Fact]
+    public void Extract_DoesNotTreatCodPacientLineAsName()
+    {
+        const string text = """
+            ARCADIA POLICLINIC
+            Cod pacient 838403
+            Locatie recoltare SARARIE
+            CNP 5040308226720
+            """;
+
+        var result = _sut.Extract(text);
+
+        Assert.Null(result.ExtractedName);
+        Assert.Equal("5040308226720", result.ExtractedCnp);
+    }
+
+    [Fact]
+    public void Extract_ScreenshotInlineFields_StripsTailAndExtractsName()
+    {
+        const string text = """
+            ARCADIA
+            Sandu Theodor Data nașterii 08.03.2004 Sex Masculin
+            CNP 5040308226720
+            """;
+
+        var result = _sut.Extract(text);
+
+        Assert.Equal("Sandu Theodor", result.ExtractedName);
+        Assert.Equal("5040308226720", result.ExtractedCnp);
     }
 }

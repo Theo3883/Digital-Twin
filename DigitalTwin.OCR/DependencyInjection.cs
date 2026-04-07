@@ -1,3 +1,4 @@
+using DigitalTwin.Domain.Services;
 using DigitalTwin.OCR.Policies;
 using DigitalTwin.OCR.Services;
 using DigitalTwin.OCR.Services.Extraction;
@@ -53,7 +54,10 @@ public static class OcrServiceCollectionExtensions
         services.AddSingleton<SensitiveDataSanitizer>();
         services.AddSingleton<MedicalHistoryExtractionService>();
         services.AddSingleton<NameMatchingService>();
-        services.AddSingleton<DocumentIdentityValidationPolicy>();
+        services.AddSingleton<DocumentIdentityExtractorService>();
+        services.AddSingleton<DocumentIdentityValidationPolicy>(sp => new DocumentIdentityValidationPolicy(
+            sp.GetRequiredService<NameMatchingService>(),
+            sp.GetRequiredService<AppDebugLogger<DocumentIdentityValidationPolicy>>()));
 
         // ── iOS-backed services (gracefully no-op on non-iOS) ────────────────
         services.AddSingleton<KeychainKeyStore>();
