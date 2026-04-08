@@ -7,6 +7,14 @@
 .env
 .env.local
 
+# SwiftUI iOS generated interop artifacts
+SwiftUIApp/DigitalTwinApp/Interop/_nativeaot/
+SwiftUIApp/DigitalTwinApp/Interop/_frameworks/
+SwiftUIApp/**/*.framework/
+SwiftUIApp/**/*.xcframework/
+SwiftUIApp/**/*.xcuserdatad/
+SwiftUIApp/**/*.xcuserstate
+
 # User-specific files
 *.rsuser
 *.suo
@@ -503,3 +511,9 @@ __pycache__/
 # Python virtual environments
 .venv/
 venv/
+
+# Native iOS interop artifacts
+SwiftUIApp/DigitalTwinApp/Interop/_nativeaot/
+SwiftUIApp/DigitalTwinApp/Interop/_frameworks/
+SwiftUIApp/**/*.framework/
+SwiftUIApp/**/*.xcframework/
