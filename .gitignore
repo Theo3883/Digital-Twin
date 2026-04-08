@@ -7,6 +7,12 @@
 .env
 .env.local
 
+# Native iOS interop artifacts
+SwiftUIApp/DigitalTwinApp/Interop/_nativeaot/
+SwiftUIApp/DigitalTwinApp/Interop/_frameworks/
+SwiftUIApp/**/*.framework/
+SwiftUIApp/**/*.xcframework/
+
 # User-specific files
 *.rsuser
 *.suo
