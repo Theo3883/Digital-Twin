@@ -2,11 +2,10 @@ import SwiftUI
 import Charts
 
 struct EcgMonitorView: View {
-    @EnvironmentObject var engineWrapper: MobileEngineWrapper
+    @StateObject private var viewModel: EcgMonitorViewModel
     @State private var ecgSamples: [Double] = []
     @State private var heartRate: Double = 0
     @State private var spO2: Double = 0
-    @State private var latestResult: EcgEvaluationResult?
     @State private var isConnected = false
     @State private var isConnecting = false
     @State private var showSettings = false
@@ -14,14 +13,14 @@ struct EcgMonitorView: View {
     @State private var frameCount = 0
     @State private var demoPhase: Double = 0
 
-    private var hasProfile: Bool {
-        engineWrapper.patientProfile != nil
+    init(viewModel: EcgMonitorViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel)
     }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
-                if !hasProfile {
+                if !viewModel.hasProfile {
                     noProfileWarning
                 } else {
                     // Top Bar
@@ -33,7 +32,7 @@ struct EcgMonitorView: View {
                     }
                     
                     // Critical Alert
-                    if let result = latestResult, result.isCritical {
+                    if let result = viewModel.latestResult, result.isCritical {
                         CriticalAlertBanner(result: result)
                             .padding(.horizontal, 16)
                             .padding(.bottom, 12)
@@ -54,6 +53,7 @@ struct EcgMonitorView: View {
         }
         .pageEnterAnimation()
         .onAppear { startDemoAnimation() }
+        .task { await viewModel.load() }
     }
 
     // MARK: - No Profile Warning
@@ -98,7 +98,7 @@ struct EcgMonitorView: View {
             HStack(spacing: 8) {
                 Circle()
                     .fill(isConnected ? LiquidGlass.greenPositive :
-                          (latestResult?.isCritical == true ? LiquidGlass.redCritical : .gray))
+                          (viewModel.latestResult?.isCritical == true ? LiquidGlass.redCritical : .gray))
                     .frame(width: 8, height: 8)
                 
                 Text(isConnected ? "Recording · ESP32" : "Not Connected")
@@ -266,7 +266,7 @@ struct EcgMonitorView: View {
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(.white)
             
-            if let result = latestResult, result.isCritical {
+            if let result = viewModel.latestResult, result.isCritical {
                 // Critical state
                 HStack(spacing: 12) {
                     ZStack {
@@ -319,7 +319,7 @@ struct EcgMonitorView: View {
             }
             
             // Footer
-            Text("CNN Anomaly Detection · \(frameCount) frames received · Class: \(latestResult?.isCritical == true ? "A (Afib)" : "N (Normal)") · Confidence: 97.3%")
+            Text("CNN Anomaly Detection · \(frameCount) frames received · Class: \(viewModel.latestResult?.isCritical == true ? "A (Afib)" : "N (Normal)") · Confidence: 97.3%")
                 .font(.system(size: 10))
                 .foregroundColor(.white.opacity(0.3))
         }
@@ -370,84 +370,8 @@ struct EcgMonitorView: View {
                 heartRate = hr
                 spO2 = sp
                 frameCount += 100
-                latestResult = await engineWrapper.evaluateEcgFrame(samples: samples, spO2: sp, heartRate: hr)
+                await viewModel.evaluateFrame(samples: samples, spO2: sp, heartRate: hr)
             }
         }
-    }
-}
-
-// MARK: - ECG Waveform Path (for real data)
-
-struct EcgWaveformPath: Shape {
-    let samples: [Double]
-
-    func path(in rect: CGRect) -> Path {
-        guard samples.count > 1 else { return Path() }
-        var path = Path()
-        let stepX = rect.width / CGFloat(samples.count - 1)
-        let midY = rect.midY
-        let scaleY = rect.height / 3.0
-
-        for (i, sample) in samples.enumerated() {
-            let x = CGFloat(i) * stepX
-            let y = midY - CGFloat(sample) * scaleY
-            if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
-            else { path.addLine(to: CGPoint(x: x, y: y)) }
-        }
-        return path
-    }
-}
-
-// MARK: - ECG Demo Wave (animated)
-
-struct EcgDemoWave: Shape {
-    var phase: Double
-
-    var animatableData: Double {
-        get { phase }
-        set { phase = newValue }
-    }
-
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let steps = 200
-        let stepX = rect.width / CGFloat(steps)
-        let midY = rect.midY
-        let scaleY = rect.height / 3.0
-
-        for i in 0...steps {
-            let t = Double(i) / Double(steps) + phase
-            let pWave = 0.15 * sin(2 * .pi * t * 5)
-            let qrs = sin(2 * .pi * t * 1.2)
-            let qrsComponent = (abs(qrs) > 0.95) ? 1.0 * qrs : 0
-            let tWave = 0.25 * sin(2 * .pi * (t - 0.3) * 3)
-            let y = midY - CGFloat(pWave + qrsComponent + tWave) * scaleY
-            let x = CGFloat(i) * stepX
-
-            if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
-            else { path.addLine(to: CGPoint(x: x, y: y)) }
-        }
-        return path
-    }
-}
-
-// MARK: - Critical Alert Banner
-
-struct CriticalAlertBanner: View {
-    let result: EcgEvaluationResult
-
-    var body: some View {
-        HStack {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.title2).foregroundColor(.white)
-            VStack(alignment: .leading) {
-                Text("Critical Alert")
-                    .font(.headline).foregroundColor(.white)
-                Text(result.alerts.first ?? "Abnormal reading detected")
-                    .font(.caption).foregroundColor(.white.opacity(0.9))
-            }
-            Spacer()
-        }
-        .glassBanner(tint: LiquidGlass.redCritical)
     }
 }

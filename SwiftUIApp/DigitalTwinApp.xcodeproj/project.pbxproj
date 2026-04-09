@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		AA0000000000000000000001 /* DigitalTwinAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000011 /* DigitalTwinAppApp.swift */; };
 		AA0000000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000012 /* ContentView.swift */; };
+		EE0000000000000000000001 /* ContentView_Previews.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000011 /* ContentView_Previews.swift */; };
 		AA0000000000000000000003 /* MobileEngineWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000013 /* MobileEngineWrapper.swift */; };
 		AA0000000000000000000004 /* DotNetBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000014 /* DotNetBridge.swift */; };
 		AA0000000000000000000005 /* VitalSignsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000015 /* VitalSignsView.swift */; };
@@ -25,6 +26,103 @@
 		DD0000000000000000000002 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = DD0000000000000000000011 /* GoogleSignInSwift */; };
 		DD0000000000000000000003 /* GoogleSignInService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000004 /* GoogleSignInService.swift */; };
 		BB0000000000000000000011 /* DataModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000001 /* DataModels.swift */; };
+		EF0000000000000000000001 /* MedicationInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000111 /* MedicationInfo.swift */; };
+		EF0000000000000000000002 /* AddMedicationInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000112 /* AddMedicationInput.swift */; };
+		EF0000000000000000000003 /* DiscontinueMedicationInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000113 /* DiscontinueMedicationInput.swift */; };
+		EF0000000000000000000004 /* DrugSearchResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000114 /* DrugSearchResult.swift */; };
+		EF0000000000000000000005 /* MedicationInteractionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000115 /* MedicationInteractionInfo.swift */; };
+		EF0000000000000000000006 /* EnvironmentReadingInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000116 /* EnvironmentReadingInfo.swift */; };
+		EF0000000000000000000007 /* EcgFrameInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000117 /* EcgFrameInput.swift */; };
+		EF0000000000000000000008 /* EcgEvaluationResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000118 /* EcgEvaluationResult.swift */; };
+		EF0000000000000000000009 /* ChatMessageInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000119 /* ChatMessageInfo.swift */; };
+		EF000000000000000000000A /* CoachingAdviceInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000011A /* CoachingAdviceInfo.swift */; };
+		EF000000000000000000000B /* SleepSessionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000011B /* SleepSessionInfo.swift */; };
+		EF000000000000000000000C /* SleepSessionInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000011C /* SleepSessionInput.swift */; };
+		EF000000000000000000000D /* OcrDocumentInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000011D /* OcrDocumentInfo.swift */; };
+		EF000000000000000000000E /* MedicalHistoryEntryInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000011E /* MedicalHistoryEntryInfo.swift */; };
+		EF000000000000000000000F /* DocumentIdentityInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0000000000000000000011F /* DocumentIdentityInfo.swift */; };
+		EF0000000000000000000010 /* IdentityValidationInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000120 /* IdentityValidationInfo.swift */; };
+		EF0000000000000000000011 /* ExtractedMedicationFieldInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000121 /* ExtractedMedicationFieldInfo.swift */; };
+		EF0000000000000000000012 /* HeuristicExtractionInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000122 /* HeuristicExtractionInfo.swift */; };
+		EF0000000000000000000013 /* ExtractedHistoryItemInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000123 /* ExtractedHistoryItemInfo.swift */; };
+		EF0000000000000000000014 /* OcrProcessingResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000124 /* OcrProcessingResult.swift */; };
+		EF0000000000000000000015 /* SaveOcrDocumentInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000125 /* SaveOcrDocumentInput.swift */; };
+		F20000000000000000000001 /* UserInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000011 /* UserInfo.swift */; };
+		F20000000000000000000002 /* PatientInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000012 /* PatientInfo.swift */; };
+		F20000000000000000000003 /* PatientUpdateInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000013 /* PatientUpdateInfo.swift */; };
+		F20000000000000000000004 /* VitalSignInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000014 /* VitalSignInput.swift */; };
+		F20000000000000000000005 /* VitalSignInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000015 /* VitalSignInfo.swift */; };
+		F20000000000000000000006 /* VitalSignType.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000016 /* VitalSignType.swift */; };
+		F20000000000000000000007 /* AuthenticationResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000017 /* AuthenticationResult.swift */; };
+		F20000000000000000000008 /* OperationResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000018 /* OperationResult.swift */; };
+		F20000000000000000000009 /* EngineError.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000019 /* EngineError.swift */; };
+		F2000000000000000000000A /* MobileEngineHandle.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000000000000000000001A /* MobileEngineHandle.swift */; };
+		F2000000000000000000000B /* LatestVitals.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000000000000000000001B /* LatestVitals.swift */; };
+		F2000000000000000000000C /* MobileEngineClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000000000000000000001C /* MobileEngineClient.swift */; };
+		F2000000000000000000000D /* DotNetMobileEngineClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000000000000000000001D /* DotNetMobileEngineClient.swift */; };
+		F2000000000000000000000E /* MobileEngineSessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1000000000000000000001E /* MobileEngineSessionStore.swift */; };
+		F60000000000000000000001 /* AppContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = F50000000000000000000011 /* AppContainer.swift */; };
+		F90000000000000000000001 /* DashboardSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = F80000000000000000000011 /* DashboardSnapshot.swift */; };
+		F90000000000000000000002 /* DashboardRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F80000000000000000000012 /* DashboardRepository.swift */; };
+		F90000000000000000000003 /* EngineDashboardRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = F80000000000000000000013 /* EngineDashboardRepository.swift */; };
+		F90000000000000000000004 /* GetDashboardSnapshotUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = F80000000000000000000014 /* GetDashboardSnapshotUseCase.swift */; };
+		F90000000000000000000005 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F80000000000000000000015 /* DashboardViewModel.swift */; };
+		FA0000000000000000000001 /* ChatRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000011 /* ChatRepository.swift */; };
+		FA0000000000000000000002 /* EngineChatRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000012 /* EngineChatRepository.swift */; };
+		FA0000000000000000000003 /* LoadChatHistoryUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000013 /* LoadChatHistoryUseCase.swift */; };
+		FA0000000000000000000004 /* SendChatMessageUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000014 /* SendChatMessageUseCase.swift */; };
+		FA0000000000000000000005 /* ClearChatHistoryUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000015 /* ClearChatHistoryUseCase.swift */; };
+		FA0000000000000000000006 /* MedicalAssistantViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000016 /* MedicalAssistantViewModel.swift */; };
+		FA0000000000000000000007 /* ChatBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000017 /* ChatBubble.swift */; };
+		FA0000000000000000000008 /* ConditionalGlassEffect.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000018 /* ConditionalGlassEffect.swift */; };
+		FA0000000000000000000009 /* MarkdownText.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000019 /* MarkdownText.swift */; };
+		FB0000000000000000000001 /* EnvironmentRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000011 /* EnvironmentRepository.swift */; };
+		FB0000000000000000000002 /* EngineEnvironmentRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000012 /* EngineEnvironmentRepository.swift */; };
+		FB0000000000000000000003 /* LoadLatestEnvironmentReadingUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000013 /* LoadLatestEnvironmentReadingUseCase.swift */; };
+		FB0000000000000000000004 /* FetchEnvironmentReadingUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000014 /* FetchEnvironmentReadingUseCase.swift */; };
+		FB0000000000000000000005 /* EnvironmentViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000015 /* EnvironmentViewModel.swift */; };
+		FB0000000000000000000006 /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000016 /* LocationManager.swift */; };
+		FB0000000000000000000007 /* AQIHeroCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000017 /* AQIHeroCard.swift */; };
+		FB0000000000000000000008 /* MetricTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000018 /* MetricTile.swift */; };
+		FB0000000000000000000009 /* MetricGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000019 /* MetricGrid.swift */; };
+		FB000000000000000000000A /* CorrelationCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB000000000000000000001A /* CorrelationCard.swift */; };
+		FB000000000000000000000B /* AIRecommendationCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB000000000000000000001B /* AIRecommendationCard.swift */; };
+		FB000000000000000000000C /* LocationInfoBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB000000000000000000001C /* LocationInfoBar.swift */; };
+		FB000000000000000000000D /* LocationEditSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB000000000000000000001D /* LocationEditSheet.swift */; };
+		FB000000000000000000000E /* EmptyEnvironmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB000000000000000000001E /* EmptyEnvironmentView.swift */; };
+		FC0000000000000000000001 /* MedicationRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0000000000000000000011 /* MedicationRepository.swift */; };
+		FC0000000000000000000002 /* EngineMedicationRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0000000000000000000012 /* EngineMedicationRepository.swift */; };
+		FC0000000000000000000003 /* LoadMedicationsUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0000000000000000000013 /* LoadMedicationsUseCase.swift */; };
+		FC0000000000000000000004 /* SearchDrugsUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0000000000000000000014 /* SearchDrugsUseCase.swift */; };
+		FC0000000000000000000005 /* AddMedicationUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0000000000000000000015 /* AddMedicationUseCase.swift */; };
+		FC0000000000000000000006 /* DiscontinueMedicationUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0000000000000000000016 /* DiscontinueMedicationUseCase.swift */; };
+		FC0000000000000000000007 /* CheckMedicationInteractionsUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0000000000000000000017 /* CheckMedicationInteractionsUseCase.swift */; };
+		FC0000000000000000000008 /* MedicationsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0000000000000000000018 /* MedicationsViewModel.swift */; };
+		FC0000000000000000000009 /* MedicationSafetyBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0000000000000000000019 /* MedicationSafetyBadge.swift */; };
+		FC000000000000000000000A /* MedicationCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC000000000000000000001A /* MedicationCard.swift */; };
+		FC000000000000000000000B /* InteractionsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC000000000000000000001B /* InteractionsSheet.swift */; };
+		FC000000000000000000000C /* EmptyMedicationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC000000000000000000001C /* EmptyMedicationsView.swift */; };
+		FC000000000000000000000D /* AddMedicationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC000000000000000000001D /* AddMedicationSheet.swift */; };
+		FC000000000000000000000E /* AddMedicationSheetViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC000000000000000000001E /* AddMedicationSheetViewModel.swift */; };
+		FD0000000000000000000001 /* ProfileRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0000000000000000000011 /* ProfileRepository.swift */; };
+		FD0000000000000000000002 /* EngineProfileRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0000000000000000000012 /* EngineProfileRepository.swift */; };
+		FD0000000000000000000003 /* ProfileViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0000000000000000000013 /* ProfileViewModel.swift */; };
+		FD0000000000000000000004 /* ProfileEditSheetViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0000000000000000000014 /* ProfileEditSheetViewModel.swift */; };
+		FD0000000000000000000005 /* VitalStatTile.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0000000000000000000015 /* VitalStatTile.swift */; };
+		FD0000000000000000000006 /* ProfileEditSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD0000000000000000000016 /* ProfileEditSheet.swift */; };
+		FE0000000000000000000001 /* OcrRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000011 /* OcrRepository.swift */; };
+		FE0000000000000000000002 /* EngineOcrRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000012 /* EngineOcrRepository.swift */; };
+		FE0000000000000000000003 /* OcrDocumentsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000013 /* OcrDocumentsViewModel.swift */; };
+		FE0000000000000000000004 /* OcrResultCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000014 /* OcrResultCard.swift */; };
+		FE0000000000000000000005 /* OcrDocumentCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000015 /* OcrDocumentCard.swift */; };
+		FE0000000000000000000006 /* EmptyDocumentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000016 /* EmptyDocumentsView.swift */; };
+		FF0000000000000000000001 /* EcgRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000011 /* EcgRepository.swift */; };
+		FF0000000000000000000002 /* EngineEcgRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000012 /* EngineEcgRepository.swift */; };
+		FF0000000000000000000003 /* EvaluateEcgFrameUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000013 /* EvaluateEcgFrameUseCase.swift */; };
+		FF0000000000000000000004 /* EcgMonitorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000014 /* EcgMonitorViewModel.swift */; };
+		FF0000000000000000000005 /* EcgWaveformPath.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000015 /* EcgWaveformPath.swift */; };
+		FF0000000000000000000006 /* EcgDemoWave.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000016 /* EcgDemoWave.swift */; };
+		FF0000000000000000000007 /* CriticalAlertBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000017 /* CriticalAlertBanner.swift */; };
 		BB0000000000000000000012 /* LiquidGlassTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000002 /* LiquidGlassTheme.swift */; };
 		BB0000000000000000000013 /* EcgMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000003 /* EcgMonitorView.swift */; };
 		BB0000000000000000000014 /* EnvironmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000004 /* EnvironmentView.swift */; };
@@ -36,11 +134,22 @@
 		BB000000000000000000001A /* DocumentScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000A /* DocumentScannerView.swift */; };
 		BB000000000000000000001B /* OcrSessionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000B /* OcrSessionCoordinator.swift */; };
 		BB000000000000000000001C /* OcrVisionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000C /* OcrVisionService.swift */; };
+		EE0000000000000000000002 /* View+LiquidGlassStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000012 /* View+LiquidGlassStyles.swift */; };
+		EE0000000000000000000003 /* SyncGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000013 /* SyncGateView.swift */; };
+		EE0000000000000000000004 /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000014 /* LoadingView.swift */; };
+		EE0000000000000000000005 /* AuthenticationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000015 /* AuthenticationView.swift */; };
+		EE0000000000000000000006 /* RegistrationField.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000016 /* RegistrationField.swift */; };
+		EE0000000000000000000007 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000017 /* MainTabView.swift */; };
+		EE0000000000000000000008 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000018 /* DashboardView.swift */; };
+		EE0000000000000000000009 /* HomeTopBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000019 /* HomeTopBar.swift */; };
+		EE000000000000000000000A /* HomeWidgetGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000001A /* HomeWidgetGrid.swift */; };
+		EE000000000000000000000B /* EcgSparkline.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000001B /* EcgSparkline.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		AA0000000000000000000011 /* DigitalTwinAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DigitalTwinAppApp.swift; sourceTree = "<group>"; };
 		AA0000000000000000000012 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		EE0000000000000000000011 /* ContentView_Previews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView_Previews.swift; sourceTree = "<group>"; };
 		AA0000000000000000000013 /* MobileEngineWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileEngineWrapper.swift; sourceTree = "<group>"; };
 		AA0000000000000000000014 /* DotNetBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DotNetBridge.swift; sourceTree = "<group>"; };
 		AA0000000000000000000015 /* VitalSignsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitalSignsView.swift; sourceTree = "<group>"; };
@@ -70,6 +179,113 @@
 		BB000000000000000000000C /* OcrVisionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OcrVisionService.swift; sourceTree = "<group>"; };
 		CC0000000000000000000001 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		DD0000000000000000000004 /* GoogleSignInService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleSignInService.swift; sourceTree = "<group>"; };
+		FA0000000000000000000011 /* ChatRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatRepository.swift; sourceTree = "<group>"; };
+		FA0000000000000000000012 /* EngineChatRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineChatRepository.swift; sourceTree = "<group>"; };
+		FA0000000000000000000013 /* LoadChatHistoryUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadChatHistoryUseCase.swift; sourceTree = "<group>"; };
+		FA0000000000000000000014 /* SendChatMessageUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendChatMessageUseCase.swift; sourceTree = "<group>"; };
+		FA0000000000000000000015 /* ClearChatHistoryUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClearChatHistoryUseCase.swift; sourceTree = "<group>"; };
+		FA0000000000000000000016 /* MedicalAssistantViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicalAssistantViewModel.swift; sourceTree = "<group>"; };
+		FA0000000000000000000017 /* ChatBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubble.swift; sourceTree = "<group>"; };
+		FA0000000000000000000018 /* ConditionalGlassEffect.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionalGlassEffect.swift; sourceTree = "<group>"; };
+		FA0000000000000000000019 /* MarkdownText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownText.swift; sourceTree = "<group>"; };
+		FB0000000000000000000011 /* EnvironmentRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentRepository.swift; sourceTree = "<group>"; };
+		FB0000000000000000000012 /* EngineEnvironmentRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineEnvironmentRepository.swift; sourceTree = "<group>"; };
+		FB0000000000000000000013 /* LoadLatestEnvironmentReadingUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadLatestEnvironmentReadingUseCase.swift; sourceTree = "<group>"; };
+		FB0000000000000000000014 /* FetchEnvironmentReadingUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FetchEnvironmentReadingUseCase.swift; sourceTree = "<group>"; };
+		FB0000000000000000000015 /* EnvironmentViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentViewModel.swift; sourceTree = "<group>"; };
+		FB0000000000000000000016 /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
+		FB0000000000000000000017 /* AQIHeroCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AQIHeroCard.swift; sourceTree = "<group>"; };
+		FB0000000000000000000018 /* MetricTile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricTile.swift; sourceTree = "<group>"; };
+		FB0000000000000000000019 /* MetricGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricGrid.swift; sourceTree = "<group>"; };
+		FB000000000000000000001A /* CorrelationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CorrelationCard.swift; sourceTree = "<group>"; };
+		FB000000000000000000001B /* AIRecommendationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIRecommendationCard.swift; sourceTree = "<group>"; };
+		FB000000000000000000001C /* LocationInfoBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationInfoBar.swift; sourceTree = "<group>"; };
+		FB000000000000000000001D /* LocationEditSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationEditSheet.swift; sourceTree = "<group>"; };
+		FB000000000000000000001E /* EmptyEnvironmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyEnvironmentView.swift; sourceTree = "<group>"; };
+		FC0000000000000000000011 /* MedicationRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationRepository.swift; sourceTree = "<group>"; };
+		FC0000000000000000000012 /* EngineMedicationRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineMedicationRepository.swift; sourceTree = "<group>"; };
+		FC0000000000000000000013 /* LoadMedicationsUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadMedicationsUseCase.swift; sourceTree = "<group>"; };
+		FC0000000000000000000014 /* SearchDrugsUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchDrugsUseCase.swift; sourceTree = "<group>"; };
+		FC0000000000000000000015 /* AddMedicationUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddMedicationUseCase.swift; sourceTree = "<group>"; };
+		FC0000000000000000000016 /* DiscontinueMedicationUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscontinueMedicationUseCase.swift; sourceTree = "<group>"; };
+		FC0000000000000000000017 /* CheckMedicationInteractionsUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckMedicationInteractionsUseCase.swift; sourceTree = "<group>"; };
+		FC0000000000000000000018 /* MedicationsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationsViewModel.swift; sourceTree = "<group>"; };
+		FC0000000000000000000019 /* MedicationSafetyBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationSafetyBadge.swift; sourceTree = "<group>"; };
+		FC000000000000000000001A /* MedicationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationCard.swift; sourceTree = "<group>"; };
+		FC000000000000000000001B /* InteractionsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InteractionsSheet.swift; sourceTree = "<group>"; };
+		FC000000000000000000001C /* EmptyMedicationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyMedicationsView.swift; sourceTree = "<group>"; };
+		FC000000000000000000001D /* AddMedicationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddMedicationSheet.swift; sourceTree = "<group>"; };
+		FC000000000000000000001E /* AddMedicationSheetViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddMedicationSheetViewModel.swift; sourceTree = "<group>"; };
+		FD0000000000000000000011 /* ProfileRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileRepository.swift; sourceTree = "<group>"; };
+		FD0000000000000000000012 /* EngineProfileRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineProfileRepository.swift; sourceTree = "<group>"; };
+		FD0000000000000000000013 /* ProfileViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileViewModel.swift; sourceTree = "<group>"; };
+		FD0000000000000000000014 /* ProfileEditSheetViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileEditSheetViewModel.swift; sourceTree = "<group>"; };
+		FD0000000000000000000015 /* VitalStatTile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitalStatTile.swift; sourceTree = "<group>"; };
+		FD0000000000000000000016 /* ProfileEditSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileEditSheet.swift; sourceTree = "<group>"; };
+		FE0000000000000000000011 /* OcrRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OcrRepository.swift; sourceTree = "<group>"; };
+		FE0000000000000000000012 /* EngineOcrRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineOcrRepository.swift; sourceTree = "<group>"; };
+		FE0000000000000000000013 /* OcrDocumentsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OcrDocumentsViewModel.swift; sourceTree = "<group>"; };
+		FE0000000000000000000014 /* OcrResultCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OcrResultCard.swift; sourceTree = "<group>"; };
+		FE0000000000000000000015 /* OcrDocumentCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OcrDocumentCard.swift; sourceTree = "<group>"; };
+		FE0000000000000000000016 /* EmptyDocumentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyDocumentsView.swift; sourceTree = "<group>"; };
+		FF0000000000000000000011 /* EcgRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EcgRepository.swift; sourceTree = "<group>"; };
+		FF0000000000000000000012 /* EngineEcgRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineEcgRepository.swift; sourceTree = "<group>"; };
+		FF0000000000000000000013 /* EvaluateEcgFrameUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvaluateEcgFrameUseCase.swift; sourceTree = "<group>"; };
+		FF0000000000000000000014 /* EcgMonitorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EcgMonitorViewModel.swift; sourceTree = "<group>"; };
+		FF0000000000000000000015 /* EcgWaveformPath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EcgWaveformPath.swift; sourceTree = "<group>"; };
+		FF0000000000000000000016 /* EcgDemoWave.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EcgDemoWave.swift; sourceTree = "<group>"; };
+		FF0000000000000000000017 /* CriticalAlertBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CriticalAlertBanner.swift; sourceTree = "<group>"; };
+		EE0000000000000000000012 /* View+LiquidGlassStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+LiquidGlassStyles.swift"; sourceTree = "<group>"; };
+		EE0000000000000000000013 /* SyncGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncGateView.swift; sourceTree = "<group>"; };
+		EE0000000000000000000014 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
+		EE0000000000000000000015 /* AuthenticationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationView.swift; sourceTree = "<group>"; };
+		EE0000000000000000000016 /* RegistrationField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistrationField.swift; sourceTree = "<group>"; };
+		EE0000000000000000000017 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		EE0000000000000000000018 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		EE0000000000000000000019 /* HomeTopBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeTopBar.swift; sourceTree = "<group>"; };
+		EE000000000000000000001A /* HomeWidgetGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetGrid.swift; sourceTree = "<group>"; };
+		EE000000000000000000001B /* EcgSparkline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EcgSparkline.swift; sourceTree = "<group>"; };
+		F00000000000000000000111 /* MedicationInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationInfo.swift; sourceTree = "<group>"; };
+		F00000000000000000000112 /* AddMedicationInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddMedicationInput.swift; sourceTree = "<group>"; };
+		F00000000000000000000113 /* DiscontinueMedicationInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscontinueMedicationInput.swift; sourceTree = "<group>"; };
+		F00000000000000000000114 /* DrugSearchResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrugSearchResult.swift; sourceTree = "<group>"; };
+		F00000000000000000000115 /* MedicationInteractionInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationInteractionInfo.swift; sourceTree = "<group>"; };
+		F00000000000000000000116 /* EnvironmentReadingInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentReadingInfo.swift; sourceTree = "<group>"; };
+		F00000000000000000000117 /* EcgFrameInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EcgFrameInput.swift; sourceTree = "<group>"; };
+		F00000000000000000000118 /* EcgEvaluationResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EcgEvaluationResult.swift; sourceTree = "<group>"; };
+		F00000000000000000000119 /* ChatMessageInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessageInfo.swift; sourceTree = "<group>"; };
+		F0000000000000000000011A /* CoachingAdviceInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachingAdviceInfo.swift; sourceTree = "<group>"; };
+		F0000000000000000000011B /* SleepSessionInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepSessionInfo.swift; sourceTree = "<group>"; };
+		F0000000000000000000011C /* SleepSessionInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepSessionInput.swift; sourceTree = "<group>"; };
+		F0000000000000000000011D /* OcrDocumentInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OcrDocumentInfo.swift; sourceTree = "<group>"; };
+		F0000000000000000000011E /* MedicalHistoryEntryInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicalHistoryEntryInfo.swift; sourceTree = "<group>"; };
+		F0000000000000000000011F /* DocumentIdentityInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentIdentityInfo.swift; sourceTree = "<group>"; };
+		F00000000000000000000120 /* IdentityValidationInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentityValidationInfo.swift; sourceTree = "<group>"; };
+		F00000000000000000000121 /* ExtractedMedicationFieldInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractedMedicationFieldInfo.swift; sourceTree = "<group>"; };
+		F00000000000000000000122 /* HeuristicExtractionInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeuristicExtractionInfo.swift; sourceTree = "<group>"; };
+		F00000000000000000000123 /* ExtractedHistoryItemInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractedHistoryItemInfo.swift; sourceTree = "<group>"; };
+		F00000000000000000000124 /* OcrProcessingResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OcrProcessingResult.swift; sourceTree = "<group>"; };
+		F00000000000000000000125 /* SaveOcrDocumentInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveOcrDocumentInput.swift; sourceTree = "<group>"; };
+		F10000000000000000000011 /* UserInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserInfo.swift; sourceTree = "<group>"; };
+		F10000000000000000000012 /* PatientInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientInfo.swift; sourceTree = "<group>"; };
+		F10000000000000000000013 /* PatientUpdateInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientUpdateInfo.swift; sourceTree = "<group>"; };
+		F10000000000000000000014 /* VitalSignInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitalSignInput.swift; sourceTree = "<group>"; };
+		F10000000000000000000015 /* VitalSignInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitalSignInfo.swift; sourceTree = "<group>"; };
+		F10000000000000000000016 /* VitalSignType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitalSignType.swift; sourceTree = "<group>"; };
+		F10000000000000000000017 /* AuthenticationResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationResult.swift; sourceTree = "<group>"; };
+		F10000000000000000000018 /* OperationResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OperationResult.swift; sourceTree = "<group>"; };
+		F10000000000000000000019 /* EngineError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineError.swift; sourceTree = "<group>"; };
+		F1000000000000000000001A /* MobileEngineHandle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileEngineHandle.swift; sourceTree = "<group>"; };
+		F1000000000000000000001B /* LatestVitals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatestVitals.swift; sourceTree = "<group>"; };
+		F1000000000000000000001C /* MobileEngineClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileEngineClient.swift; sourceTree = "<group>"; };
+		F1000000000000000000001D /* DotNetMobileEngineClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DotNetMobileEngineClient.swift; sourceTree = "<group>"; };
+		F1000000000000000000001E /* MobileEngineSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileEngineSessionStore.swift; sourceTree = "<group>"; };
+		F50000000000000000000011 /* AppContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppContainer.swift; sourceTree = "<group>"; };
+		F80000000000000000000011 /* DashboardSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardSnapshot.swift; sourceTree = "<group>"; };
+		F80000000000000000000012 /* DashboardRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardRepository.swift; sourceTree = "<group>"; };
+		F80000000000000000000013 /* EngineDashboardRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineDashboardRepository.swift; sourceTree = "<group>"; };
+		F80000000000000000000014 /* GetDashboardSnapshotUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetDashboardSnapshotUseCase.swift; sourceTree = "<group>"; };
+		F80000000000000000000015 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -100,9 +316,15 @@
 			children = (
 				AA0000000000000000000011 /* DigitalTwinAppApp.swift */,
 				AA0000000000000000000012 /* ContentView.swift */,
+				EE0000000000000000000011 /* ContentView_Previews.swift */,
 				AA0000000000000000000013 /* MobileEngineWrapper.swift */,
 				AA0000000000000000000014 /* DotNetBridge.swift */,
 				BB0000000000000000000002 /* LiquidGlassTheme.swift */,
+				EE0000000000000000000012 /* View+LiquidGlassStyles.swift */,
+				F70000000000000000000030 /* App */,
+				F30000000000000000000030 /* Engine */,
+				EF0000000000000000000030 /* Domain */,
+				F82000000000000000000030 /* Features */,
 				BB0000000000000000000030 /* Models */,
 				AA0000000000000000000302 /* Views */,
 				AA0000000000000000000303 /* Services */,
@@ -117,6 +339,21 @@
 		AA0000000000000000000302 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				FA0000000000000000000017 /* ChatBubble.swift */,
+				FA0000000000000000000018 /* ConditionalGlassEffect.swift */,
+				FF2000000000000000000001 /* ECG */,
+				FB2000000000000000000001 /* Environment */,
+				EE0000000000000000000015 /* AuthenticationView.swift */,
+				EE0000000000000000000018 /* DashboardView.swift */,
+				EE000000000000000000001B /* EcgSparkline.swift */,
+				EE0000000000000000000014 /* LoadingView.swift */,
+				EE0000000000000000000019 /* HomeTopBar.swift */,
+				EE000000000000000000001A /* HomeWidgetGrid.swift */,
+				EE0000000000000000000017 /* MainTabView.swift */,
+				FA0000000000000000000019 /* MarkdownText.swift */,
+				FC2000000000000000000001 /* Medications */,
+				FE2000000000000000000001 /* OCR */,
+				FD2000000000000000000001 /* Profile */,
 				AA0000000000000000000015 /* VitalSignsView.swift */,
 				AA0000000000000000000016 /* ProfileView.swift */,
 				AA0000000000000000000017 /* SettingsView.swift */,
@@ -127,8 +364,67 @@
 				BB0000000000000000000007 /* MedicationsView.swift */,
 				BB0000000000000000000008 /* OcrDocumentView.swift */,
 				BB0000000000000000000009 /* SleepView.swift */,
+				EE0000000000000000000016 /* RegistrationField.swift */,
+				EE0000000000000000000013 /* SyncGateView.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		FF2000000000000000000001 /* ECG */ = {
+			isa = PBXGroup;
+			children = (
+				FF0000000000000000000017 /* CriticalAlertBanner.swift */,
+				FF0000000000000000000016 /* EcgDemoWave.swift */,
+				FF0000000000000000000015 /* EcgWaveformPath.swift */,
+			);
+			path = ECG;
+			sourceTree = "<group>";
+		};
+		FE2000000000000000000001 /* OCR */ = {
+			isa = PBXGroup;
+			children = (
+				FE0000000000000000000016 /* EmptyDocumentsView.swift */,
+				FE0000000000000000000015 /* OcrDocumentCard.swift */,
+				FE0000000000000000000014 /* OcrResultCard.swift */,
+			);
+			path = OCR;
+			sourceTree = "<group>";
+		};
+		FD2000000000000000000001 /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				FD0000000000000000000016 /* ProfileEditSheet.swift */,
+				FD0000000000000000000015 /* VitalStatTile.swift */,
+			);
+			path = Profile;
+			sourceTree = "<group>";
+		};
+		FC2000000000000000000001 /* Medications */ = {
+			isa = PBXGroup;
+			children = (
+				FC000000000000000000001D /* AddMedicationSheet.swift */,
+				FC000000000000000000001E /* AddMedicationSheetViewModel.swift */,
+				FC000000000000000000001C /* EmptyMedicationsView.swift */,
+				FC000000000000000000001B /* InteractionsSheet.swift */,
+				FC000000000000000000001A /* MedicationCard.swift */,
+				FC0000000000000000000019 /* MedicationSafetyBadge.swift */,
+			);
+			path = Medications;
+			sourceTree = "<group>";
+		};
+		FB2000000000000000000001 /* Environment */ = {
+			isa = PBXGroup;
+			children = (
+				FB000000000000000000001B /* AIRecommendationCard.swift */,
+				FB0000000000000000000017 /* AQIHeroCard.swift */,
+				FB000000000000000000001A /* CorrelationCard.swift */,
+				FB000000000000000000001E /* EmptyEnvironmentView.swift */,
+				FB000000000000000000001D /* LocationEditSheet.swift */,
+				FB000000000000000000001C /* LocationInfoBar.swift */,
+				FB0000000000000000000019 /* MetricGrid.swift */,
+				FB0000000000000000000018 /* MetricTile.swift */,
+			);
+			path = Environment;
 			sourceTree = "<group>";
 		};
 		AA0000000000000000000303 /* Services */ = {
@@ -138,6 +434,7 @@
 				AA0000000000000000000019 /* BackgroundSyncService.swift */,
 				AA000000000000000000001A /* BiometricAuthService.swift */,
 				BB000000000000000000000A /* DocumentScannerView.swift */,
+				FB0000000000000000000016 /* LocationManager.swift */,
 				BB000000000000000000000B /* OcrSessionCoordinator.swift */,
 				BB000000000000000000000C /* OcrVisionService.swift */,
 				DD0000000000000000000004 /* GoogleSignInService.swift */,
@@ -151,6 +448,185 @@
 				BB0000000000000000000001 /* DataModels.swift */,
 			);
 			path = Models;
+			sourceTree = "<group>";
+		};
+		F30000000000000000000030 /* Engine */ = {
+			isa = PBXGroup;
+			children = (
+				F1000000000000000000001D /* DotNetMobileEngineClient.swift */,
+				F10000000000000000000019 /* EngineError.swift */,
+				F1000000000000000000001B /* LatestVitals.swift */,
+				F1000000000000000000001C /* MobileEngineClient.swift */,
+				F1000000000000000000001A /* MobileEngineHandle.swift */,
+				F1000000000000000000001E /* MobileEngineSessionStore.swift */,
+			);
+			path = Engine;
+			sourceTree = "<group>";
+		};
+		F70000000000000000000030 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				F50000000000000000000011 /* AppContainer.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		F82000000000000000000030 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				FA1000000000000000000001 /* Assistant */,
+				FF1000000000000000000001 /* ECG */,
+				FB1000000000000000000001 /* Environment */,
+				FC1000000000000000000001 /* Medications */,
+				FD1000000000000000000001 /* Profile */,
+				FE1000000000000000000001 /* OCR */,
+				F82000000000000000000031 /* Home */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		FF1000000000000000000001 /* ECG */ = {
+			isa = PBXGroup;
+			children = (
+				FF0000000000000000000014 /* EcgMonitorViewModel.swift */,
+			);
+			path = ECG;
+			sourceTree = "<group>";
+		};
+		FB1000000000000000000001 /* Environment */ = {
+			isa = PBXGroup;
+			children = (
+				FB0000000000000000000015 /* EnvironmentViewModel.swift */,
+			);
+			path = Environment;
+			sourceTree = "<group>";
+		};
+		FC1000000000000000000001 /* Medications */ = {
+			isa = PBXGroup;
+			children = (
+				FC0000000000000000000018 /* MedicationsViewModel.swift */,
+			);
+			path = Medications;
+			sourceTree = "<group>";
+		};
+		FD1000000000000000000001 /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				FD0000000000000000000014 /* ProfileEditSheetViewModel.swift */,
+				FD0000000000000000000013 /* ProfileViewModel.swift */,
+			);
+			path = Profile;
+			sourceTree = "<group>";
+		};
+		FE1000000000000000000001 /* OCR */ = {
+			isa = PBXGroup;
+			children = (
+				FE0000000000000000000013 /* OcrDocumentsViewModel.swift */,
+			);
+			path = OCR;
+			sourceTree = "<group>";
+		};
+		FA1000000000000000000001 /* Assistant */ = {
+			isa = PBXGroup;
+			children = (
+				FA0000000000000000000016 /* MedicalAssistantViewModel.swift */,
+			);
+			path = Assistant;
+			sourceTree = "<group>";
+		};
+		F82000000000000000000031 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				F80000000000000000000015 /* DashboardViewModel.swift */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		EF0000000000000000000030 /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				EF0000000000000000000031 /* Models */,
+				F81000000000000000000030 /* Repositories */,
+				F81000000000000000000031 /* UseCases */,
+			);
+			path = Domain;
+			sourceTree = "<group>";
+		};
+		EF0000000000000000000031 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				F00000000000000000000112 /* AddMedicationInput.swift */,
+				F80000000000000000000011 /* DashboardSnapshot.swift */,
+				F10000000000000000000017 /* AuthenticationResult.swift */,
+				F00000000000000000000119 /* ChatMessageInfo.swift */,
+				F0000000000000000000011A /* CoachingAdviceInfo.swift */,
+				F00000000000000000000113 /* DiscontinueMedicationInput.swift */,
+				F0000000000000000000011F /* DocumentIdentityInfo.swift */,
+				F00000000000000000000118 /* EcgEvaluationResult.swift */,
+				F00000000000000000000117 /* EcgFrameInput.swift */,
+				F00000000000000000000116 /* EnvironmentReadingInfo.swift */,
+				F00000000000000000000123 /* ExtractedHistoryItemInfo.swift */,
+				F00000000000000000000121 /* ExtractedMedicationFieldInfo.swift */,
+				F00000000000000000000122 /* HeuristicExtractionInfo.swift */,
+				F00000000000000000000120 /* IdentityValidationInfo.swift */,
+				F0000000000000000000011E /* MedicalHistoryEntryInfo.swift */,
+				F00000000000000000000111 /* MedicationInfo.swift */,
+				F00000000000000000000115 /* MedicationInteractionInfo.swift */,
+				F0000000000000000000011D /* OcrDocumentInfo.swift */,
+				F00000000000000000000124 /* OcrProcessingResult.swift */,
+				F10000000000000000000018 /* OperationResult.swift */,
+				F10000000000000000000012 /* PatientInfo.swift */,
+				F10000000000000000000013 /* PatientUpdateInfo.swift */,
+				F00000000000000000000114 /* DrugSearchResult.swift */,
+				F00000000000000000000125 /* SaveOcrDocumentInput.swift */,
+				F0000000000000000000011C /* SleepSessionInput.swift */,
+				F0000000000000000000011B /* SleepSessionInfo.swift */,
+				F10000000000000000000011 /* UserInfo.swift */,
+				F10000000000000000000014 /* VitalSignInput.swift */,
+				F10000000000000000000015 /* VitalSignInfo.swift */,
+				F10000000000000000000016 /* VitalSignType.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		F81000000000000000000030 /* Repositories */ = {
+			isa = PBXGroup;
+			children = (
+				F80000000000000000000012 /* DashboardRepository.swift */,
+				F80000000000000000000013 /* EngineDashboardRepository.swift */,
+				FA0000000000000000000011 /* ChatRepository.swift */,
+				FA0000000000000000000012 /* EngineChatRepository.swift */,
+				FB0000000000000000000011 /* EnvironmentRepository.swift */,
+				FB0000000000000000000012 /* EngineEnvironmentRepository.swift */,
+				FC0000000000000000000011 /* MedicationRepository.swift */,
+				FC0000000000000000000012 /* EngineMedicationRepository.swift */,
+				FD0000000000000000000011 /* ProfileRepository.swift */,
+				FD0000000000000000000012 /* EngineProfileRepository.swift */,
+				FE0000000000000000000011 /* OcrRepository.swift */,
+				FE0000000000000000000012 /* EngineOcrRepository.swift */,
+				FF0000000000000000000011 /* EcgRepository.swift */,
+				FF0000000000000000000012 /* EngineEcgRepository.swift */,
+			);
+			path = Repositories;
+			sourceTree = "<group>";
+		};
+		F81000000000000000000031 /* UseCases */ = {
+			isa = PBXGroup;
+			children = (
+				FC0000000000000000000015 /* AddMedicationUseCase.swift */,
+				FB0000000000000000000014 /* FetchEnvironmentReadingUseCase.swift */,
+				FC0000000000000000000017 /* CheckMedicationInteractionsUseCase.swift */,
+				FF0000000000000000000013 /* EvaluateEcgFrameUseCase.swift */,
+				F80000000000000000000014 /* GetDashboardSnapshotUseCase.swift */,
+				FA0000000000000000000015 /* ClearChatHistoryUseCase.swift */,
+				FC0000000000000000000016 /* DiscontinueMedicationUseCase.swift */,
+				FA0000000000000000000013 /* LoadChatHistoryUseCase.swift */,
+				FB0000000000000000000013 /* LoadLatestEnvironmentReadingUseCase.swift */,
+				FC0000000000000000000013 /* LoadMedicationsUseCase.swift */,
+				FC0000000000000000000014 /* SearchDrugsUseCase.swift */,
+				FA0000000000000000000014 /* SendChatMessageUseCase.swift */,
+			);
+			path = UseCases;
 			sourceTree = "<group>";
 		};
 		AA0000000000000000000304 /* Preview Content */ = {
@@ -258,6 +734,7 @@
 			files = (
 				AA0000000000000000000001 /* DigitalTwinAppApp.swift in Sources */,
 				AA0000000000000000000002 /* ContentView.swift in Sources */,
+				EE0000000000000000000001 /* ContentView_Previews.swift in Sources */,
 				AA0000000000000000000003 /* MobileEngineWrapper.swift in Sources */,
 				AA0000000000000000000004 /* DotNetBridge.swift in Sources */,
 				AA0000000000000000000005 /* VitalSignsView.swift in Sources */,
@@ -267,7 +744,6 @@
 				AA0000000000000000000009 /* BackgroundSyncService.swift in Sources */,
 				AA000000000000000000000A /* BiometricAuthService.swift in Sources */,
 				AA000000000000000000000F /* DotNetRuntimeInit.c in Sources */,
-				BB0000000000000000000011 /* DataModels.swift in Sources */,
 				BB0000000000000000000012 /* LiquidGlassTheme.swift in Sources */,
 				BB0000000000000000000013 /* EcgMonitorView.swift in Sources */,
 				BB0000000000000000000014 /* EnvironmentView.swift in Sources */,
@@ -280,6 +756,113 @@
 				BB000000000000000000001B /* OcrSessionCoordinator.swift in Sources */,
 				BB000000000000000000001C /* OcrVisionService.swift in Sources */,
 				DD0000000000000000000003 /* GoogleSignInService.swift in Sources */,
+				EE0000000000000000000002 /* View+LiquidGlassStyles.swift in Sources */,
+				EE0000000000000000000003 /* SyncGateView.swift in Sources */,
+				EE0000000000000000000004 /* LoadingView.swift in Sources */,
+				EE0000000000000000000005 /* AuthenticationView.swift in Sources */,
+				EE0000000000000000000006 /* RegistrationField.swift in Sources */,
+				EE0000000000000000000007 /* MainTabView.swift in Sources */,
+				EE0000000000000000000008 /* DashboardView.swift in Sources */,
+				EE0000000000000000000009 /* HomeTopBar.swift in Sources */,
+				EE000000000000000000000A /* HomeWidgetGrid.swift in Sources */,
+				EE000000000000000000000B /* EcgSparkline.swift in Sources */,
+				EF0000000000000000000001 /* MedicationInfo.swift in Sources */,
+				EF0000000000000000000002 /* AddMedicationInput.swift in Sources */,
+				EF0000000000000000000003 /* DiscontinueMedicationInput.swift in Sources */,
+				EF0000000000000000000004 /* DrugSearchResult.swift in Sources */,
+				EF0000000000000000000005 /* MedicationInteractionInfo.swift in Sources */,
+				EF0000000000000000000006 /* EnvironmentReadingInfo.swift in Sources */,
+				EF0000000000000000000007 /* EcgFrameInput.swift in Sources */,
+				EF0000000000000000000008 /* EcgEvaluationResult.swift in Sources */,
+				EF0000000000000000000009 /* ChatMessageInfo.swift in Sources */,
+				EF000000000000000000000A /* CoachingAdviceInfo.swift in Sources */,
+				EF000000000000000000000B /* SleepSessionInfo.swift in Sources */,
+				EF000000000000000000000C /* SleepSessionInput.swift in Sources */,
+				EF000000000000000000000D /* OcrDocumentInfo.swift in Sources */,
+				EF000000000000000000000E /* MedicalHistoryEntryInfo.swift in Sources */,
+				EF000000000000000000000F /* DocumentIdentityInfo.swift in Sources */,
+				EF0000000000000000000010 /* IdentityValidationInfo.swift in Sources */,
+				EF0000000000000000000011 /* ExtractedMedicationFieldInfo.swift in Sources */,
+				EF0000000000000000000012 /* HeuristicExtractionInfo.swift in Sources */,
+				EF0000000000000000000013 /* ExtractedHistoryItemInfo.swift in Sources */,
+				EF0000000000000000000014 /* OcrProcessingResult.swift in Sources */,
+				EF0000000000000000000015 /* SaveOcrDocumentInput.swift in Sources */,
+				F20000000000000000000001 /* UserInfo.swift in Sources */,
+				F20000000000000000000002 /* PatientInfo.swift in Sources */,
+				F20000000000000000000003 /* PatientUpdateInfo.swift in Sources */,
+				F20000000000000000000004 /* VitalSignInput.swift in Sources */,
+				F20000000000000000000005 /* VitalSignInfo.swift in Sources */,
+				F20000000000000000000006 /* VitalSignType.swift in Sources */,
+				F20000000000000000000007 /* AuthenticationResult.swift in Sources */,
+				F20000000000000000000008 /* OperationResult.swift in Sources */,
+				F20000000000000000000009 /* EngineError.swift in Sources */,
+				F2000000000000000000000A /* MobileEngineHandle.swift in Sources */,
+				F2000000000000000000000B /* LatestVitals.swift in Sources */,
+				F2000000000000000000000C /* MobileEngineClient.swift in Sources */,
+				F2000000000000000000000D /* DotNetMobileEngineClient.swift in Sources */,
+				F2000000000000000000000E /* MobileEngineSessionStore.swift in Sources */,
+				F60000000000000000000001 /* AppContainer.swift in Sources */,
+				F90000000000000000000001 /* DashboardSnapshot.swift in Sources */,
+				F90000000000000000000002 /* DashboardRepository.swift in Sources */,
+				F90000000000000000000003 /* EngineDashboardRepository.swift in Sources */,
+				F90000000000000000000004 /* GetDashboardSnapshotUseCase.swift in Sources */,
+				F90000000000000000000005 /* DashboardViewModel.swift in Sources */,
+				FA0000000000000000000001 /* ChatRepository.swift in Sources */,
+				FA0000000000000000000002 /* EngineChatRepository.swift in Sources */,
+				FA0000000000000000000003 /* LoadChatHistoryUseCase.swift in Sources */,
+				FA0000000000000000000004 /* SendChatMessageUseCase.swift in Sources */,
+				FA0000000000000000000005 /* ClearChatHistoryUseCase.swift in Sources */,
+				FA0000000000000000000006 /* MedicalAssistantViewModel.swift in Sources */,
+				FA0000000000000000000007 /* ChatBubble.swift in Sources */,
+				FA0000000000000000000008 /* ConditionalGlassEffect.swift in Sources */,
+				FA0000000000000000000009 /* MarkdownText.swift in Sources */,
+				FB0000000000000000000001 /* EnvironmentRepository.swift in Sources */,
+				FB0000000000000000000002 /* EngineEnvironmentRepository.swift in Sources */,
+				FB0000000000000000000003 /* LoadLatestEnvironmentReadingUseCase.swift in Sources */,
+				FB0000000000000000000004 /* FetchEnvironmentReadingUseCase.swift in Sources */,
+				FB0000000000000000000005 /* EnvironmentViewModel.swift in Sources */,
+				FB0000000000000000000006 /* LocationManager.swift in Sources */,
+				FB0000000000000000000007 /* AQIHeroCard.swift in Sources */,
+				FB0000000000000000000008 /* MetricTile.swift in Sources */,
+				FB0000000000000000000009 /* MetricGrid.swift in Sources */,
+				FB000000000000000000000A /* CorrelationCard.swift in Sources */,
+				FB000000000000000000000B /* AIRecommendationCard.swift in Sources */,
+				FB000000000000000000000C /* LocationInfoBar.swift in Sources */,
+				FB000000000000000000000D /* LocationEditSheet.swift in Sources */,
+				FB000000000000000000000E /* EmptyEnvironmentView.swift in Sources */,
+				FC0000000000000000000001 /* MedicationRepository.swift in Sources */,
+				FC0000000000000000000002 /* EngineMedicationRepository.swift in Sources */,
+				FC0000000000000000000003 /* LoadMedicationsUseCase.swift in Sources */,
+				FC0000000000000000000004 /* SearchDrugsUseCase.swift in Sources */,
+				FC0000000000000000000005 /* AddMedicationUseCase.swift in Sources */,
+				FC0000000000000000000006 /* DiscontinueMedicationUseCase.swift in Sources */,
+				FC0000000000000000000007 /* CheckMedicationInteractionsUseCase.swift in Sources */,
+				FC0000000000000000000008 /* MedicationsViewModel.swift in Sources */,
+				FC0000000000000000000009 /* MedicationSafetyBadge.swift in Sources */,
+				FC000000000000000000000A /* MedicationCard.swift in Sources */,
+				FC000000000000000000000B /* InteractionsSheet.swift in Sources */,
+				FC000000000000000000000C /* EmptyMedicationsView.swift in Sources */,
+				FC000000000000000000000D /* AddMedicationSheet.swift in Sources */,
+				FC000000000000000000000E /* AddMedicationSheetViewModel.swift in Sources */,
+				FD0000000000000000000001 /* ProfileRepository.swift in Sources */,
+				FD0000000000000000000002 /* EngineProfileRepository.swift in Sources */,
+				FD0000000000000000000003 /* ProfileViewModel.swift in Sources */,
+				FD0000000000000000000004 /* ProfileEditSheetViewModel.swift in Sources */,
+				FD0000000000000000000005 /* VitalStatTile.swift in Sources */,
+				FD0000000000000000000006 /* ProfileEditSheet.swift in Sources */,
+				FE0000000000000000000001 /* OcrRepository.swift in Sources */,
+				FE0000000000000000000002 /* EngineOcrRepository.swift in Sources */,
+				FE0000000000000000000003 /* OcrDocumentsViewModel.swift in Sources */,
+				FE0000000000000000000004 /* OcrResultCard.swift in Sources */,
+				FE0000000000000000000005 /* OcrDocumentCard.swift in Sources */,
+				FE0000000000000000000006 /* EmptyDocumentsView.swift in Sources */,
+				FF0000000000000000000001 /* EcgRepository.swift in Sources */,
+				FF0000000000000000000002 /* EngineEcgRepository.swift in Sources */,
+				FF0000000000000000000003 /* EvaluateEcgFrameUseCase.swift in Sources */,
+				FF0000000000000000000004 /* EcgMonitorViewModel.swift in Sources */,
+				FF0000000000000000000005 /* EcgWaveformPath.swift in Sources */,
+				FF0000000000000000000006 /* EcgDemoWave.swift in Sources */,
+				FF0000000000000000000007 /* CriticalAlertBanner.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

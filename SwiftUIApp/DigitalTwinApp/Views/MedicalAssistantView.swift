@@ -2,9 +2,12 @@ import SwiftUI
 
 struct MedicalAssistantView: View {
     @EnvironmentObject var engineWrapper: MobileEngineWrapper
-    @State private var messageText = ""
-    @State private var isSending = false
+    @StateObject private var viewModel: MedicalAssistantViewModel
     @FocusState private var isInputFocused: Bool
+
+    init(viewModel: MedicalAssistantViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -12,7 +15,7 @@ struct MedicalAssistantView: View {
             assistantTopBar
             
             // Chat area
-            if engineWrapper.chatMessages.isEmpty && !isSending {
+            if viewModel.messages.isEmpty && !viewModel.isSending {
                 welcomeScreen
             } else {
                 chatMessagesList
@@ -23,7 +26,7 @@ struct MedicalAssistantView: View {
         }
         .pageEnterAnimation()
         .task {
-            await engineWrapper.loadChatHistory()
+            await viewModel.onAppear()
         }
     }
 
@@ -63,7 +66,7 @@ struct MedicalAssistantView: View {
             
             // Clear chat
             Button(action: {
-                Task { let _ = await engineWrapper.clearChatHistory() }
+                viewModel.clearChat()
             }) {
                 Image(systemName: "trash")
                     .font(.system(size: 16))
@@ -111,19 +114,19 @@ struct MedicalAssistantView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 12) {
-                    ForEach(engineWrapper.chatMessages) { message in
+                    ForEach(viewModel.messages) { message in
                         ChatBubble(message: message)
                             .id(message.id)
                     }
                     
-                    if isSending {
+                    if viewModel.isSending {
                         typingIndicator
                     }
                 }
                 .padding(16)
             }
-            .onChange(of: engineWrapper.chatMessages.count) { _, _ in
-                if let last = engineWrapper.chatMessages.last {
+            .onChange(of: viewModel.messages.count) { _, _ in
+                if let last = viewModel.messages.last {
                     withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
                 }
             }
@@ -149,12 +152,12 @@ struct MedicalAssistantView: View {
                     Circle()
                         .fill(.white.opacity(0.5))
                         .frame(width: 6, height: 6)
-                        .offset(y: isSending ? -4 : 0)
+                        .offset(y: viewModel.isSending ? -4 : 0)
                         .animation(
                             .easeInOut(duration: 0.5)
                             .repeatForever(autoreverses: true)
                             .delay(Double(i) * 0.15),
-                            value: isSending
+                            value: viewModel.isSending
                         )
                 }
             }
@@ -171,13 +174,13 @@ struct MedicalAssistantView: View {
 
     private var chatInputBar: some View {
         HStack(spacing: 12) {
-            TextField("Ask your health assistant...", text: $messageText, axis: .vertical)
+            TextField("Ask your health assistant...", text: $viewModel.messageText, axis: .vertical)
                 .lineLimit(1...4)
                 .focused($isInputFocused)
                 .foregroundColor(.white)
                 .tint(LiquidGlass.tealPrimary)
 
-            Button(action: sendMessage) {
+            Button(action: viewModel.sendMessage) {
                 ZStack {
                     Circle()
                         .fill(LinearGradient(
@@ -190,161 +193,11 @@ struct MedicalAssistantView: View {
                         .foregroundColor(.white)
                 }
             }
-            .disabled(messageText.trimmingCharacters(in: .whitespaces).isEmpty || isSending)
-            .opacity(messageText.trimmingCharacters(in: .whitespaces).isEmpty ? 0.4 : 1)
+            .disabled(viewModel.messageText.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isSending)
+            .opacity(viewModel.messageText.trimmingCharacters(in: .whitespaces).isEmpty ? 0.4 : 1)
         }
         .glassInputBar()
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
-    }
-
-    private func sendMessage() {
-        let text = messageText.trimmingCharacters(in: .whitespaces)
-        guard !text.isEmpty else { return }
-        messageText = ""
-        isSending = true
-
-        Task {
-            let _ = await engineWrapper.sendChatMessage(text)
-            isSending = false
-        }
-    }
-}
-
-// MARK: - Chat Bubble
-
-struct ChatBubble: View {
-    let message: ChatMessageInfo
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 8) {
-            if message.isUser {
-                Spacer(minLength: 60)
-            } else {
-                // Bot avatar
-                ZStack {
-                    Circle()
-                        .fill(LiquidGlass.tealPrimary.opacity(0.3))
-                        .frame(width: 28, height: 28)
-                    Image(systemName: "sparkle")
-                        .font(.system(size: 12))
-                        .foregroundColor(LiquidGlass.tealPrimary)
-                }
-            }
-
-            VStack(alignment: message.isUser ? .trailing : .leading, spacing: 4) {
-                if message.isUser {
-                    Text(message.content)
-                        .font(.body)
-                        .foregroundColor(.white)
-                } else {
-                    MarkdownText(message.content)
-                }
-
-                Text(message.timestamp.formatted(date: .omitted, time: .shortened))
-                    .font(.caption2)
-                    .foregroundColor(.white.opacity(0.4))
-            }
-            .padding(12)
-            .background {
-                if message.isUser {
-                    UnevenRoundedRectangle(
-                        topLeadingRadius: 16, bottomLeadingRadius: 16,
-                        bottomTrailingRadius: 4, topTrailingRadius: 16
-                    )
-                    .fill(LiquidGlass.bluePrimary)
-                }
-            }
-            .modifier(ConditionalGlassEffect(
-                isEnabled: !message.isUser,
-                shape: UnevenRoundedRectangle(
-                    topLeadingRadius: 4, bottomLeadingRadius: 16,
-                    bottomTrailingRadius: 16, topTrailingRadius: 16
-                )
-            ))
-
-            if !message.isUser { Spacer(minLength: 60) }
-        }
-    }
-}
-
-// MARK: - Conditional Glass Effect
-
-struct ConditionalGlassEffect<S: InsettableShape>: ViewModifier {
-    let isEnabled: Bool
-    let shape: S
-
-    func body(content: Content) -> some View {
-        if isEnabled {
-            content.glassEffect(.regular, in: shape)
-        } else {
-            content
-        }
-    }
-}
-
-// MARK: - Simple Markdown Text (bold → teal, italic → lighter)
-
-struct MarkdownText: View {
-    let text: String
-
-    init(_ text: String) {
-        self.text = text
-    }
-
-    var body: some View {
-        Text(attributedString)
-    }
-
-    private var attributedString: AttributedString {
-        var result = AttributedString()
-        var remaining = text[...]
-
-        while !remaining.isEmpty {
-            // Bold: **text**
-            if let boldRange = remaining.range(of: #"\*\*(.+?)\*\*"#, options: .regularExpression) {
-                // Add text before bold
-                let before = remaining[remaining.startIndex..<boldRange.lowerBound]
-                if !before.isEmpty {
-                    var plain = AttributedString(String(before))
-                    plain.foregroundColor = .white
-                    plain.font = .body
-                    result.append(plain)
-                }
-                // Extract bold content (drop ** markers)
-                let matched = String(remaining[boldRange])
-                let content = String(matched.dropFirst(2).dropLast(2))
-                var bold = AttributedString(content)
-                bold.foregroundColor = LiquidGlass.tealPrimary
-                bold.font = .body.bold()
-                result.append(bold)
-                remaining = remaining[boldRange.upperBound...]
-            }
-            // Italic: *text*
-            else if let italicRange = remaining.range(of: #"\*(.+?)\*"#, options: .regularExpression) {
-                let before = remaining[remaining.startIndex..<italicRange.lowerBound]
-                if !before.isEmpty {
-                    var plain = AttributedString(String(before))
-                    plain.foregroundColor = .white
-                    plain.font = .body
-                    result.append(plain)
-                }
-                let matched = String(remaining[italicRange])
-                let content = String(matched.dropFirst(1).dropLast(1))
-                var italic = AttributedString(content)
-                italic.foregroundColor = .white.opacity(0.75)
-                italic.font = .body.italic()
-                result.append(italic)
-                remaining = remaining[italicRange.upperBound...]
-            } else {
-                // No more patterns — append rest
-                var plain = AttributedString(String(remaining))
-                plain.foregroundColor = .white
-                plain.font = .body
-                result.append(plain)
-                break
-            }
-        }
-        return result
     }
 }

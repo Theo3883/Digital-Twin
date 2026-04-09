@@ -1,12 +1,21 @@
 import SwiftUI
 
 struct ProfileView: View {
-    @EnvironmentObject var engineWrapper: MobileEngineWrapper
+    @StateObject private var viewModel: ProfileViewModel
     @State private var showEditSheet = false
     @State private var showSignOutAlert = false
 
+    private let repository: ProfileRepository
+    private let ocrRepository: OcrRepository
+
+    init(viewModel: ProfileViewModel, repository: ProfileRepository, ocrRepository: OcrRepository) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+        self.repository = repository
+        self.ocrRepository = ocrRepository
+    }
+
     private var completionPercentage: Double {
-        guard let p = engineWrapper.patientProfile else { return 0 }
+        guard let p = viewModel.patient else { return 0 }
         var filled = 0
         let total = 7
         if p.bloodType != nil { filled += 1 }
@@ -27,22 +36,22 @@ struct ProfileView: View {
                 profileHeader
 
                 // "Create Medical Profile" CTA when no profile exists
-                if engineWrapper.patientProfile == nil {
+                if viewModel.patient == nil {
                     createProfileCTA
                 }
 
                 // Completion Checklist (if < 100%)
-                if engineWrapper.patientProfile != nil && completionPercentage < 1.0 {
+                if viewModel.patient != nil && completionPercentage < 1.0 {
                     completionChecklist
                 }
 
                 // Vital Stats Grid 2×3
-                if let patient = engineWrapper.patientProfile {
+                if let patient = viewModel.patient {
                     vitalStatsGrid(patient: patient)
                 }
 
                 // Medical History Timeline
-                if !engineWrapper.medicalHistory.isEmpty {
+                if !viewModel.medicalHistory.isEmpty {
                     medicalHistoryTimeline
                 }
 
@@ -55,18 +64,18 @@ struct ProfileView: View {
         }
         .pageEnterAnimation()
         .task {
-            await engineWrapper.getCurrentUser()
-            await engineWrapper.loadPatientProfile()
-            await engineWrapper.loadMedicalHistory()
+            await viewModel.load()
         }
         .alert("Sign Out?", isPresented: $showSignOutAlert) {
             Button("Sign Out", role: .destructive) {
-                Task { await engineWrapper.signOut() }
+                viewModel.signOut()
             }
             Button("Cancel", role: .cancel) {}
         }
         .sheet(isPresented: $showEditSheet) {
-            ProfileEditSheet()
+            ProfileEditSheet(
+                viewModel: ProfileEditSheetViewModel(repository: repository, patient: viewModel.patient)
+            )
         }
         .navigationBarHidden(true)
         } // NavigationView
@@ -91,7 +100,7 @@ struct ProfileView: View {
                         .animation(.easeInOut(duration: 0.8), value: completionPercentage)
 
                     // Avatar
-                    AsyncImage(url: engineWrapper.currentUser?.photoUrl.flatMap(URL.init)) { image in
+                    AsyncImage(url: viewModel.currentUser?.photoUrl.flatMap(URL.init)) { image in
                         image
                             .resizable()
                             .aspectRatio(contentMode: .fill)
@@ -105,13 +114,13 @@ struct ProfileView: View {
                 }
 
                 // Name
-                Text(engineWrapper.currentUser?.displayName ?? "Unknown User")
+                Text(viewModel.currentUser?.displayName ?? "Unknown User")
                     .font(.title3.weight(.semibold))
                     .foregroundColor(.white)
 
                 // Subtitle
                 HStack(spacing: 8) {
-                    if let patient = engineWrapper.patientProfile {
+                    if let patient = viewModel.patient {
                         if let bloodType = patient.bloodType {
                             Text(bloodType)
                                 .font(.caption)
@@ -191,7 +200,7 @@ struct ProfileView: View {
     // MARK: - Completion Checklist
 
     private var completionChecklist: some View {
-        let patient = engineWrapper.patientProfile
+        let patient = viewModel.patient
         let items: [(String, Bool)] = [
             ("Personal info", patient?.cnp != nil),
             ("Blood type", patient?.bloodType != nil),
@@ -227,7 +236,7 @@ struct ProfileView: View {
             VitalStatTile(label: "Weight", value: patient.weight.map { String(format: "%.0f", $0) } ?? "--", unit: "lbs", icon: "scalemass.fill", color: .brown)
             VitalStatTile(label: "Height", value: patient.height.map { String(format: "%.0f", $0) } ?? "--", unit: "in", icon: "ruler.fill", color: .gray)
             VitalStatTile(label: "BMI", value: bmi(patient: patient), unit: bmiCategory(patient: patient), icon: "figure.stand", color: bmiColor(patient: patient))
-            VitalStatTile(label: "Resting HR", value: engineWrapper.latestVitals?.heartRate.map { "\($0)" } ?? "--", unit: "bpm", icon: "heart.fill", color: LiquidGlass.redCritical)
+            VitalStatTile(label: "Resting HR", value: viewModel.latestHeartRate.map { "\($0)" } ?? "--", unit: "bpm", icon: "heart.fill", color: LiquidGlass.redCritical)
             VitalStatTile(label: "Blood Pressure", value: {
                 if let s = patient.bloodPressureSystolic, let d = patient.bloodPressureDiastolic {
                     return "\(s)/\(d)"
@@ -274,7 +283,7 @@ struct ProfileView: View {
                 .foregroundColor(.white)
                 .padding(.bottom, 12)
 
-            ForEach(engineWrapper.medicalHistory.prefix(5)) { entry in
+            ForEach(viewModel.medicalHistory.prefix(5)) { entry in
                 HStack(alignment: .top, spacing: 12) {
                     // Timeline indicator
                     VStack(spacing: 0) {
@@ -320,8 +329,8 @@ struct ProfileView: View {
                     .font(.subheadline.weight(.medium))
                     .foregroundColor(.white)
                 Spacer()
-                if !engineWrapper.ocrDocuments.isEmpty {
-                    Text("\(engineWrapper.ocrDocuments.count)")
+                if !viewModel.ocrDocuments.isEmpty {
+                    Text("\(viewModel.ocrDocuments.count)")
                         .font(.caption2.weight(.bold))
                         .foregroundColor(.white)
                         .padding(.horizontal, 8)
@@ -331,7 +340,12 @@ struct ProfileView: View {
             }
 
             HStack(spacing: 12) {
-                NavigationLink(destination: OcrDocumentView()) {
+                NavigationLink(
+                    destination: OcrDocumentView(
+                        viewModel: OcrDocumentsViewModel(repository: ocrRepository),
+                        repository: ocrRepository
+                    )
+                ) {
                     Text("Import Documents")
                         .font(.caption.weight(.medium))
                         .foregroundColor(.white)
@@ -343,7 +357,12 @@ struct ProfileView: View {
                         }
                 }
 
-                NavigationLink(destination: OcrDocumentView()) {
+                NavigationLink(
+                    destination: OcrDocumentView(
+                        viewModel: OcrDocumentsViewModel(repository: ocrRepository),
+                        repository: ocrRepository
+                    )
+                ) {
                     Text("View Documents")
                         .font(.caption.weight(.medium))
                         .foregroundColor(.white.opacity(0.6))
@@ -357,123 +376,5 @@ struct ProfileView: View {
             }
         }
         .glassCard()
-    }
-}
-
-// MARK: - Vital Stat Tile
-
-struct VitalStatTile: View {
-    let label: String
-    let value: String
-    let unit: String
-    let icon: String
-    let color: Color
-
-    var body: some View {
-        VStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundColor(color)
-            Text(value)
-                .font(.system(size: 22, weight: .semibold, design: .rounded))
-                .foregroundColor(.white)
-            if !unit.isEmpty {
-                Text(unit)
-                    .font(.system(size: 10))
-                    .foregroundColor(.white.opacity(0.35))
-            }
-            Text(label)
-                .font(.system(size: 11))
-                .foregroundColor(.white.opacity(0.5))
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: LiquidGlass.radiusInner))
-    }
-}
-
-// MARK: - Profile Edit Sheet
-
-struct ProfileEditSheet: View {
-    @EnvironmentObject var engineWrapper: MobileEngineWrapper
-    @Environment(\.dismiss) private var dismiss
-    @State private var bloodType = ""
-    @State private var allergies = ""
-    @State private var weight = ""
-    @State private var height = ""
-    @State private var systolic = ""
-    @State private var diastolic = ""
-    @State private var cholesterol = ""
-    @State private var cnp = ""
-    @State private var isSaving = false
-
-    var body: some View {
-        NavigationView {
-            Form {
-                Section("Personal") {
-                    TextField("Blood Type (e.g. A+)", text: $bloodType)
-                    TextField("CNP", text: $cnp)
-                }
-                Section("Measurements") {
-                    TextField("Weight (lbs)", text: $weight).keyboardType(.decimalPad)
-                    TextField("Height (in)", text: $height).keyboardType(.decimalPad)
-                }
-                Section("Vitals") {
-                    HStack {
-                        TextField("Systolic", text: $systolic).keyboardType(.numberPad)
-                        Text("/")
-                        TextField("Diastolic", text: $diastolic).keyboardType(.numberPad)
-                    }
-                    TextField("Cholesterol (mg/dL)", text: $cholesterol).keyboardType(.decimalPad)
-                }
-                Section("Other") {
-                    TextField("Allergies", text: $allergies)
-                }
-            }
-            .navigationTitle("Edit Profile")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        Task { await save() }
-                    }
-                    .disabled(isSaving)
-                    .liquidGlassButtonStyle()
-                }
-            }
-            .onAppear { populateFields() }
-        }
-        .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
-    }
-
-    private func populateFields() {
-        guard let p = engineWrapper.patientProfile else { return }
-        bloodType = p.bloodType ?? ""
-        cnp = p.cnp ?? ""
-        weight = p.weight.map { String(format: "%.1f", $0) } ?? ""
-        height = p.height.map { String(format: "%.1f", $0) } ?? ""
-        systolic = p.bloodPressureSystolic.map { "\($0)" } ?? ""
-        diastolic = p.bloodPressureDiastolic.map { "\($0)" } ?? ""
-        cholesterol = p.cholesterol.map { String(format: "%.1f", $0) } ?? ""
-        allergies = p.allergies ?? ""
-    }
-
-    private func save() async {
-        isSaving = true
-        let input = PatientUpdateInfo(
-            bloodType: bloodType.isEmpty ? nil : bloodType,
-            allergies: allergies.isEmpty ? nil : allergies,
-            medicalHistoryNotes: nil,
-            weight: Double(weight),
-            height: Double(height),
-            bloodPressureSystolic: Int(systolic),
-            bloodPressureDiastolic: Int(diastolic),
-            cholesterol: Double(cholesterol),
-            cnp: cnp.isEmpty ? nil : cnp
-        )
-        await engineWrapper.updatePatientProfile(input)
-        dismiss()
     }
 }

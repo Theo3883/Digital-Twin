@@ -3,16 +3,17 @@ import GoogleSignIn
 
 @main
 struct DigitalTwinAppApp: App {
-    @StateObject private var engineWrapper = MobileEngineWrapper()
+    @StateObject private var container = AppContainer()
     
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(engineWrapper)
+                .environmentObject(container)
+                .environmentObject(container.engine)
                 .preferredColorScheme(.dark)
                 .task {
-                    await engineWrapper.initialize()
-                    BackgroundSyncService.shared.engineWrapperRef = engineWrapper
+                    await container.engine.initialize()
+                    BackgroundSyncService.shared.engineWrapperRef = container.engine
                 }
                 .onOpenURL { url in
                     GoogleSignInService.handleURL(url)

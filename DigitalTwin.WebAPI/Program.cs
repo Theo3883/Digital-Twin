@@ -60,6 +60,7 @@ var cloudConn = builder.Configuration.GetConnectionString("CloudDb")
 builder.Services.AddDigitalTwinForWebApi(cloudConn);
 
 // ── Medication providers ──────────────────────────────────────────────────────
+builder.Services.AddSingleton(new MedicationApiOptions());
 builder.Services.AddHttpClient<IDrugSearchProvider, RxNavDrugSearchProvider>();
 builder.Services.AddHttpClient<IMedicationInteractionProvider, OpenFdaMedicationInteractionProvider>();
 builder.Services.AddHttpClient<RxNavRxCuiResolver>();
