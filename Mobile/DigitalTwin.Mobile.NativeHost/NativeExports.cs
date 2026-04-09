@@ -9,12 +9,11 @@ namespace DigitalTwin.Mobile.NativeHost;
 /// </summary>
 public static class NativeExports
 {
-    // We keep the exported symbol names exactly the same as before so the Swift
-    // side does not need to change.
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_initialize")]
-    public static IntPtr Initialize(IntPtr databasePathPtr, IntPtr apiBaseUrlPtr)
-        => NativeBridge.Initialize_Impl(databasePathPtr, apiBaseUrlPtr);
+    public static IntPtr Initialize(IntPtr databasePathPtr, IntPtr apiBaseUrlPtr, IntPtr geminiApiKeyPtr, IntPtr openWeatherApiKeyPtr, IntPtr googleOAuthClientIdPtr)
+        => NativeBridge.Initialize_Impl(databasePathPtr, apiBaseUrlPtr, geminiApiKeyPtr, openWeatherApiKeyPtr, googleOAuthClientIdPtr);
 
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_initialize_database")]
     public static IntPtr InitializeDatabase()
@@ -24,6 +23,8 @@ public static class NativeExports
     public static void Dispose()
         => NativeBridge.Dispose_Impl();
 
+    // ── Auth ──────────────────────────────────────────────────────────────────
+
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_authenticate")]
     public static IntPtr Authenticate(IntPtr googleIdTokenPtr)
         => NativeBridge.Authenticate_Impl(googleIdTokenPtr);
@@ -32,6 +33,8 @@ public static class NativeExports
     public static IntPtr GetCurrentUser()
         => NativeBridge.GetCurrentUser_Impl();
 
+    // ── Patient Profile ───────────────────────────────────────────────────────
+
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_patient_profile")]
     public static IntPtr GetPatientProfile()
         => NativeBridge.GetPatientProfile_Impl();
@@ -39,6 +42,8 @@ public static class NativeExports
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_update_patient_profile")]
     public static IntPtr UpdatePatientProfile(IntPtr updateJsonPtr)
         => NativeBridge.UpdatePatientProfile_Impl(updateJsonPtr);
+
+    // ── Vital Signs ───────────────────────────────────────────────────────────
 
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_record_vital_sign")]
     public static IntPtr RecordVitalSign(IntPtr vitalSignJsonPtr)
@@ -56,6 +61,8 @@ public static class NativeExports
     public static IntPtr GetVitalSignsByType(int vitalTypeInt, IntPtr fromDateIsoPtr, IntPtr toDateIsoPtr)
         => NativeBridge.GetVitalSignsByType_Impl(vitalTypeInt, fromDateIsoPtr, toDateIsoPtr);
 
+    // ── Sync ──────────────────────────────────────────────────────────────────
+
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_perform_sync")]
     public static IntPtr PerformSync()
         => NativeBridge.PerformSync_Impl();
@@ -64,8 +71,117 @@ public static class NativeExports
     public static IntPtr PushLocalChanges()
         => NativeBridge.PushLocalChanges_Impl();
 
+    // ── Medications ───────────────────────────────────────────────────────────
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_medications")]
+    public static IntPtr GetMedications()
+        => NativeBridge.GetMedications_Impl();
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_add_medication")]
+    public static IntPtr AddMedication(IntPtr inputJsonPtr)
+        => NativeBridge.AddMedication_Impl(inputJsonPtr);
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_discontinue_medication")]
+    public static IntPtr DiscontinueMedication(IntPtr inputJsonPtr)
+        => NativeBridge.DiscontinueMedication_Impl(inputJsonPtr);
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_search_drugs")]
+    public static IntPtr SearchDrugs(IntPtr queryPtr)
+        => NativeBridge.SearchDrugs_Impl(queryPtr);
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_check_interactions")]
+    public static IntPtr CheckInteractions(IntPtr rxCuisJsonPtr)
+        => NativeBridge.CheckInteractions_Impl(rxCuisJsonPtr);
+
+    // ── Environment ───────────────────────────────────────────────────────────
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_environment_reading")]
+    public static IntPtr GetEnvironmentReading(double latitude, double longitude)
+        => NativeBridge.GetEnvironmentReading_Impl(latitude, longitude);
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_latest_environment_reading")]
+    public static IntPtr GetLatestEnvironmentReading()
+        => NativeBridge.GetLatestEnvironmentReading_Impl();
+
+    // ── ECG ───────────────────────────────────────────────────────────────────
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_evaluate_ecg_frame")]
+    public static IntPtr EvaluateEcgFrame(IntPtr frameJsonPtr)
+        => NativeBridge.EvaluateEcgFrame_Impl(frameJsonPtr);
+
+    // ── AI Chat ───────────────────────────────────────────────────────────────
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_send_chat_message")]
+    public static IntPtr SendChatMessage(IntPtr messagePtr)
+        => NativeBridge.SendChatMessage_Impl(messagePtr);
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_chat_history")]
+    public static IntPtr GetChatHistory()
+        => NativeBridge.GetChatHistory_Impl();
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_clear_chat_history")]
+    public static IntPtr ClearChatHistory()
+        => NativeBridge.ClearChatHistory_Impl();
+
+    // ── Coaching ──────────────────────────────────────────────────────────────
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_coaching_advice")]
+    public static IntPtr GetCoachingAdvice()
+        => NativeBridge.GetCoachingAdvice_Impl();
+
+    // ── Sleep ─────────────────────────────────────────────────────────────────
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_record_sleep_session")]
+    public static IntPtr RecordSleepSession(IntPtr sessionJsonPtr)
+        => NativeBridge.RecordSleepSession_Impl(sessionJsonPtr);
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_sleep_sessions")]
+    public static IntPtr GetSleepSessions(IntPtr fromDateIsoPtr, IntPtr toDateIsoPtr)
+        => NativeBridge.GetSleepSessions_Impl(fromDateIsoPtr, toDateIsoPtr);
+
+    // ── Medical History & OCR ─────────────────────────────────────────────────
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_medical_history")]
+    public static IntPtr GetMedicalHistory()
+        => NativeBridge.GetMedicalHistory_Impl();
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_ocr_documents")]
+    public static IntPtr GetOcrDocuments()
+        => NativeBridge.GetOcrDocuments_Impl();
+
+    // ── OCR Text Processing ───────────────────────────────────────────────────
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_classify_document")]
+    public static IntPtr ClassifyDocument(IntPtr ocrTextPtr)
+        => NativeBridge.ClassifyDocument_Impl(ocrTextPtr);
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_extract_identity")]
+    public static IntPtr ExtractIdentity(IntPtr ocrTextPtr)
+        => NativeBridge.ExtractIdentity_Impl(ocrTextPtr);
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_validate_identity")]
+    public static IntPtr ValidateIdentity(IntPtr ocrTextPtr)
+        => NativeBridge.ValidateIdentity_Impl(ocrTextPtr);
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_sanitize_text")]
+    public static IntPtr SanitizeText(IntPtr ocrTextPtr)
+        => NativeBridge.SanitizeText_Impl(ocrTextPtr);
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_extract_structured")]
+    public static IntPtr ExtractStructured(IntPtr ocrTextPtr, IntPtr docTypePtr)
+        => NativeBridge.ExtractStructured_Impl(ocrTextPtr, docTypePtr);
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_process_full_ocr")]
+    public static IntPtr ProcessFullOcr(IntPtr ocrTextPtr)
+        => NativeBridge.ProcessFullOcr_Impl(ocrTextPtr);
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_save_ocr_document")]
+    public static IntPtr SaveOcrDocument(IntPtr inputJsonPtr)
+        => NativeBridge.SaveOcrDocument_Impl(inputJsonPtr);
+
+    // ── Memory Management ─────────────────────────────────────────────────────
+
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_free_string")]
     public static void FreeString(IntPtr ptr)
         => NativeBridge.FreeString_Impl(ptr);
 }
-

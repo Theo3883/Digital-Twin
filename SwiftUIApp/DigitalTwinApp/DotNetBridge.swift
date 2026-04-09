@@ -7,7 +7,7 @@ class DotNetBridge {
     // MARK: - C Function Declarations
     
     @_silgen_name("mobile_engine_initialize")
-    private static func mobile_engine_initialize(_ databasePath: UnsafePointer<CChar>, _ apiBaseUrl: UnsafePointer<CChar>) -> UnsafePointer<CChar>?
+    private static func mobile_engine_initialize(_ databasePath: UnsafePointer<CChar>, _ apiBaseUrl: UnsafePointer<CChar>, _ geminiApiKey: UnsafePointer<CChar>?, _ openWeatherApiKey: UnsafePointer<CChar>?, _ googleOAuthClientId: UnsafePointer<CChar>?) -> UnsafePointer<CChar>?
     
     @_silgen_name("mobile_engine_initialize_database")
     private static func mobile_engine_initialize_database() -> UnsafePointer<CChar>?
@@ -53,6 +53,83 @@ class DotNetBridge {
     @_silgen_name("mobile_engine_free_string")
     private static func mobile_engine_free_string(_ ptr: UnsafePointer<CChar>?)
     
+    // Medications
+    @_silgen_name("mobile_engine_get_medications")
+    private static func mobile_engine_get_medications() -> UnsafePointer<CChar>?
+    
+    @_silgen_name("mobile_engine_add_medication")
+    private static func mobile_engine_add_medication(_ inputJson: UnsafePointer<CChar>) -> UnsafePointer<CChar>?
+    
+    @_silgen_name("mobile_engine_discontinue_medication")
+    private static func mobile_engine_discontinue_medication(_ inputJson: UnsafePointer<CChar>) -> UnsafePointer<CChar>?
+    
+    @_silgen_name("mobile_engine_search_drugs")
+    private static func mobile_engine_search_drugs(_ query: UnsafePointer<CChar>) -> UnsafePointer<CChar>?
+    
+    @_silgen_name("mobile_engine_check_interactions")
+    private static func mobile_engine_check_interactions(_ rxCuisJson: UnsafePointer<CChar>) -> UnsafePointer<CChar>?
+    
+    // Environment
+    @_silgen_name("mobile_engine_get_environment_reading")
+    private static func mobile_engine_get_environment_reading(_ latitude: Double, _ longitude: Double) -> UnsafePointer<CChar>?
+    
+    @_silgen_name("mobile_engine_get_latest_environment_reading")
+    private static func mobile_engine_get_latest_environment_reading() -> UnsafePointer<CChar>?
+    
+    // ECG
+    @_silgen_name("mobile_engine_evaluate_ecg_frame")
+    private static func mobile_engine_evaluate_ecg_frame(_ frameJson: UnsafePointer<CChar>) -> UnsafePointer<CChar>?
+    
+    // AI Chat
+    @_silgen_name("mobile_engine_send_chat_message")
+    private static func mobile_engine_send_chat_message(_ message: UnsafePointer<CChar>) -> UnsafePointer<CChar>?
+    
+    @_silgen_name("mobile_engine_get_chat_history")
+    private static func mobile_engine_get_chat_history() -> UnsafePointer<CChar>?
+    
+    @_silgen_name("mobile_engine_clear_chat_history")
+    private static func mobile_engine_clear_chat_history() -> UnsafePointer<CChar>?
+    
+    // Coaching
+    @_silgen_name("mobile_engine_get_coaching_advice")
+    private static func mobile_engine_get_coaching_advice() -> UnsafePointer<CChar>?
+    
+    // Sleep
+    @_silgen_name("mobile_engine_record_sleep_session")
+    private static func mobile_engine_record_sleep_session(_ sessionJson: UnsafePointer<CChar>) -> UnsafePointer<CChar>?
+    
+    @_silgen_name("mobile_engine_get_sleep_sessions")
+    private static func mobile_engine_get_sleep_sessions(_ fromDateIso: UnsafePointer<CChar>?, _ toDateIso: UnsafePointer<CChar>?) -> UnsafePointer<CChar>?
+    
+    // Medical History & OCR
+    @_silgen_name("mobile_engine_get_medical_history")
+    private static func mobile_engine_get_medical_history() -> UnsafePointer<CChar>?
+    
+    @_silgen_name("mobile_engine_get_ocr_documents")
+    private static func mobile_engine_get_ocr_documents() -> UnsafePointer<CChar>?
+    
+    // OCR Text Processing
+    @_silgen_name("mobile_engine_classify_document")
+    private static func mobile_engine_classify_document(_ ocrText: UnsafePointer<CChar>?) -> UnsafePointer<CChar>?
+    
+    @_silgen_name("mobile_engine_extract_identity")
+    private static func mobile_engine_extract_identity(_ ocrText: UnsafePointer<CChar>?) -> UnsafePointer<CChar>?
+    
+    @_silgen_name("mobile_engine_validate_identity")
+    private static func mobile_engine_validate_identity(_ ocrText: UnsafePointer<CChar>?) -> UnsafePointer<CChar>?
+    
+    @_silgen_name("mobile_engine_sanitize_text")
+    private static func mobile_engine_sanitize_text(_ ocrText: UnsafePointer<CChar>?) -> UnsafePointer<CChar>?
+    
+    @_silgen_name("mobile_engine_extract_structured")
+    private static func mobile_engine_extract_structured(_ ocrText: UnsafePointer<CChar>?, _ docType: UnsafePointer<CChar>?) -> UnsafePointer<CChar>?
+    
+    @_silgen_name("mobile_engine_process_full_ocr")
+    private static func mobile_engine_process_full_ocr(_ ocrText: UnsafePointer<CChar>?) -> UnsafePointer<CChar>?
+    
+    @_silgen_name("mobile_engine_save_ocr_document")
+    private static func mobile_engine_save_ocr_document(_ inputJson: UnsafePointer<CChar>?) -> UnsafePointer<CChar>?
+    
     // MARK: - Public Interface
     
     private let jsonDecoder = JSONDecoder()
@@ -67,10 +144,22 @@ class DotNetBridge {
     // MARK: - Lifecycle Management
     
     /// Initialize the .NET engine
-    func initialize(databasePath: String, apiBaseUrl: String) throws -> OperationResult {
+    func initialize(databasePath: String, apiBaseUrl: String, geminiApiKey: String? = nil, openWeatherApiKey: String? = nil, googleOAuthClientId: String? = nil) throws -> OperationResult {
+        // Use helper to convert optionals — avoids combinatorial withCString nesting
+        func withOptionalCString(_ str: String?, _ body: (UnsafePointer<CChar>?) -> UnsafePointer<CChar>?) -> UnsafePointer<CChar>? {
+            if let s = str { return s.withCString { body($0) } }
+            return body(nil)
+        }
+        
         let result = databasePath.withCString { dbPathPtr in
             apiBaseUrl.withCString { apiUrlPtr in
-                Self.mobile_engine_initialize(dbPathPtr, apiUrlPtr)
+                withOptionalCString(geminiApiKey) { geminiPtr in
+                    withOptionalCString(openWeatherApiKey) { weatherPtr in
+                        withOptionalCString(googleOAuthClientId) { googlePtr in
+                            Self.mobile_engine_initialize(dbPathPtr, apiUrlPtr, geminiPtr, weatherPtr, googlePtr)
+                        }
+                    }
+                }
             }
         }
         
@@ -195,6 +284,212 @@ class DotNetBridge {
     func pushLocalChanges() throws -> OperationResult {
         let result = Self.mobile_engine_push_local_changes()
         return try parseResult(result, as: OperationResult.self)
+    }
+    
+    // MARK: - Medications
+    
+    /// Get all medications
+    func getMedications() throws -> [MedicationInfo] {
+        let result = Self.mobile_engine_get_medications()
+        return try parseResult(result, as: [MedicationInfo].self)
+    }
+    
+    /// Add a medication
+    func addMedication(_ input: AddMedicationInput) throws -> OperationResult {
+        let json = try jsonEncoder.encode(input)
+        let jsonString = String(data: json, encoding: .utf8)!
+        let result = jsonString.withCString { ptr in
+            Self.mobile_engine_add_medication(ptr)
+        }
+        return try parseResult(result, as: OperationResult.self)
+    }
+    
+    /// Discontinue a medication
+    func discontinueMedication(_ input: DiscontinueMedicationInput) throws -> OperationResult {
+        let json = try jsonEncoder.encode(input)
+        let jsonString = String(data: json, encoding: .utf8)!
+        let result = jsonString.withCString { ptr in
+            Self.mobile_engine_discontinue_medication(ptr)
+        }
+        return try parseResult(result, as: OperationResult.self)
+    }
+    
+    /// Search drugs by name
+    func searchDrugs(query: String) throws -> [DrugSearchResult] {
+        let result = query.withCString { ptr in
+            Self.mobile_engine_search_drugs(ptr)
+        }
+        return try parseResult(result, as: [DrugSearchResult].self)
+    }
+    
+    /// Check interactions between medications
+    func checkInteractions(rxCuis: [String]) throws -> [MedicationInteractionInfo] {
+        let json = try jsonEncoder.encode(rxCuis)
+        let jsonString = String(data: json, encoding: .utf8)!
+        let result = jsonString.withCString { ptr in
+            Self.mobile_engine_check_interactions(ptr)
+        }
+        return try parseResult(result, as: [MedicationInteractionInfo].self)
+    }
+    
+    // MARK: - Environment
+    
+    /// Get current environment reading for location
+    func getEnvironmentReading(latitude: Double, longitude: Double) throws -> EnvironmentReadingInfo {
+        let result = Self.mobile_engine_get_environment_reading(latitude, longitude)
+        return try parseResult(result, as: EnvironmentReadingInfo.self)
+    }
+    
+    /// Get latest cached environment reading
+    func getLatestEnvironmentReading() throws -> EnvironmentReadingInfo? {
+        let result = Self.mobile_engine_get_latest_environment_reading()
+        return try parseOptionalResult(result, as: EnvironmentReadingInfo.self)
+    }
+    
+    // MARK: - ECG
+    
+    /// Evaluate an ECG frame for triage
+    func evaluateEcgFrame(_ frame: EcgFrameInput) throws -> EcgEvaluationResult {
+        let json = try jsonEncoder.encode(frame)
+        let jsonString = String(data: json, encoding: .utf8)!
+        let result = jsonString.withCString { ptr in
+            Self.mobile_engine_evaluate_ecg_frame(ptr)
+        }
+        return try parseResult(result, as: EcgEvaluationResult.self)
+    }
+    
+    // MARK: - AI Chat
+    
+    /// Send a chat message to the AI assistant
+    func sendChatMessage(_ message: String) throws -> ChatMessageInfo {
+        let result = message.withCString { ptr in
+            Self.mobile_engine_send_chat_message(ptr)
+        }
+        return try parseResult(result, as: ChatMessageInfo.self)
+    }
+    
+    /// Get chat history
+    func getChatHistory() throws -> [ChatMessageInfo] {
+        let result = Self.mobile_engine_get_chat_history()
+        return try parseResult(result, as: [ChatMessageInfo].self)
+    }
+    
+    /// Clear chat history
+    func clearChatHistory() throws -> OperationResult {
+        let result = Self.mobile_engine_clear_chat_history()
+        return try parseResult(result, as: OperationResult.self)
+    }
+    
+    // MARK: - Coaching
+    
+    /// Get AI coaching advice
+    func getCoachingAdvice() throws -> CoachingAdviceInfo {
+        let result = Self.mobile_engine_get_coaching_advice()
+        return try parseResult(result, as: CoachingAdviceInfo.self)
+    }
+    
+    // MARK: - Sleep
+    
+    /// Record a sleep session
+    func recordSleepSession(_ input: SleepSessionInput) throws -> OperationResult {
+        let json = try jsonEncoder.encode(input)
+        let jsonString = String(data: json, encoding: .utf8)!
+        let result = jsonString.withCString { ptr in
+            Self.mobile_engine_record_sleep_session(ptr)
+        }
+        return try parseResult(result, as: OperationResult.self)
+    }
+    
+    /// Get sleep sessions for date range
+    func getSleepSessions(from: Date? = nil, to: Date? = nil) throws -> [SleepSessionInfo] {
+        let fromString = from?.ISO8601Format()
+        let toString = to?.ISO8601Format()
+        
+        let result = fromString?.withCString { fromPtr in
+            toString?.withCString { toPtr in
+                Self.mobile_engine_get_sleep_sessions(fromPtr, toPtr)
+            } ?? Self.mobile_engine_get_sleep_sessions(fromPtr, nil)
+        } ?? toString?.withCString { toPtr in
+            Self.mobile_engine_get_sleep_sessions(nil, toPtr)
+        } ?? Self.mobile_engine_get_sleep_sessions(nil, nil)
+        
+        return try parseResult(result, as: [SleepSessionInfo].self)
+    }
+    
+    // MARK: - Medical History & OCR
+    
+    /// Get medical history entries
+    func getMedicalHistory() throws -> [MedicalHistoryEntryInfo] {
+        let result = Self.mobile_engine_get_medical_history()
+        return try parseResult(result, as: [MedicalHistoryEntryInfo].self)
+    }
+    
+    /// Get OCR scanned documents
+    func getOcrDocuments() throws -> [OcrDocumentInfo] {
+        let result = Self.mobile_engine_get_ocr_documents()
+        return try parseResult(result, as: [OcrDocumentInfo].self)
+    }
+    
+    // MARK: - OCR Text Processing
+    
+    /// Classify document type from OCR text
+    func classifyDocument(_ ocrText: String) -> String {
+        ocrText.withCString { ptr in
+            guard let result = Self.mobile_engine_classify_document(ptr) else { return "Unknown" }
+            defer { Self.mobile_engine_free_string(UnsafeMutablePointer(mutating: result)) }
+            return String(cString: result)
+        }
+    }
+    
+    /// Extract identity (name + CNP) from OCR text
+    func extractIdentity(_ ocrText: String) throws -> DocumentIdentityInfo {
+        let result = ocrText.withCString { Self.mobile_engine_extract_identity($0) }
+        return try parseResult(result, as: DocumentIdentityInfo.self)
+    }
+    
+    /// Validate extracted identity against current patient
+    func validateIdentity(_ ocrText: String) throws -> IdentityValidationInfo {
+        let result = ocrText.withCString { Self.mobile_engine_validate_identity($0) }
+        return try parseResult(result, as: IdentityValidationInfo.self)
+    }
+    
+    /// Sanitize text (redact PII)
+    func sanitizeText(_ ocrText: String) -> String {
+        ocrText.withCString { ptr in
+            guard let result = Self.mobile_engine_sanitize_text(ptr) else { return ocrText }
+            defer { Self.mobile_engine_free_string(UnsafeMutablePointer(mutating: result)) }
+            return String(cString: result)
+        }
+    }
+    
+    /// Extract structured fields from OCR text
+    func extractStructured(_ ocrText: String, documentType: String) throws -> HeuristicExtractionInfo {
+        let result = ocrText.withCString { ocrPtr in
+            documentType.withCString { docPtr in
+                Self.mobile_engine_extract_structured(ocrPtr, docPtr)
+            }
+        }
+        return try parseResult(result, as: HeuristicExtractionInfo.self)
+    }
+    
+    /// Full OCR processing pipeline
+    func processFullOcr(_ ocrText: String) throws -> OcrProcessingResult {
+        let result = ocrText.withCString { Self.mobile_engine_process_full_ocr($0) }
+        return try parseResult(result, as: OcrProcessingResult.self)
+    }
+    
+    /// Save scanned document and extract medical history
+    func saveOcrDocument(opaqueInternalName: String, mimeType: String, pageCount: Int, pageTexts: [String]) throws -> OcrDocumentInfo {
+        let input = SaveOcrDocumentInput(
+            opaqueInternalName: opaqueInternalName,
+            mimeType: mimeType,
+            pageCount: pageCount,
+            pageTexts: pageTexts
+        )
+        let json = try jsonEncoder.encode(input)
+        let jsonStr = String(data: json, encoding: .utf8)!
+        let result = jsonStr.withCString { Self.mobile_engine_save_ocr_document($0) }
+        return try parseResult(result, as: OcrDocumentInfo.self)
     }
     
     // MARK: - Private Helpers

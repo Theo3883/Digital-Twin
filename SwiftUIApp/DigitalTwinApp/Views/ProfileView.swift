@@ -32,6 +32,9 @@ struct ProfileView: View {
                         MedicalInfoSection(patient: patient, isEditing: isEditing)
                     }
                     
+                    // Quick Links
+                    ProfileQuickLinks()
+                    
                     Spacer(minLength: 100) // Tab bar spacing
                 }
                 .padding()
@@ -424,5 +427,51 @@ struct ProfileView_Previews: PreviewProvider {
     static var previews: some View {
         ProfileView()
             .environmentObject(MobileEngineWrapper())
+    }
+}
+
+// MARK: - Profile Quick Links
+
+struct ProfileQuickLinks: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Health Records")
+                .font(.headline)
+                .padding(.horizontal)
+            
+            VStack(spacing: 12) {
+                NavigationLink(destination: MedicalHistoryView()) {
+                    ProfileActionButton(
+                        title: "Medical History",
+                        subtitle: "View extracted medical records",
+                        icon: "doc.text.magnifyingglass",
+                        color: LiquidGlass.tealPrimary,
+                        action: {}
+                    )
+                }
+                
+                NavigationLink(destination: OcrDocumentView()) {
+                    ProfileActionButton(
+                        title: "Scanned Documents",
+                        subtitle: "View and manage scanned documents",
+                        icon: "doc.text.viewfinder",
+                        color: LiquidGlass.bluePrimary,
+                        action: {}
+                    )
+                }
+                
+                NavigationLink(destination: SleepView()) {
+                    ProfileActionButton(
+                        title: "Sleep Tracking",
+                        subtitle: "View sleep history and patterns",
+                        icon: "bed.double.fill",
+                        color: LiquidGlass.purpleSleep,
+                        action: {}
+                    )
+                }
+            }
+            .padding()
+            .liquidGlassCardStyle()
+        }
     }
 }

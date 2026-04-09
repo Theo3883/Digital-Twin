@@ -11,17 +11,29 @@ namespace DigitalTwin.Mobile.Infrastructure.Data.CompiledModels
     public partial class MobileDbContextModel
     {
         private MobileDbContextModel()
-            : base(skipDetectChanges: false, modelId: new Guid("ca69a260-73ae-4e0e-8635-7bbf3a7a60b4"), entityTypeCount: 3)
+            : base(skipDetectChanges: false, modelId: new Guid("26cc0bc1-53fe-482c-aa15-1a167015bc82"), entityTypeCount: 9)
         {
         }
 
         partial void Initialize()
         {
+            var chatMessage = ChatMessageEntityType.Create(this);
+            var environmentReading = EnvironmentReadingEntityType.Create(this);
+            var medicalHistoryEntry = MedicalHistoryEntryEntityType.Create(this);
+            var medication = MedicationEntityType.Create(this);
+            var ocrDocument = OcrDocumentEntityType.Create(this);
             var patient = PatientEntityType.Create(this);
+            var sleepSession = SleepSessionEntityType.Create(this);
             var user = UserEntityType.Create(this);
             var vitalSign = VitalSignEntityType.Create(this);
 
+            ChatMessageEntityType.CreateAnnotations(chatMessage);
+            EnvironmentReadingEntityType.CreateAnnotations(environmentReading);
+            MedicalHistoryEntryEntityType.CreateAnnotations(medicalHistoryEntry);
+            MedicationEntityType.CreateAnnotations(medication);
+            OcrDocumentEntityType.CreateAnnotations(ocrDocument);
             PatientEntityType.CreateAnnotations(patient);
+            SleepSessionEntityType.CreateAnnotations(sleepSession);
             UserEntityType.CreateAnnotations(user);
             VitalSignEntityType.CreateAnnotations(vitalSign);
 

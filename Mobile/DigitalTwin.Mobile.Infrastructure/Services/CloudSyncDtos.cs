@@ -119,3 +119,86 @@ public sealed record CloudVitalSignDto
     public DateTime Timestamp { get; init; }
 }
 
+// ── Medication sync DTOs ──────────────────────────────────────────────────
+
+public sealed record MedicationSyncItem
+{
+    public Guid Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Dosage { get; init; } = string.Empty;
+    public string? Frequency { get; init; }
+    public int Route { get; init; }
+    public string? RxCui { get; init; }
+    public string? Instructions { get; init; }
+    public string? Reason { get; init; }
+    public DateTime? StartDate { get; init; }
+    public DateTime? EndDate { get; init; }
+    public int Status { get; init; }
+    public string? DiscontinuedReason { get; init; }
+    public int AddedByRole { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime UpdatedAt { get; init; }
+}
+
+public sealed record MedicationSyncResponse
+{
+    public List<MedicationSyncItem>? Items { get; init; }
+}
+
+// ── Sleep sync DTOs ───────────────────────────────────────────────────────
+
+public sealed record SleepSyncItem
+{
+    public DateTime StartTime { get; init; }
+    public DateTime EndTime { get; init; }
+    public int DurationMinutes { get; init; }
+    public double QualityScore { get; init; }
+}
+
+// ── Environment sync DTOs ─────────────────────────────────────────────────
+
+public sealed record EnvironmentSyncItem
+{
+    public double Latitude { get; init; }
+    public double Longitude { get; init; }
+    public string LocationDisplayName { get; init; } = string.Empty;
+    public double PM25 { get; init; }
+    public double PM10 { get; init; }
+    public double O3 { get; init; }
+    public double NO2 { get; init; }
+    public double Temperature { get; init; }
+    public double Humidity { get; init; }
+    public int AirQuality { get; init; }
+    public int AqiIndex { get; init; }
+    public DateTime Timestamp { get; init; }
+}
+
+// ── OCR document sync DTOs ────────────────────────────────────────────────
+
+public sealed record OcrDocumentSyncItem
+{
+    public Guid Id { get; init; }
+    public string OpaqueInternalName { get; init; } = string.Empty;
+    public string MimeType { get; init; } = string.Empty;
+    public int PageCount { get; init; }
+    public string SanitizedOcrPreview { get; init; } = string.Empty;
+    public DateTime ScannedAt { get; init; }
+}
+
+// ── Medical history sync DTOs ─────────────────────────────────────────────
+
+public sealed record MedicalHistorySyncItem
+{
+    public Guid Id { get; init; }
+    public Guid SourceDocumentId { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public string MedicationName { get; init; } = string.Empty;
+    public string Dosage { get; init; } = string.Empty;
+    public string Frequency { get; init; } = string.Empty;
+    public string Duration { get; init; } = string.Empty;
+    public string Notes { get; init; } = string.Empty;
+    public string Summary { get; init; } = string.Empty;
+    public decimal Confidence { get; init; }
+    public DateTime EventDate { get; init; }
+}
+

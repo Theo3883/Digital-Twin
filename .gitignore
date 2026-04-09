@@ -12,8 +12,10 @@ SwiftUIApp/DigitalTwinApp/Interop/_nativeaot/
 SwiftUIApp/DigitalTwinApp/Interop/_frameworks/
 SwiftUIApp/**/*.framework/
 SwiftUIApp/**/*.xcframework/
+SwiftUIApp/**/*.xcworkspace/xcshareddata/swiftpm/
 SwiftUIApp/**/*.xcuserdatad/
 SwiftUIApp/**/*.xcuserstate
+"Mobile/DigitalTwin.Mobile.Infrastructure/bin\\Debug/"
 
 # User-specific files
 *.rsuser
@@ -517,3 +519,7 @@ SwiftUIApp/DigitalTwinApp/Interop/_nativeaot/
 SwiftUIApp/DigitalTwinApp/Interop/_frameworks/
 SwiftUIApp/**/*.framework/
 SwiftUIApp/**/*.xcframework/
+
+Secrets.xcconfig
+
+build/

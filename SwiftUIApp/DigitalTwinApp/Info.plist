@@ -52,5 +52,24 @@
 	<array>
 		<string>com.digitaltwin.mobile.backgroundsync</string>
 	</array>
+	<key>GEMINI_API_KEY</key>
+	<string>$(GEMINI_API_KEY)</string>
+	<key>OPENWEATHER_API_KEY</key>
+	<string>$(OPENWEATHERMAP_API_KEY)</string>
+	<key>GOOGLE_OAUTH_CLIENT_ID</key>
+	<string>$(GOOGLE_OAUTH_CLIENT_ID)</string>
+	<key>API_BASE_URL</key>
+	<string>$(API_BASE_URL)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.62894662500-u6dof5915clrr3ttugm7sjt6bmopb8t7</string>
+			</array>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+		</dict>
+	</array>
 </dict>
 </plist>

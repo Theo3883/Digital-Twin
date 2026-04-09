@@ -21,4 +21,20 @@ public interface ICloudSyncService
     // Vital signs sync
     Task<bool> SyncVitalSignsAsync(IEnumerable<VitalSign> vitalSigns);
     Task<IEnumerable<VitalSign>> GetVitalSignsAsync(DateTime fromDate, DateTime? toDate = null);
+    
+    // Medications sync
+    Task<bool> SyncMedicationsAsync(IEnumerable<Medication> medications);
+    Task<IEnumerable<Medication>> GetMedicationsAsync();
+    
+    // Sleep sync
+    Task<bool> SyncSleepSessionsAsync(IEnumerable<SleepSession> sessions);
+    
+    // Environment sync
+    Task<bool> SyncEnvironmentReadingsAsync(IEnumerable<EnvironmentReading> readings);
+    
+    // OCR documents sync
+    Task<bool> SyncOcrDocumentsAsync(IEnumerable<OcrDocument> documents);
+    
+    // Medical history sync
+    Task<bool> SyncMedicalHistoryAsync(IEnumerable<MedicalHistoryEntry> entries);
 }

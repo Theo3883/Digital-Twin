@@ -47,6 +47,7 @@ struct LoadingView: View {
 
 struct AuthenticationView: View {
     @EnvironmentObject var engineWrapper: MobileEngineWrapper
+    @StateObject private var googleSignIn = GoogleSignInService()
     @State private var isAuthenticating = false
     
     var body: some View {
@@ -107,19 +108,20 @@ struct AuthenticationView: View {
         isAuthenticating = true
         
         Task {
-            // In a real implementation, this would integrate with Google Sign-In SDK
-            let mockGoogleIdToken = "mock_google_id_token"
-            
-            let success = await engineWrapper.authenticate(googleIdToken: mockGoogleIdToken)
-            
-            await MainActor.run {
-                isAuthenticating = false
+            do {
+                let idToken = try await googleSignIn.signIn()
+                let success = await engineWrapper.authenticate(googleIdToken: idToken)
                 
+                isAuthenticating = false
                 if success {
                     print("Authentication successful")
                 } else {
-                    print("Authentication failed")
+                    print("Authentication failed — backend rejected the token")
                 }
+            } catch {
+                isAuthenticating = false
+                print("Google Sign-In failed: \(error.localizedDescription)")
+                engineWrapper.errorMessage = error.localizedDescription
             }
         }
     }
@@ -147,19 +149,47 @@ struct MainTabView: View {
                 }
                 .tag(1)
             
+            MedicationsView()
+                .tabItem {
+                    Image(systemName: "pills.fill")
+                    Text("Meds")
+                }
+                .tag(2)
+            
+            MedicalAssistantView()
+                .tabItem {
+                    Image(systemName: "bubble.left.and.bubble.right.fill")
+                    Text("Assistant")
+                }
+                .tag(3)
+            
+            EcgMonitorView()
+                .tabItem {
+                    Image(systemName: "waveform.path.ecg")
+                    Text("ECG")
+                }
+                .tag(4)
+            
+            EnvironmentView()
+                .tabItem {
+                    Image(systemName: "cloud.sun.fill")
+                    Text("Air")
+                }
+                .tag(5)
+            
             ProfileView()
                 .tabItem {
                     Image(systemName: "person.fill")
                     Text("Profile")
                 }
-                .tag(2)
+                .tag(6)
             
             SettingsView()
                 .tabItem {
                     Image(systemName: "gear")
                     Text("Settings")
                 }
-                .tag(3)
+                .tag(7)
         }
         .liquidGlassTabViewStyle()
     }
@@ -180,13 +210,33 @@ struct DashboardView: View {
                         WelcomeCard(user: user)
                     }
                     
+                    // Coaching Advice Widget
+                    if let advice = engineWrapper.coachingAdvice {
+                        CoachingWidget(advice: advice)
+                    }
+                    
+                    // Environment AQI Widget
+                    if let env = engineWrapper.latestEnvironmentReading {
+                        EnvironmentWidget(reading: env)
+                    }
+                    
+                    // Sleep Summary Widget
+                    if let latestSleep = engineWrapper.sleepSessions.first {
+                        SleepWidget(session: latestSleep)
+                    }
+                    
+                    // Active Medications Count
+                    if !engineWrapper.medications.isEmpty {
+                        MedicationsWidget(medications: engineWrapper.medications)
+                    }
+                    
                     // Quick Stats
                     QuickStatsSection(vitals: recentVitals)
                     
                     // Recent Activity
                     RecentActivitySection(vitals: recentVitals)
                     
-                    Spacer(minLength: 100) // Tab bar spacing
+                    Spacer(minLength: 100)
                 }
                 .padding()
             }
@@ -202,9 +252,117 @@ struct DashboardView: View {
     }
     
     private func loadDashboardData() async {
-        // Load recent vitals (last 7 days)
         let fromDate = Calendar.current.date(byAdding: .day, value: -7, to: Date())
         recentVitals = await engineWrapper.getVitalSigns(from: fromDate, to: Date())
+        await engineWrapper.fetchCoachingAdvice()
+        await engineWrapper.loadLatestEnvironmentReading()
+        await engineWrapper.loadSleepSessions(from: fromDate, to: Date())
+        await engineWrapper.loadMedications()
+    }
+}
+
+// MARK: - Dashboard Widgets
+
+struct CoachingWidget: View {
+    let advice: CoachingAdviceInfo
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "lightbulb.fill")
+                    .foregroundColor(LiquidGlass.tealPrimary)
+                Text("Today's Coaching")
+                    .font(.headline)
+            }
+            Text(advice.advice)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .lineLimit(3)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard(tint: LiquidGlass.tealPrimary.opacity(0.2))
+    }
+}
+
+struct EnvironmentWidget: View {
+    let reading: EnvironmentReadingInfo
+    
+    private var tintColor: Color {
+        switch reading.airQualityLevel {
+        case 0: return LiquidGlass.greenPositive
+        case 1: return .yellow
+        case 2: return .orange
+        case 3: return LiquidGlass.redCritical
+        default: return .gray
+        }
+    }
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Air Quality")
+                    .font(.caption).foregroundColor(.secondary)
+                Text("\(reading.airQualityEmoji) \(reading.airQualityDisplay)")
+                    .font(.headline)
+            }
+            Spacer()
+            if let aqi = reading.aqiIndex {
+                Text("AQI \(aqi)")
+                    .font(.title2).fontWeight(.bold)
+            }
+            if let temp = reading.temperature {
+                Text(String(format: "%.0f°C", temp))
+                    .font(.title3)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .glassCard(tint: tintColor.opacity(0.2))
+    }
+}
+
+struct SleepWidget: View {
+    let session: SleepSessionInfo
+    
+    var body: some View {
+        HStack {
+            Image(systemName: "moon.fill")
+                .foregroundColor(LiquidGlass.purpleSleep)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Last Night")
+                    .font(.caption).foregroundColor(.secondary)
+                Text(session.durationFormatted)
+                    .font(.headline)
+            }
+            Spacer()
+            Text(session.qualityDisplay)
+                .glassChip(tint: LiquidGlass.purpleSleep)
+        }
+        .glassCard(tint: LiquidGlass.purpleSleep.opacity(0.15))
+    }
+}
+
+struct MedicationsWidget: View {
+    let medications: [MedicationInfo]
+    
+    private var activeCount: Int {
+        medications.filter(\.isActive).count
+    }
+    
+    var body: some View {
+        HStack {
+            Image(systemName: "pills.fill")
+                .foregroundColor(LiquidGlass.bluePrimary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Active Medications")
+                    .font(.caption).foregroundColor(.secondary)
+                Text("\(activeCount) medication\(activeCount == 1 ? "" : "s")")
+                    .font(.headline)
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .foregroundColor(.secondary)
+        }
+        .glassCard(tint: LiquidGlass.bluePrimary.opacity(0.15))
     }
 }
 
@@ -409,86 +567,62 @@ struct RecentActivityRow: View {
 
 // Note: VitalSignsView, ProfileView, and SettingsView are now implemented in separate files
 
-// MARK: - Liquid Glass Style Extensions
+// MARK: - Liquid Glass Style Extensions (iOS 26+ only — no fallbacks)
 
 extension View {
-    /// Applies Liquid Glass button style (iOS 26+) with fallback
-    @ViewBuilder
+    /// Applies Liquid Glass prominent button style
     func liquidGlassButtonStyle() -> some View {
-        if #available(iOS 26.0, *) {
-            // Use Liquid Glass APIs when available
-            self
-                .buttonStyle(.glassProminent)
-                .glassEffect(.regular.tint(.blue).interactive())
-        } else {
-            // Fallback for older iOS versions
-            self
-                .buttonStyle(.borderedProminent)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-        }
+        self
+            .buttonStyle(.glassProminent)
+            .glassEffect(.regular.tint(.blue).interactive())
     }
     
-    /// Applies Liquid Glass card style with fallback
-    @ViewBuilder
+    /// Applies Liquid Glass card style
     func liquidGlassCardStyle() -> some View {
-        if #available(iOS 26.0, *) {
-            // Use Liquid Glass for cards
-            self
-                .background {
-                    RoundedRectangle(cornerRadius: 12)
-                        // Keep to the API surface supported by the installed SDK.
-                        // (Some beta SDKs don't expose `.thin`/`.ultraThin` variants on `Glass`.)
-                        .glassEffect()
-                }
-        } else {
-            // Fallback with Material
-            self
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
-        }
+        self
+            .background {
+                RoundedRectangle(cornerRadius: 12)
+                    .glassEffect()
+            }
     }
     
-    /// Applies Liquid Glass navigation style with fallback
-    @ViewBuilder
+    /// Applies tinted Liquid Glass card style
+    func liquidGlassTintedCard(_ color: Color) -> some View {
+        self
+            .background {
+                RoundedRectangle(cornerRadius: 12)
+                    .glassEffect(.regular.tint(color))
+            }
+    }
+    
+    /// Applies Liquid Glass navigation bar style
     func liquidGlassNavigationStyle() -> some View {
-        if #available(iOS 26.0, *) {
-            self
-                .toolbarBackground(.hidden, for: .navigationBar)
-                .background {
-                    // Custom glass navigation background
-                    VStack {
-                        Rectangle()
-                            .glassEffect()
-                            .frame(height: 100)
-                        Spacer()
-                    }
-                    .ignoresSafeArea()
+        self
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .background {
+                VStack {
+                    Rectangle()
+                        .glassEffect()
+                        .frame(height: 100)
+                    Spacer()
                 }
-        } else {
-            self
-                .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
-        }
+                .ignoresSafeArea()
+            }
     }
     
-    /// Applies Liquid Glass tab view style with fallback
-    @ViewBuilder
+    /// Applies Liquid Glass tab view style
     func liquidGlassTabViewStyle() -> some View {
-        if #available(iOS 26.0, *) {
-            self
-                .toolbarBackground(.hidden, for: .tabBar)
-                .background {
-                    // Custom glass tab bar background
-                    VStack {
-                        Spacer()
-                        Rectangle()
-                            .glassEffect(.regular.tint(.primary.opacity(0.03)))
-                            .frame(height: 100)
-                    }
-                    .ignoresSafeArea()
+        self
+            .toolbarBackground(.hidden, for: .tabBar)
+            .background {
+                VStack {
+                    Spacer()
+                    Rectangle()
+                        .glassEffect(.regular.tint(.primary.opacity(0.03)))
+                        .frame(height: 100)
                 }
-        } else {
-            self
-                .toolbarBackground(.ultraThinMaterial, for: .tabBar)
-        }
+                .ignoresSafeArea()
+            }
     }
 }
 

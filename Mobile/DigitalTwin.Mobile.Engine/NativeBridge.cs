@@ -22,17 +22,19 @@ public static class NativeBridge
     /// Initialize the mobile engine with database and API configuration
     /// </summary>
     // Internal methods (callable from the NativeAOT host)
-    internal static IntPtr Initialize_Impl(IntPtr databasePathPtr, IntPtr apiBaseUrlPtr)
+    internal static IntPtr Initialize_Impl(IntPtr databasePathPtr, IntPtr apiBaseUrlPtr, IntPtr geminiApiKeyPtr, IntPtr openWeatherApiKeyPtr, IntPtr googleOAuthClientIdPtr)
     {
         try
         {
             var databasePath = Marshal.PtrToStringUTF8(databasePathPtr) ?? throw new ArgumentNullException(nameof(databasePathPtr));
-            var apiBaseUrl = Marshal.PtrToStringUTF8(apiBaseUrlPtr) ?? throw new ArgumentNullException(nameof(apiBaseUrlPtr));
+            var apiBaseUrl = Marshal.PtrToStringUTF8(apiBaseUrlPtr) ?? "";
+            var geminiApiKey = Marshal.PtrToStringUTF8(geminiApiKeyPtr);
+            var openWeatherApiKey = Marshal.PtrToStringUTF8(openWeatherApiKeyPtr);
+            var googleOAuthClientId = Marshal.PtrToStringUTF8(googleOAuthClientIdPtr);
 
-            _engine = new MobileEngine(databasePath, apiBaseUrl);
+            _engine = new MobileEngine(databasePath, apiBaseUrl, geminiApiKey, openWeatherApiKey, googleOAuthClientId);
             
             // Logger is optional here; don't reflect into engine internals.
-            // Using a non-generic ILogger avoids the "static type as type argument" issue.
             _logger = null;
 
             _logger?.LogInformation("[NativeBridge] Engine initialized successfully");
@@ -48,8 +50,8 @@ public static class NativeBridge
     // Exported C ABI (kept for compatibility, but for the NativeHost path we
     // call the _Impl methods to avoid UnmanagedCallersOnly direct-call rules).
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_initialize")]
-    public static IntPtr Initialize(IntPtr databasePathPtr, IntPtr apiBaseUrlPtr)
-        => Initialize_Impl(databasePathPtr, apiBaseUrlPtr);
+    public static IntPtr Initialize(IntPtr databasePathPtr, IntPtr apiBaseUrlPtr, IntPtr geminiApiKeyPtr, IntPtr openWeatherApiKeyPtr, IntPtr googleOAuthClientIdPtr)
+        => Initialize_Impl(databasePathPtr, apiBaseUrlPtr, geminiApiKeyPtr, openWeatherApiKeyPtr, googleOAuthClientIdPtr);
 
     /// <summary>
     /// Initialize the database (call once on app startup)
@@ -279,6 +281,365 @@ public static class NativeBridge
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_push_local_changes")]
     public static IntPtr PushLocalChanges()
         => PushLocalChanges_Impl();
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Medications
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    internal static IntPtr GetMedications_Impl()
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            return await _engine.GetMedicationsAsync();
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_medications")]
+    public static IntPtr GetMedications() => GetMedications_Impl();
+
+    internal static IntPtr AddMedication_Impl(IntPtr inputJsonPtr)
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var json = Marshal.PtrToStringUTF8(inputJsonPtr) ?? throw new ArgumentNullException(nameof(inputJsonPtr));
+            return await _engine.AddMedicationAsync(json);
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_add_medication")]
+    public static IntPtr AddMedication(IntPtr inputJsonPtr) => AddMedication_Impl(inputJsonPtr);
+
+    internal static IntPtr DiscontinueMedication_Impl(IntPtr inputJsonPtr)
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var json = Marshal.PtrToStringUTF8(inputJsonPtr) ?? throw new ArgumentNullException(nameof(inputJsonPtr));
+            return await _engine.DiscontinueMedicationAsync(json);
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_discontinue_medication")]
+    public static IntPtr DiscontinueMedication(IntPtr inputJsonPtr) => DiscontinueMedication_Impl(inputJsonPtr);
+
+    internal static IntPtr SearchDrugs_Impl(IntPtr queryPtr)
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var query = Marshal.PtrToStringUTF8(queryPtr) ?? throw new ArgumentNullException(nameof(queryPtr));
+            return await _engine.SearchDrugsAsync(query);
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_search_drugs")]
+    public static IntPtr SearchDrugs(IntPtr queryPtr) => SearchDrugs_Impl(queryPtr);
+
+    internal static IntPtr CheckInteractions_Impl(IntPtr rxCuisJsonPtr)
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var json = Marshal.PtrToStringUTF8(rxCuisJsonPtr) ?? throw new ArgumentNullException(nameof(rxCuisJsonPtr));
+            return await _engine.CheckInteractionsAsync(json);
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_check_interactions")]
+    public static IntPtr CheckInteractions(IntPtr rxCuisJsonPtr) => CheckInteractions_Impl(rxCuisJsonPtr);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Environment
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    internal static IntPtr GetEnvironmentReading_Impl(double latitude, double longitude)
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            return await _engine.GetEnvironmentReadingAsync(latitude, longitude);
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_environment_reading")]
+    public static IntPtr GetEnvironmentReading(double latitude, double longitude)
+        => GetEnvironmentReading_Impl(latitude, longitude);
+
+    internal static IntPtr GetLatestEnvironmentReading_Impl()
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            return await _engine.GetLatestEnvironmentReadingAsync();
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_latest_environment_reading")]
+    public static IntPtr GetLatestEnvironmentReading() => GetLatestEnvironmentReading_Impl();
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  ECG Triage
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    internal static IntPtr EvaluateEcgFrame_Impl(IntPtr frameJsonPtr)
+    {
+        try
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var json = Marshal.PtrToStringUTF8(frameJsonPtr) ?? throw new ArgumentNullException(nameof(frameJsonPtr));
+            var result = _engine.EvaluateEcgFrame(json);
+            return AllocateString(result);
+        }
+        catch (Exception ex)
+        {
+            return AllocateString(System.Text.Json.JsonSerializer.Serialize(
+                new OperationResultDto { Success = false, Error = ex.Message },
+                MobileJsonContext.Default.OperationResultDto));
+        }
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_evaluate_ecg_frame")]
+    public static IntPtr EvaluateEcgFrame(IntPtr frameJsonPtr) => EvaluateEcgFrame_Impl(frameJsonPtr);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  AI Chat
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    internal static IntPtr SendChatMessage_Impl(IntPtr messagePtr)
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var message = Marshal.PtrToStringUTF8(messagePtr) ?? throw new ArgumentNullException(nameof(messagePtr));
+            return await _engine.SendChatMessageAsync(message);
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_send_chat_message")]
+    public static IntPtr SendChatMessage(IntPtr messagePtr) => SendChatMessage_Impl(messagePtr);
+
+    internal static IntPtr GetChatHistory_Impl()
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            return await _engine.GetChatHistoryAsync();
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_chat_history")]
+    public static IntPtr GetChatHistory() => GetChatHistory_Impl();
+
+    internal static IntPtr ClearChatHistory_Impl()
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            return await _engine.ClearChatHistoryAsync();
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_clear_chat_history")]
+    public static IntPtr ClearChatHistory() => ClearChatHistory_Impl();
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Coaching
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    internal static IntPtr GetCoachingAdvice_Impl()
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            return await _engine.GetCoachingAdviceAsync();
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_coaching_advice")]
+    public static IntPtr GetCoachingAdvice() => GetCoachingAdvice_Impl();
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Sleep
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    internal static IntPtr RecordSleepSession_Impl(IntPtr sessionJsonPtr)
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var json = Marshal.PtrToStringUTF8(sessionJsonPtr) ?? throw new ArgumentNullException(nameof(sessionJsonPtr));
+            return await _engine.RecordSleepSessionAsync(json);
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_record_sleep_session")]
+    public static IntPtr RecordSleepSession(IntPtr sessionJsonPtr) => RecordSleepSession_Impl(sessionJsonPtr);
+
+    internal static IntPtr GetSleepSessions_Impl(IntPtr fromDateIsoPtr, IntPtr toDateIsoPtr)
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var from = Marshal.PtrToStringUTF8(fromDateIsoPtr);
+            var to = Marshal.PtrToStringUTF8(toDateIsoPtr);
+            return await _engine.GetSleepSessionsAsync(from, to);
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_sleep_sessions")]
+    public static IntPtr GetSleepSessions(IntPtr fromDateIsoPtr, IntPtr toDateIsoPtr)
+        => GetSleepSessions_Impl(fromDateIsoPtr, toDateIsoPtr);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Medical History & OCR
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    internal static IntPtr GetMedicalHistory_Impl()
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            return await _engine.GetMedicalHistoryAsync();
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_medical_history")]
+    public static IntPtr GetMedicalHistory() => GetMedicalHistory_Impl();
+
+    internal static IntPtr GetOcrDocuments_Impl()
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            return await _engine.GetOcrDocumentsAsync();
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_ocr_documents")]
+    public static IntPtr GetOcrDocuments() => GetOcrDocuments_Impl();
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  OCR Text Processing
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    internal static IntPtr ClassifyDocument_Impl(IntPtr ocrTextPtr)
+    {
+        try
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var ocrText = Marshal.PtrToStringUTF8(ocrTextPtr) ?? "";
+            var result = _engine.ClassifyDocument(ocrText);
+            return AllocateString(result);
+        }
+        catch
+        {
+            return AllocateString("Unknown");
+        }
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_classify_document")]
+    public static IntPtr ClassifyDocument(IntPtr ocrTextPtr) => ClassifyDocument_Impl(ocrTextPtr);
+
+    internal static IntPtr ExtractIdentity_Impl(IntPtr ocrTextPtr)
+    {
+        try
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var ocrText = Marshal.PtrToStringUTF8(ocrTextPtr) ?? "";
+            var result = _engine.ExtractIdentity(ocrText);
+            return AllocateString(result);
+        }
+        catch (Exception ex)
+        {
+            return AllocateString(JsonSerializer.Serialize(
+                new OperationResultDto { Success = false, Error = ex.Message },
+                MobileJsonContext.Default.OperationResultDto));
+        }
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_extract_identity")]
+    public static IntPtr ExtractIdentity(IntPtr ocrTextPtr) => ExtractIdentity_Impl(ocrTextPtr);
+
+    internal static IntPtr ValidateIdentity_Impl(IntPtr ocrTextPtr)
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var ocrText = Marshal.PtrToStringUTF8(ocrTextPtr) ?? "";
+            return await _engine.ValidateIdentityAsync(ocrText);
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_validate_identity")]
+    public static IntPtr ValidateIdentity(IntPtr ocrTextPtr) => ValidateIdentity_Impl(ocrTextPtr);
+
+    internal static IntPtr SanitizeText_Impl(IntPtr ocrTextPtr)
+    {
+        try
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var ocrText = Marshal.PtrToStringUTF8(ocrTextPtr) ?? "";
+            var result = _engine.SanitizeText(ocrText);
+            return AllocateString(result);
+        }
+        catch
+        {
+            return AllocateString(Marshal.PtrToStringUTF8(ocrTextPtr) ?? "");
+        }
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_sanitize_text")]
+    public static IntPtr SanitizeText(IntPtr ocrTextPtr) => SanitizeText_Impl(ocrTextPtr);
+
+    internal static IntPtr ExtractStructured_Impl(IntPtr ocrTextPtr, IntPtr docTypePtr)
+    {
+        try
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var ocrText = Marshal.PtrToStringUTF8(ocrTextPtr) ?? "";
+            var docType = Marshal.PtrToStringUTF8(docTypePtr) ?? "Unknown";
+            var result = _engine.ExtractStructured(ocrText, docType);
+            return AllocateString(result);
+        }
+        catch (Exception ex)
+        {
+            return AllocateString(JsonSerializer.Serialize(
+                new OperationResultDto { Success = false, Error = ex.Message },
+                MobileJsonContext.Default.OperationResultDto));
+        }
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_extract_structured")]
+    public static IntPtr ExtractStructured(IntPtr ocrTextPtr, IntPtr docTypePtr)
+        => ExtractStructured_Impl(ocrTextPtr, docTypePtr);
+
+    internal static IntPtr ProcessFullOcr_Impl(IntPtr ocrTextPtr)
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var ocrText = Marshal.PtrToStringUTF8(ocrTextPtr) ?? "";
+            return await _engine.ProcessFullOcrAsync(ocrText);
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_process_full_ocr")]
+    public static IntPtr ProcessFullOcr(IntPtr ocrTextPtr) => ProcessFullOcr_Impl(ocrTextPtr);
+
+    internal static IntPtr SaveOcrDocument_Impl(IntPtr inputJsonPtr)
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var json = Marshal.PtrToStringUTF8(inputJsonPtr) ?? throw new ArgumentNullException(nameof(inputJsonPtr));
+            return await _engine.SaveOcrDocumentAsync(json);
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_save_ocr_document")]
+    public static IntPtr SaveOcrDocument(IntPtr inputJsonPtr) => SaveOcrDocument_Impl(inputJsonPtr);
 
     // ═══════════════════════════════════════════════════════════════════════════
     //  Memory Management

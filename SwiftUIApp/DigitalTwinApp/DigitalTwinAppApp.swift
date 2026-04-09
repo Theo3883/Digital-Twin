@@ -1,4 +1,5 @@
 import SwiftUI
+import GoogleSignIn
 
 @main
 struct DigitalTwinAppApp: App {
@@ -10,6 +11,9 @@ struct DigitalTwinAppApp: App {
                 .environmentObject(engineWrapper)
                 .task {
                     await engineWrapper.initialize()
+                }
+                .onOpenURL { url in
+                    GoogleSignInService.handleURL(url)
                 }
         }
     }

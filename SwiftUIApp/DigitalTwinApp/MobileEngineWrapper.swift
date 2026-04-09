@@ -15,6 +15,16 @@ class MobileEngineWrapper: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
     
+    // MARK: - New Feature State
+    
+    @Published var medications: [MedicationInfo] = []
+    @Published var latestEnvironmentReading: EnvironmentReadingInfo?
+    @Published var chatMessages: [ChatMessageInfo] = []
+    @Published var coachingAdvice: CoachingAdviceInfo?
+    @Published var sleepSessions: [SleepSessionInfo] = []
+    @Published var medicalHistory: [MedicalHistoryEntryInfo] = []
+    @Published var ocrDocuments: [OcrDocumentInfo] = []
+    
     // MARK: - Native Services
     
     @Published var healthKitService = HealthKitService()
@@ -26,17 +36,22 @@ class MobileEngineWrapper: ObservableObject {
     private var engine: MobileEngineHandle?
     private let databasePath: String
     private let apiBaseUrl: String
+    private let geminiApiKey: String?
+    private let openWeatherApiKey: String?
+    private let googleOAuthClientId: String?
     
     // MARK: - Initialization
     
     init() {
-        // Get app documents directory for SQLite database
         let documentsPath = FileManager.default.urls(for: .documentDirectory, 
                                                    in: .userDomainMask).first!
         self.databasePath = documentsPath.appendingPathComponent("digitaltwin.db").path
+        self.apiBaseUrl = Bundle.main.infoDictionary?["API_BASE_URL"] as? String ?? ""
         
-        // TODO: Configure API base URL (could be from configuration)
-        self.apiBaseUrl = "https://your-api-server.com" // Replace with actual API URL
+        // API keys — injected from Secrets.xcconfig → Info.plist at build time
+        self.geminiApiKey = Bundle.main.infoDictionary?["GEMINI_API_KEY"] as? String
+        self.openWeatherApiKey = Bundle.main.infoDictionary?["OPENWEATHER_API_KEY"] as? String
+        self.googleOAuthClientId = Bundle.main.infoDictionary?["GOOGLE_OAUTH_CLIENT_ID"] as? String
     }
 
     deinit {
@@ -52,7 +67,7 @@ class MobileEngineWrapper: ObservableObject {
         
         do {
             // Initialize .NET engine
-            engine = try MobileEngineHandle(databasePath: databasePath, apiBaseUrl: apiBaseUrl)
+            engine = try MobileEngineHandle(databasePath: databasePath, apiBaseUrl: apiBaseUrl, geminiApiKey: geminiApiKey, openWeatherApiKey: openWeatherApiKey, googleOAuthClientId: googleOAuthClientId)
             
             // Initialize database
             let initResult = try await engine?.initializeDatabase()
@@ -252,6 +267,245 @@ class MobileEngineWrapper: ObservableObject {
             print("[MobileEngineWrapper] Failed to get vital signs by type: \(error)")
             return []
         }
+    }
+    
+    // MARK: - Medications
+    
+    /// Load all medications
+    func loadMedications() async {
+        guard let engine = engine else { return }
+        do {
+            medications = try await engine.getMedications()
+        } catch {
+            print("[MobileEngineWrapper] Failed to load medications: \(error)")
+        }
+    }
+    
+    /// Add a new medication
+    func addMedication(_ input: AddMedicationInput) async -> Bool {
+        guard let engine = engine else { return false }
+        do {
+            let result = try await engine.addMedication(input)
+            if result.success { await loadMedications() }
+            return result.success
+        } catch {
+            print("[MobileEngineWrapper] Failed to add medication: \(error)")
+            errorMessage = "Failed to add medication: \(error.localizedDescription)"
+            return false
+        }
+    }
+    
+    /// Discontinue a medication
+    func discontinueMedication(id: UUID, reason: String?) async -> Bool {
+        guard let engine = engine else { return false }
+        do {
+            let input = DiscontinueMedicationInput(medicationId: id, reason: reason)
+            let result = try await engine.discontinueMedication(input)
+            if result.success { await loadMedications() }
+            return result.success
+        } catch {
+            print("[MobileEngineWrapper] Failed to discontinue medication: \(error)")
+            return false
+        }
+    }
+    
+    /// Search drugs by name
+    func searchDrugs(query: String) async -> [DrugSearchResult] {
+        guard let engine = engine else { return [] }
+        do {
+            return try await engine.searchDrugs(query: query)
+        } catch {
+            print("[MobileEngineWrapper] Failed to search drugs: \(error)")
+            return []
+        }
+    }
+    
+    /// Check interactions between medications
+    func checkInteractions(rxCuis: [String]) async -> [MedicationInteractionInfo] {
+        guard let engine = engine else { return [] }
+        do {
+            return try await engine.checkInteractions(rxCuis: rxCuis)
+        } catch {
+            print("[MobileEngineWrapper] Failed to check interactions: \(error)")
+            return []
+        }
+    }
+    
+    // MARK: - Environment
+    
+    /// Fetch current environment data for location
+    func fetchEnvironmentReading(latitude: Double, longitude: Double) async {
+        guard let engine = engine else { return }
+        do {
+            latestEnvironmentReading = try await engine.getEnvironmentReading(latitude: latitude, longitude: longitude)
+        } catch {
+            print("[MobileEngineWrapper] Failed to get environment reading: \(error)")
+        }
+    }
+    
+    /// Load latest cached environment reading
+    func loadLatestEnvironmentReading() async {
+        guard let engine = engine else { return }
+        do {
+            latestEnvironmentReading = try await engine.getLatestEnvironmentReading()
+        } catch {
+            print("[MobileEngineWrapper] Failed to get latest environment reading: \(error)")
+        }
+    }
+    
+    // MARK: - ECG
+    
+    /// Evaluate an ECG frame
+    func evaluateEcgFrame(samples: [Double], spO2: Double, heartRate: Double) async -> EcgEvaluationResult? {
+        guard let engine = engine else { return nil }
+        do {
+            let frame = EcgFrameInput(samples: samples, spO2: spO2, heartRate: heartRate, timestamp: Date())
+            return try await engine.evaluateEcgFrame(frame)
+        } catch {
+            print("[MobileEngineWrapper] Failed to evaluate ECG frame: \(error)")
+            return nil
+        }
+    }
+    
+    // MARK: - AI Chat
+    
+    /// Send a message to the AI assistant
+    func sendChatMessage(_ message: String) async -> Bool {
+        guard let engine = engine else { return false }
+        do {
+            let response = try await engine.sendChatMessage(message)
+            // Add user message and AI response to local state
+            await loadChatHistory()
+            return true
+        } catch {
+            print("[MobileEngineWrapper] Failed to send chat message: \(error)")
+            errorMessage = "Failed to send message: \(error.localizedDescription)"
+            return false
+        }
+    }
+    
+    /// Load chat history
+    func loadChatHistory() async {
+        guard let engine = engine else { return }
+        do {
+            chatMessages = try await engine.getChatHistory()
+        } catch {
+            print("[MobileEngineWrapper] Failed to load chat history: \(error)")
+        }
+    }
+    
+    /// Clear chat history
+    func clearChatHistory() async -> Bool {
+        guard let engine = engine else { return false }
+        do {
+            let result = try await engine.clearChatHistory()
+            if result.success { chatMessages = [] }
+            return result.success
+        } catch {
+            print("[MobileEngineWrapper] Failed to clear chat history: \(error)")
+            return false
+        }
+    }
+    
+    // MARK: - Coaching
+    
+    /// Get AI coaching advice
+    func fetchCoachingAdvice() async {
+        guard let engine = engine else { return }
+        do {
+            coachingAdvice = try await engine.getCoachingAdvice()
+        } catch {
+            print("[MobileEngineWrapper] Failed to get coaching advice: \(error)")
+        }
+    }
+    
+    // MARK: - Sleep
+    
+    /// Record a sleep session
+    func recordSleepSession(startTime: Date, endTime: Date, qualityScore: Double?) async -> Bool {
+        guard let engine = engine else { return false }
+        let durationMinutes = Int(endTime.timeIntervalSince(startTime) / 60)
+        let input = SleepSessionInput(startTime: startTime, endTime: endTime, durationMinutes: durationMinutes, qualityScore: qualityScore)
+        do {
+            let result = try await engine.recordSleepSession(input)
+            if result.success { await loadSleepSessions() }
+            return result.success
+        } catch {
+            print("[MobileEngineWrapper] Failed to record sleep session: \(error)")
+            return false
+        }
+    }
+    
+    /// Load sleep sessions
+    func loadSleepSessions(from: Date? = nil, to: Date? = nil) async {
+        guard let engine = engine else { return }
+        do {
+            sleepSessions = try await engine.getSleepSessions(from: from, to: to)
+        } catch {
+            print("[MobileEngineWrapper] Failed to load sleep sessions: \(error)")
+        }
+    }
+    
+    // MARK: - Medical History & OCR
+    
+    /// Load medical history
+    func loadMedicalHistory() async {
+        guard let engine = engine else { return }
+        do {
+            medicalHistory = try await engine.getMedicalHistory()
+        } catch {
+            print("[MobileEngineWrapper] Failed to load medical history: \(error)")
+        }
+    }
+    
+    /// Load OCR documents
+    func loadOcrDocuments() async {
+        guard let engine = engine else { return }
+        do {
+            ocrDocuments = try await engine.getOcrDocuments()
+        } catch {
+            print("[MobileEngineWrapper] Failed to load OCR documents: \(error)")
+        }
+    }
+    
+    // MARK: - OCR Text Processing
+    
+    /// Classify document type from OCR text
+    func classifyDocument(_ ocrText: String) async -> String {
+        guard let engine = engine else { return "Unknown" }
+        return await engine.classifyDocument(ocrText)
+    }
+    
+    /// Full OCR processing pipeline
+    func processFullOcr(_ ocrText: String) async -> OcrProcessingResult? {
+        guard let engine = engine else { return nil }
+        do {
+            return try await engine.processFullOcr(ocrText)
+        } catch {
+            print("[MobileEngineWrapper] Failed to process OCR: \(error)")
+            return nil
+        }
+    }
+    
+    /// Save OCR document and extract medical history
+    func saveOcrDocument(opaqueInternalName: String, mimeType: String, pageCount: Int, pageTexts: [String]) async {
+        guard let engine = engine else { return }
+        do {
+            _ = try await engine.saveOcrDocument(
+                opaqueInternalName: opaqueInternalName,
+                mimeType: mimeType,
+                pageCount: pageCount,
+                pageTexts: pageTexts
+            )
+        } catch {
+            print("[MobileEngineWrapper] Failed to save OCR document: \(error)")
+        }
+    }
+    
+    /// Sanitize text (redact PII)
+    func sanitizeText(_ text: String) async -> String {
+        guard let engine = engine else { return text }
+        return await engine.sanitizeText(text)
     }
     
     // MARK: - Synchronization
@@ -523,19 +777,18 @@ struct OperationResult: Codable {
 actor MobileEngineHandle {
     private let bridge = DotNetBridge()
     
-    init(databasePath: String, apiBaseUrl: String) throws {
-        let result = try bridge.initialize(databasePath: databasePath, apiBaseUrl: apiBaseUrl)
+    init(databasePath: String, apiBaseUrl: String, geminiApiKey: String? = nil, openWeatherApiKey: String? = nil, googleOAuthClientId: String? = nil) throws {
+        let result = try bridge.initialize(databasePath: databasePath, apiBaseUrl: apiBaseUrl, geminiApiKey: geminiApiKey, openWeatherApiKey: openWeatherApiKey, googleOAuthClientId: googleOAuthClientId)
         if !result.success {
             throw EngineError.initializationFailed(result.error ?? "Unknown error")
         }
     }
     
-    /// Explicit cleanup (call when the app is terminating).
     func dispose() {
         bridge.dispose()
     }
     
-    // MARK: - Bridge Methods
+    // MARK: - Existing Bridge Methods
     
     func initializeDatabase() async throws -> OperationResult {
         try bridge.initializeDatabase()
@@ -575,5 +828,106 @@ actor MobileEngineHandle {
     
     func pushLocalChanges() async throws -> OperationResult {
         try bridge.pushLocalChanges()
+    }
+    
+    // MARK: - Medications
+    
+    func getMedications() async throws -> [MedicationInfo] {
+        try bridge.getMedications()
+    }
+    
+    func addMedication(_ input: AddMedicationInput) async throws -> OperationResult {
+        try bridge.addMedication(input)
+    }
+    
+    func discontinueMedication(_ input: DiscontinueMedicationInput) async throws -> OperationResult {
+        try bridge.discontinueMedication(input)
+    }
+    
+    func searchDrugs(query: String) async throws -> [DrugSearchResult] {
+        try bridge.searchDrugs(query: query)
+    }
+    
+    func checkInteractions(rxCuis: [String]) async throws -> [MedicationInteractionInfo] {
+        try bridge.checkInteractions(rxCuis: rxCuis)
+    }
+    
+    // MARK: - Environment
+    
+    func getEnvironmentReading(latitude: Double, longitude: Double) async throws -> EnvironmentReadingInfo {
+        try bridge.getEnvironmentReading(latitude: latitude, longitude: longitude)
+    }
+    
+    func getLatestEnvironmentReading() async throws -> EnvironmentReadingInfo? {
+        try bridge.getLatestEnvironmentReading()
+    }
+    
+    // MARK: - ECG
+    
+    func evaluateEcgFrame(_ frame: EcgFrameInput) async throws -> EcgEvaluationResult {
+        try bridge.evaluateEcgFrame(frame)
+    }
+    
+    // MARK: - AI Chat
+    
+    func sendChatMessage(_ message: String) async throws -> ChatMessageInfo {
+        try bridge.sendChatMessage(message)
+    }
+    
+    func getChatHistory() async throws -> [ChatMessageInfo] {
+        try bridge.getChatHistory()
+    }
+    
+    func clearChatHistory() async throws -> OperationResult {
+        try bridge.clearChatHistory()
+    }
+    
+    // MARK: - Coaching
+    
+    func getCoachingAdvice() async throws -> CoachingAdviceInfo {
+        try bridge.getCoachingAdvice()
+    }
+    
+    // MARK: - Sleep
+    
+    func recordSleepSession(_ input: SleepSessionInput) async throws -> OperationResult {
+        try bridge.recordSleepSession(input)
+    }
+    
+    func getSleepSessions(from: Date?, to: Date?) async throws -> [SleepSessionInfo] {
+        try bridge.getSleepSessions(from: from, to: to)
+    }
+    
+    // MARK: - Medical History & OCR
+    
+    func getMedicalHistory() async throws -> [MedicalHistoryEntryInfo] {
+        try bridge.getMedicalHistory()
+    }
+    
+    func getOcrDocuments() async throws -> [OcrDocumentInfo] {
+        try bridge.getOcrDocuments()
+    }
+    
+    // MARK: - OCR Text Processing
+    
+    func classifyDocument(_ ocrText: String) async -> String {
+        bridge.classifyDocument(ocrText)
+    }
+    
+    func processFullOcr(_ ocrText: String) async throws -> OcrProcessingResult {
+        try bridge.processFullOcr(ocrText)
+    }
+    
+    func saveOcrDocument(opaqueInternalName: String, mimeType: String, pageCount: Int, pageTexts: [String]) async throws -> OcrDocumentInfo {
+        try bridge.saveOcrDocument(
+            opaqueInternalName: opaqueInternalName,
+            mimeType: mimeType,
+            pageCount: pageCount,
+            pageTexts: pageTexts
+        )
+    }
+    
+    func sanitizeText(_ text: String) async -> String {
+        bridge.sanitizeText(text)
     }
 }

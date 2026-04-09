@@ -7,91 +7,99 @@ using Microsoft.Extensions.Logging;
 namespace DigitalTwin.Mobile.Application.Services;
 
 /// <summary>
-/// Application service for authentication orchestration
+/// Application service for authentication orchestration.
+/// Validates Google ID tokens client-side (like the MAUI portal) — no backend required.
+/// Cloud sync happens separately when API_BASE_URL is configured.
 /// </summary>
 public class AuthService
 {
     private readonly IUserRepository _userRepository;
     private readonly IPatientRepository _patientRepository;
+    private readonly GoogleTokenValidationService _tokenValidator;
     private readonly ICloudSyncService _cloudSyncService;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         IUserRepository userRepository,
         IPatientRepository patientRepository,
+        GoogleTokenValidationService tokenValidator,
         ICloudSyncService cloudSyncService,
         ILogger<AuthService> logger)
     {
         _userRepository = userRepository;
         _patientRepository = patientRepository;
+        _tokenValidator = tokenValidator;
         _cloudSyncService = cloudSyncService;
         _logger = logger;
     }
 
     /// <summary>
-    /// Authenticates user with Google ID token and sets up local profile
+    /// Authenticates user with Google ID token — validates client-side, creates local user.
     /// </summary>
     public async Task<AuthenticationResult> AuthenticateWithGoogleAsync(string googleIdToken)
     {
         try
         {
-            _logger.LogInformation("[AuthService] Starting Google authentication");
+            _logger.LogInformation("[AuthService] Starting Google authentication (client-side validation)");
 
-            // Authenticate with cloud service
-            var success = await _cloudSyncService.AuthenticateAsync(googleIdToken);
-            if (!success)
+            // 1. Validate token directly with Google (no backend needed)
+            var claims = await _tokenValidator.ValidateAsync(googleIdToken);
+            if (claims == null || string.IsNullOrEmpty(claims.Email))
             {
                 return new AuthenticationResult
                 {
                     Success = false,
-                    ErrorMessage = "Authentication failed"
+                    ErrorMessage = "Google token validation failed"
                 };
             }
 
-            // Get user profile from cloud
-            var cloudUser = await _cloudSyncService.GetCurrentUserProfileAsync();
-            if (cloudUser == null)
-            {
-                return new AuthenticationResult
-                {
-                    Success = false,
-                    ErrorMessage = "Failed to retrieve user profile"
-                };
-            }
-
-            // Save/update local user
-            var localUser = await _userRepository.GetByEmailAsync(cloudUser.Email);
+            // 2. Find or create local user from token claims
+            var localUser = await _userRepository.GetByEmailAsync(claims.Email);
             if (localUser == null)
             {
                 localUser = new User
                 {
-                    Id = cloudUser.Id,
-                    Email = cloudUser.Email,
-                    Role = UserRole.Patient, // Mobile app is for patients
-                    FirstName = cloudUser.FirstName,
-                    LastName = cloudUser.LastName,
-                    PhotoUrl = cloudUser.PhotoUrl,
-                    Phone = cloudUser.Phone,
-                    DateOfBirth = cloudUser.DateOfBirth,
-                    IsSynced = true
+                    Id = Guid.NewGuid(),
+                    Email = claims.Email,
+                    Role = UserRole.Patient,
+                    FirstName = claims.GivenName,
+                    LastName = claims.FamilyName,
+                    PhotoUrl = claims.Picture,
+                    IsSynced = false
                 };
             }
             else
             {
-                // Update existing user
-                localUser.FirstName = cloudUser.FirstName ?? localUser.FirstName;
-                localUser.LastName = cloudUser.LastName ?? localUser.LastName;
-                localUser.PhotoUrl = cloudUser.PhotoUrl ?? localUser.PhotoUrl;
-                localUser.Phone = cloudUser.Phone ?? localUser.Phone;
-                localUser.DateOfBirth = cloudUser.DateOfBirth ?? localUser.DateOfBirth;
+                // Update from latest token claims
+                localUser.FirstName = claims.GivenName ?? localUser.FirstName;
+                localUser.LastName = claims.FamilyName ?? localUser.LastName;
+                localUser.PhotoUrl = claims.Picture ?? localUser.PhotoUrl;
                 localUser.UpdatedAt = DateTime.UtcNow;
-                localUser.IsSynced = true;
             }
 
             await _userRepository.SaveAsync(localUser);
 
-            // Ensure patient profile exists
+            // 3. Ensure patient profile exists
             await EnsurePatientProfileAsync(localUser.Id);
+
+            // 4. Best-effort cloud sync (non-blocking, only if API is configured)
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var synced = await _cloudSyncService.AuthenticateAsync(googleIdToken);
+                    if (synced)
+                    {
+                        localUser.IsSynced = true;
+                        await _userRepository.SaveAsync(localUser);
+                        _logger.LogInformation("[AuthService] Cloud sync succeeded for {Email}", localUser.Email);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "[AuthService] Cloud sync skipped (no backend or offline)");
+                }
+            });
 
             _logger.LogInformation("[AuthService] Authentication successful for user {Email}", localUser.Email);
 

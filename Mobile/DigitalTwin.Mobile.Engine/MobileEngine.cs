@@ -1,6 +1,7 @@
 using System.Text.Json;
 using DigitalTwin.Mobile.Application.DTOs;
 using DigitalTwin.Mobile.Application.Services;
+using DigitalTwin.Mobile.Domain.Models;
 using DigitalTwin.Mobile.Domain.Services;
 using DigitalTwin.Mobile.Domain.Enums;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,7 +21,7 @@ public class MobileEngine : IDisposable
     private readonly IServiceScope _scope;
     private readonly ILogger<MobileEngine> _logger;
 
-    public MobileEngine(string databasePath, string apiBaseUrl)
+    public MobileEngine(string databasePath, string apiBaseUrl, string? geminiApiKey = null, string? openWeatherApiKey = null, string? googleOAuthClientId = null)
     {
         // Ensure SQLite native provider is configured (NativeAOT/iOS-safe).
         // Force system libsqlite3 provider (prevents attempts to dlopen e_sqlite3).
@@ -38,7 +39,7 @@ public class MobileEngine : IDisposable
         var builder = Host.CreateDefaultBuilder()
             .ConfigureServices(services =>
             {
-                services.AddMobileServices(databasePath, apiBaseUrl);
+                services.AddMobileServices(databasePath, apiBaseUrl, geminiApiKey, openWeatherApiKey, googleOAuthClientId);
             });
 
         _host = builder.Build();
@@ -318,5 +319,473 @@ public class MobileEngine : IDisposable
     {
         _scope?.Dispose();
         _host?.Dispose();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Medications
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public async Task<string> GetMedicationsAsync()
+    {
+        try
+        {
+            var service = _scope.ServiceProvider.GetRequiredService<MedicationApplicationService>();
+            var meds = await service.GetMedicationsAsync();
+            return JsonSerializer.Serialize(meds.ToArray(), MobileJsonContext.Default.MedicationDtoArray);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to get medications");
+            return JsonSerializer.Serialize(Array.Empty<MedicationDto>(), MobileJsonContext.Default.MedicationDtoArray);
+        }
+    }
+
+    public async Task<string> AddMedicationAsync(string inputJson)
+    {
+        try
+        {
+            var input = JsonSerializer.Deserialize(inputJson, MobileJsonContext.Default.AddMedicationInput);
+            if (input == null) throw new ArgumentException("Invalid medication input");
+
+            var service = _scope.ServiceProvider.GetRequiredService<MedicationApplicationService>();
+            var (success, error) = await service.AddMedicationAsync(input);
+
+            return JsonSerializer.Serialize(new NativeBridge.OperationResultDto { Success = success, Error = error }, MobileJsonContext.Default.OperationResultDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to add medication");
+            return JsonSerializer.Serialize(new NativeBridge.OperationResultDto { Success = false, Error = ex.Message }, MobileJsonContext.Default.OperationResultDto);
+        }
+    }
+
+    public async Task<string> DiscontinueMedicationAsync(string inputJson)
+    {
+        try
+        {
+            var input = JsonSerializer.Deserialize(inputJson, MobileJsonContext.Default.DiscontinueMedicationInput);
+            if (input == null) throw new ArgumentException("Invalid discontinue input");
+
+            var service = _scope.ServiceProvider.GetRequiredService<MedicationApplicationService>();
+            var (success, error) = await service.DiscontinueMedicationAsync(input);
+
+            return JsonSerializer.Serialize(new NativeBridge.OperationResultDto { Success = success, Error = error }, MobileJsonContext.Default.OperationResultDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to discontinue medication");
+            return JsonSerializer.Serialize(new NativeBridge.OperationResultDto { Success = false, Error = ex.Message }, MobileJsonContext.Default.OperationResultDto);
+        }
+    }
+
+    public async Task<string> SearchDrugsAsync(string query)
+    {
+        try
+        {
+            var service = _scope.ServiceProvider.GetRequiredService<MedicationApplicationService>();
+            var results = await service.SearchDrugsAsync(query);
+            return JsonSerializer.Serialize(results.ToArray(), MobileJsonContext.Default.DrugSearchResultDtoArray);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Drug search failed");
+            return JsonSerializer.Serialize(Array.Empty<DrugSearchResultDto>(), MobileJsonContext.Default.DrugSearchResultDtoArray);
+        }
+    }
+
+    public async Task<string> CheckInteractionsAsync(string rxCuisJson)
+    {
+        try
+        {
+            var rxCuis = JsonSerializer.Deserialize(rxCuisJson, MobileJsonContext.Default.StringArray);
+            if (rxCuis == null) throw new ArgumentException("Invalid RxCUI list");
+
+            var service = _scope.ServiceProvider.GetRequiredService<MedicationApplicationService>();
+            var interactions = await service.CheckInteractionsAsync(rxCuis);
+            return JsonSerializer.Serialize(interactions.ToArray(), MobileJsonContext.Default.MedicationInteractionDtoArray);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Interaction check failed");
+            return JsonSerializer.Serialize(Array.Empty<MedicationInteractionDto>(), MobileJsonContext.Default.MedicationInteractionDtoArray);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Environment
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public async Task<string> GetEnvironmentReadingAsync(double latitude, double longitude)
+    {
+        try
+        {
+            var service = _scope.ServiceProvider.GetRequiredService<EnvironmentApplicationService>();
+            var reading = await service.GetCurrentEnvironmentAsync(latitude, longitude);
+            return JsonSerializer.Serialize(reading, MobileJsonContext.Default.EnvironmentReadingDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to get environment reading");
+            return JsonSerializer.Serialize((EnvironmentReadingDto?)null, MobileJsonContext.Default.EnvironmentReadingDto);
+        }
+    }
+
+    public async Task<string> GetLatestEnvironmentReadingAsync()
+    {
+        try
+        {
+            var service = _scope.ServiceProvider.GetRequiredService<EnvironmentApplicationService>();
+            var reading = await service.GetLatestCachedAsync();
+            return JsonSerializer.Serialize(reading, MobileJsonContext.Default.EnvironmentReadingDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to get latest environment reading");
+            return JsonSerializer.Serialize((EnvironmentReadingDto?)null, MobileJsonContext.Default.EnvironmentReadingDto);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  ECG Triage
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public string EvaluateEcgFrame(string frameJson)
+    {
+        try
+        {
+            var frame = JsonSerializer.Deserialize(frameJson, MobileJsonContext.Default.EcgFrameInput);
+            if (frame == null) throw new ArgumentException("Invalid ECG frame");
+
+            var ecgFrame = new EcgFrame
+            {
+                Samples = frame.Samples,
+                SpO2 = frame.SpO2,
+                HeartRate = frame.HeartRate,
+                Timestamp = frame.Timestamp
+            };
+
+            var service = _scope.ServiceProvider.GetRequiredService<EcgApplicationService>();
+            var (frameDto, alertDto) = service.EvaluateFrame(ecgFrame);
+
+            var result = new EcgEvaluationResult { Frame = frameDto, Alert = alertDto };
+            return JsonSerializer.Serialize(result, MobileJsonContext.Default.EcgEvaluationResult);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] ECG evaluation failed");
+            return JsonSerializer.Serialize(new NativeBridge.OperationResultDto { Success = false, Error = ex.Message }, MobileJsonContext.Default.OperationResultDto);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  AI Chat
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public async Task<string> SendChatMessageAsync(string message)
+    {
+        try
+        {
+            var service = _scope.ServiceProvider.GetRequiredService<ChatBotApplicationService>();
+            var response = await service.SendMessageAsync(message);
+            return JsonSerializer.Serialize(response, MobileJsonContext.Default.ChatMessageDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Chat message failed");
+            var errorDto = new ChatMessageDto
+            {
+                Content = "An error occurred. Please try again.",
+                IsUser = false,
+                Timestamp = DateTime.UtcNow
+            };
+            return JsonSerializer.Serialize(errorDto, MobileJsonContext.Default.ChatMessageDto);
+        }
+    }
+
+    public async Task<string> GetChatHistoryAsync()
+    {
+        try
+        {
+            var service = _scope.ServiceProvider.GetRequiredService<ChatBotApplicationService>();
+            var history = await service.GetChatHistoryAsync();
+            return JsonSerializer.Serialize(history.ToArray(), MobileJsonContext.Default.ChatMessageDtoArray);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to get chat history");
+            return JsonSerializer.Serialize(Array.Empty<ChatMessageDto>(), MobileJsonContext.Default.ChatMessageDtoArray);
+        }
+    }
+
+    public async Task<string> ClearChatHistoryAsync()
+    {
+        try
+        {
+            var service = _scope.ServiceProvider.GetRequiredService<ChatBotApplicationService>();
+            await service.ClearChatHistoryAsync();
+            return JsonSerializer.Serialize(new NativeBridge.OperationResultDto { Success = true }, MobileJsonContext.Default.OperationResultDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to clear chat history");
+            return JsonSerializer.Serialize(new NativeBridge.OperationResultDto { Success = false, Error = ex.Message }, MobileJsonContext.Default.OperationResultDto);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Coaching
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public async Task<string> GetCoachingAdviceAsync()
+    {
+        try
+        {
+            var service = _scope.ServiceProvider.GetRequiredService<CoachingApplicationService>();
+            var advice = await service.GetAdviceAsync();
+            return JsonSerializer.Serialize(advice, MobileJsonContext.Default.CoachingAdviceDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to get coaching advice");
+            var fallback = new CoachingAdviceDto
+            {
+                Advice = "Stay hydrated, get regular exercise, and maintain a balanced diet.",
+                Timestamp = DateTime.UtcNow
+            };
+            return JsonSerializer.Serialize(fallback, MobileJsonContext.Default.CoachingAdviceDto);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Sleep
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public async Task<string> RecordSleepSessionAsync(string sessionJson)
+    {
+        try
+        {
+            var input = JsonSerializer.Deserialize(sessionJson, MobileJsonContext.Default.SleepSessionInput);
+            if (input == null) throw new ArgumentException("Invalid sleep session input");
+
+            var service = _scope.ServiceProvider.GetRequiredService<SleepApplicationService>();
+            var success = await service.RecordSleepSessionAsync(input);
+            return JsonSerializer.Serialize(new NativeBridge.OperationResultDto { Success = success }, MobileJsonContext.Default.OperationResultDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to record sleep session");
+            return JsonSerializer.Serialize(new NativeBridge.OperationResultDto { Success = false, Error = ex.Message }, MobileJsonContext.Default.OperationResultDto);
+        }
+    }
+
+    public async Task<string> GetSleepSessionsAsync(string? fromDateIso = null, string? toDateIso = null)
+    {
+        try
+        {
+            DateTime? from = null, to = null;
+            if (!string.IsNullOrEmpty(fromDateIso)) from = DateTime.Parse(fromDateIso);
+            if (!string.IsNullOrEmpty(toDateIso)) to = DateTime.Parse(toDateIso);
+
+            var service = _scope.ServiceProvider.GetRequiredService<SleepApplicationService>();
+            var sessions = await service.GetSleepSessionsAsync(from, to);
+            return JsonSerializer.Serialize(sessions.ToArray(), MobileJsonContext.Default.SleepSessionDtoArray);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to get sleep sessions");
+            return JsonSerializer.Serialize(Array.Empty<SleepSessionDto>(), MobileJsonContext.Default.SleepSessionDtoArray);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Medical History
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public async Task<string> GetMedicalHistoryAsync()
+    {
+        try
+        {
+            var patientRepo = _scope.ServiceProvider.GetRequiredService<Domain.Interfaces.IPatientRepository>();
+            var historyRepo = _scope.ServiceProvider.GetRequiredService<Domain.Interfaces.IMedicalHistoryEntryRepository>();
+
+            var patient = await patientRepo.GetCurrentPatientAsync();
+            if (patient == null)
+                return JsonSerializer.Serialize(Array.Empty<MedicalHistoryEntryDto>(), MobileJsonContext.Default.MedicalHistoryEntryDtoArray);
+
+            var entries = await historyRepo.GetByPatientIdAsync(patient.Id);
+            var dtos = entries.Select(e => new MedicalHistoryEntryDto
+            {
+                Id = e.Id,
+                SourceDocumentId = e.SourceDocumentId,
+                Title = e.Title,
+                MedicationName = e.MedicationName,
+                Dosage = e.Dosage,
+                Frequency = e.Frequency,
+                Duration = e.Duration,
+                Notes = e.Notes,
+                Summary = e.Summary,
+                Confidence = e.Confidence,
+                EventDate = e.EventDate
+            }).ToArray();
+
+            return JsonSerializer.Serialize(dtos, MobileJsonContext.Default.MedicalHistoryEntryDtoArray);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to get medical history");
+            return JsonSerializer.Serialize(Array.Empty<MedicalHistoryEntryDto>(), MobileJsonContext.Default.MedicalHistoryEntryDtoArray);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  OCR Documents
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public async Task<string> GetOcrDocumentsAsync()
+    {
+        try
+        {
+            var patientRepo = _scope.ServiceProvider.GetRequiredService<Domain.Interfaces.IPatientRepository>();
+            var ocrRepo = _scope.ServiceProvider.GetRequiredService<Domain.Interfaces.IOcrDocumentRepository>();
+
+            var patient = await patientRepo.GetCurrentPatientAsync();
+            if (patient == null)
+                return JsonSerializer.Serialize(Array.Empty<OcrDocumentDto>(), MobileJsonContext.Default.OcrDocumentDtoArray);
+
+            var docs = await ocrRepo.GetByPatientIdAsync(patient.Id);
+            var dtos = docs.Select(d => new OcrDocumentDto
+            {
+                Id = d.Id,
+                OpaqueInternalName = d.OpaqueInternalName,
+                MimeType = d.MimeType,
+                PageCount = d.PageCount,
+                SanitizedOcrPreview = d.SanitizedOcrPreview,
+                ScannedAt = d.ScannedAt,
+                IsDirty = d.IsDirty
+            }).ToArray();
+
+            return JsonSerializer.Serialize(dtos, MobileJsonContext.Default.OcrDocumentDtoArray);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to get OCR documents");
+            return JsonSerializer.Serialize(Array.Empty<OcrDocumentDto>(), MobileJsonContext.Default.OcrDocumentDtoArray);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  OCR Text Processing
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public string ClassifyDocument(string ocrText)
+    {
+        try
+        {
+            var svc = _scope.ServiceProvider.GetRequiredService<Application.Services.OcrTextProcessingApplicationService>();
+            return svc.ClassifyDocument(ocrText);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to classify document");
+            return "Unknown";
+        }
+    }
+
+    public string ExtractIdentity(string ocrText)
+    {
+        try
+        {
+            var svc = _scope.ServiceProvider.GetRequiredService<Application.Services.OcrTextProcessingApplicationService>();
+            var identity = svc.ExtractIdentity(ocrText);
+            return JsonSerializer.Serialize(identity, MobileJsonContext.Default.DocumentIdentity);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to extract identity");
+            return JsonSerializer.Serialize(new Domain.Models.DocumentIdentity(null, null, 0f, 0f), MobileJsonContext.Default.DocumentIdentity);
+        }
+    }
+
+    public async Task<string> ValidateIdentityAsync(string ocrText)
+    {
+        try
+        {
+            var svc = _scope.ServiceProvider.GetRequiredService<Application.Services.OcrTextProcessingApplicationService>();
+            var result = await svc.ValidateIdentityAsync(ocrText);
+            return JsonSerializer.Serialize(result, MobileJsonContext.Default.IdentityValidationResult);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to validate identity");
+            return JsonSerializer.Serialize(
+                new Domain.Models.IdentityValidationResult(false, false, false, ex.Message),
+                MobileJsonContext.Default.IdentityValidationResult);
+        }
+    }
+
+    public string SanitizeText(string ocrText)
+    {
+        try
+        {
+            var svc = _scope.ServiceProvider.GetRequiredService<Application.Services.OcrTextProcessingApplicationService>();
+            return svc.SanitizeText(ocrText);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to sanitize text");
+            return ocrText;
+        }
+    }
+
+    public string ExtractStructured(string ocrText, string documentType)
+    {
+        try
+        {
+            var svc = _scope.ServiceProvider.GetRequiredService<Application.Services.OcrTextProcessingApplicationService>();
+            var result = svc.ExtractStructured(ocrText, documentType);
+            return JsonSerializer.Serialize(result, MobileJsonContext.Default.HeuristicExtractionResult);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to extract structured fields");
+            return JsonSerializer.Serialize(Domain.Models.HeuristicExtractionResult.Empty, MobileJsonContext.Default.HeuristicExtractionResult);
+        }
+    }
+
+    public async Task<string> ProcessFullOcrAsync(string ocrText)
+    {
+        try
+        {
+            var svc = _scope.ServiceProvider.GetRequiredService<Application.Services.OcrTextProcessingApplicationService>();
+            var result = await svc.ProcessFullAsync(ocrText);
+            return JsonSerializer.Serialize(result, MobileJsonContext.Default.OcrTextProcessingResult);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed full OCR processing");
+            return JsonSerializer.Serialize(
+                new Domain.Models.OcrTextProcessingResult("Unknown", null, null, ocrText, null, []),
+                MobileJsonContext.Default.OcrTextProcessingResult);
+        }
+    }
+
+    public async Task<string> SaveOcrDocumentAsync(string inputJson)
+    {
+        try
+        {
+            var input = JsonSerializer.Deserialize(inputJson, MobileJsonContext.Default.SaveOcrDocumentInput)
+                        ?? throw new ArgumentException("Invalid input JSON");
+            var svc = _scope.ServiceProvider.GetRequiredService<Application.Services.OcrTextProcessingApplicationService>();
+            var dto = await svc.SaveDocumentAndExtractHistoryAsync(
+                input.OpaqueInternalName, input.MimeType, input.PageCount, input.PageTexts);
+            return JsonSerializer.Serialize(dto, MobileJsonContext.Default.OcrDocumentDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to save OCR document");
+            return JsonSerializer.Serialize(
+                new NativeBridge.OperationResultDto { Success = false, Error = ex.Message },
+                MobileJsonContext.Default.OperationResultDto);
+        }
     }
 }

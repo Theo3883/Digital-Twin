@@ -59,6 +59,8 @@ public static class DependencyInjection
             sp.GetRequiredKeyedService<IDoctorPatientAssignmentRepository>(Cloud));
         services.AddScoped<IMedicationRepository>(sp =>
             sp.GetRequiredKeyedService<IMedicationRepository>(Cloud));
+        services.AddScoped<IOcrDocumentRepository>(sp =>
+            sp.GetRequiredKeyedService<IOcrDocumentRepository>(Cloud));
         services.AddScoped<IMedicalHistoryEntryRepository>(sp =>
             sp.GetRequiredKeyedService<IMedicalHistoryEntryRepository>(Cloud));
 
