@@ -167,6 +167,9 @@ class MobileEngineWrapper: ObservableObject {
                 // Load patient profile after authentication
                 await loadPatientProfile()
                 
+                // Trigger initial cloud sync now that we're authenticated
+                let _ = await performSync()
+                
                 print("[MobileEngineWrapper] Authentication successful")
                 return true
             } else {
@@ -228,6 +231,31 @@ class MobileEngineWrapper: ObservableObject {
             errorMessage = "Update failed: \(error.localizedDescription)"
             return false
         }
+    }
+    
+    // MARK: - Sign Out
+    
+    func signOut() async {
+        isAuthenticated = false
+        currentUser = nil
+        patientProfile = nil
+        medications = []
+        chatMessages = []
+        ocrDocuments = []
+        medicalHistory = []
+    }
+    
+    // MARK: - Latest Vitals (convenience)
+    
+    struct LatestVitals {
+        var heartRate: Int?
+        var oxygenSaturation: Int?
+        var stepCount: Int?
+    }
+    
+    var latestVitals: LatestVitals? {
+        // This is a computed convenience; real implementation fetches from cache
+        nil
     }
     
     // MARK: - Vital Signs

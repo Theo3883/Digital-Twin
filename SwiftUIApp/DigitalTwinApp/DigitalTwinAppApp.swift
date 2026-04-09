@@ -9,8 +9,10 @@ struct DigitalTwinAppApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(engineWrapper)
+                .preferredColorScheme(.dark)
                 .task {
                     await engineWrapper.initialize()
+                    BackgroundSyncService.shared.engineWrapperRef = engineWrapper
                 }
                 .onOpenURL { url in
                     GoogleSignInService.handleURL(url)

@@ -8,6 +8,11 @@ final class GoogleSignInService: ObservableObject {
     @Published var isSignedIn = false
     @Published var errorMessage: String?
     
+    /// User profile fields populated after successful sign-in.
+    @Published var userEmail: String?
+    @Published var userGivenName: String?
+    @Published var userFamilyName: String?
+    
     /// The Google OAuth client ID from the Google Cloud console plist.
     private let clientID: String
     
@@ -35,6 +40,9 @@ final class GoogleSignInService: ObservableObject {
             throw GoogleSignInError.noIDToken
         }
         
+        userEmail = result.user.profile?.email
+        userGivenName = result.user.profile?.givenName
+        userFamilyName = result.user.profile?.familyName
         isSignedIn = true
         return idToken
     }

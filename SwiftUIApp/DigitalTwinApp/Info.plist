@@ -43,6 +43,8 @@
 	<string>This app needs to write health data to store vital signs measurements.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Use Face ID to quickly and securely access your health data.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>DigitalTwin needs your location to show local air quality and weather data.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>background-app-refresh</string>

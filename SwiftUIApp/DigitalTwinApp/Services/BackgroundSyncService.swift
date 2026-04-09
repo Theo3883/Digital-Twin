@@ -157,11 +157,12 @@ final class BackgroundSyncService: ObservableObject {
         }
     }
     
-    /// Get the engine wrapper from the app
+    /// Weak reference to the shared engine wrapper, set from the app on launch
+    weak var engineWrapperRef: MobileEngineWrapper?
+
+    /// Get the engine wrapper from the stored reference
     private func getEngineWrapper() async -> MobileEngineWrapper? {
-        // In a real implementation, this would get the engine wrapper from the app's scene delegate or similar
-        // For now, we'll return nil and handle this in the actual integration
-        return nil
+        return engineWrapperRef
     }
     
     /// Send notification if sync resulted in significant changes
