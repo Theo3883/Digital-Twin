@@ -123,6 +123,10 @@
 		FF0000000000000000000005 /* EcgWaveformPath.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000015 /* EcgWaveformPath.swift */; };
 		FF0000000000000000000006 /* EcgDemoWave.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000016 /* EcgDemoWave.swift */; };
 		FF0000000000000000000007 /* CriticalAlertBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000017 /* CriticalAlertBanner.swift */; };
+		AB0000000000000000000001 /* NoPatientProfileHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000011 /* NoPatientProfileHomeView.swift */; };
+		AB0000000000000000000002 /* NoPatientProfileProfileCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000012 /* NoPatientProfileProfileCard.swift */; };
+		AB0000000000000000000003 /* ProfileSetupGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000013 /* ProfileSetupGateView.swift */; };
+		AB0000000000000000000004 /* DatabasePathRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000014 /* DatabasePathRow.swift */; };
 		BB0000000000000000000012 /* LiquidGlassTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000002 /* LiquidGlassTheme.swift */; };
 		BB0000000000000000000013 /* EcgMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000003 /* EcgMonitorView.swift */; };
 		BB0000000000000000000014 /* EnvironmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000004 /* EnvironmentView.swift */; };
@@ -235,6 +239,10 @@
 		FF0000000000000000000015 /* EcgWaveformPath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EcgWaveformPath.swift; sourceTree = "<group>"; };
 		FF0000000000000000000016 /* EcgDemoWave.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EcgDemoWave.swift; sourceTree = "<group>"; };
 		FF0000000000000000000017 /* CriticalAlertBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CriticalAlertBanner.swift; sourceTree = "<group>"; };
+		AB0000000000000000000011 /* NoPatientProfileHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoPatientProfileHomeView.swift; sourceTree = "<group>"; };
+		AB0000000000000000000012 /* NoPatientProfileProfileCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoPatientProfileProfileCard.swift; sourceTree = "<group>"; };
+		AB0000000000000000000013 /* ProfileSetupGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSetupGateView.swift; sourceTree = "<group>"; };
+		AB0000000000000000000014 /* DatabasePathRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabasePathRow.swift; sourceTree = "<group>"; };
 		EE0000000000000000000012 /* View+LiquidGlassStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+LiquidGlassStyles.swift"; sourceTree = "<group>"; };
 		EE0000000000000000000013 /* SyncGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncGateView.swift; sourceTree = "<group>"; };
 		EE0000000000000000000014 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
@@ -341,6 +349,8 @@
 			children = (
 				FA0000000000000000000017 /* ChatBubble.swift */,
 				FA0000000000000000000018 /* ConditionalGlassEffect.swift */,
+				AB1000000000000000000001 /* Home */,
+				AB1000000000000000000002 /* Settings */,
 				FF2000000000000000000001 /* ECG */,
 				FB2000000000000000000001 /* Environment */,
 				EE0000000000000000000015 /* AuthenticationView.swift */,
@@ -393,6 +403,8 @@
 		FD2000000000000000000001 /* Profile */ = {
 			isa = PBXGroup;
 			children = (
+				AB0000000000000000000012 /* NoPatientProfileProfileCard.swift */,
+				AB0000000000000000000013 /* ProfileSetupGateView.swift */,
 				FD0000000000000000000016 /* ProfileEditSheet.swift */,
 				FD0000000000000000000015 /* VitalStatTile.swift */,
 			);
@@ -410,6 +422,22 @@
 				FC0000000000000000000019 /* MedicationSafetyBadge.swift */,
 			);
 			path = Medications;
+			sourceTree = "<group>";
+		};
+		AB1000000000000000000001 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				AB0000000000000000000011 /* NoPatientProfileHomeView.swift */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		AB1000000000000000000002 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				AB0000000000000000000014 /* DatabasePathRow.swift */,
+			);
+			path = Settings;
 			sourceTree = "<group>";
 		};
 		FB2000000000000000000001 /* Environment */ = {
@@ -863,6 +891,10 @@
 				FF0000000000000000000005 /* EcgWaveformPath.swift in Sources */,
 				FF0000000000000000000006 /* EcgDemoWave.swift in Sources */,
 				FF0000000000000000000007 /* CriticalAlertBanner.swift in Sources */,
+				AB0000000000000000000001 /* NoPatientProfileHomeView.swift in Sources */,
+				AB0000000000000000000002 /* NoPatientProfileProfileCard.swift in Sources */,
+				AB0000000000000000000003 /* ProfileSetupGateView.swift in Sources */,
+				AB0000000000000000000004 /* DatabasePathRow.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

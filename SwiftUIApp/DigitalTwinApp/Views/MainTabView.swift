@@ -86,8 +86,8 @@ struct MainTabView: View {
                     ocrRepository: ocrRepository
                 )
             }
-            .defaultVisibility(.hidden, for: .tabBar)
         }
+        .toolbarVisibility(.visible, for: .tabBar)
         .tint(LiquidGlass.tealPrimary)
     }
 }

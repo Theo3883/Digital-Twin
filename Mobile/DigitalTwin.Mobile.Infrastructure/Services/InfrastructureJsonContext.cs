@@ -3,7 +3,10 @@ using System.Text.Json.Serialization;
 namespace DigitalTwin.Mobile.Infrastructure.Services;
 
 // NativeAOT-safe System.Text.Json source generation context for HTTP payloads.
-[JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Default)]
+[JsonSourceGenerationOptions(
+    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+    GenerationMode = JsonSourceGenerationMode.Default
+)]
 // Cloud sync types
 [JsonSerializable(typeof(GoogleAuthRequest))]
 [JsonSerializable(typeof(DeviceRequestEnvelope<UpsertUserRequest>))]
@@ -12,6 +15,17 @@ namespace DigitalTwin.Mobile.Infrastructure.Services;
 [JsonSerializable(typeof(VitalAppendRequestItem))]
 [JsonSerializable(typeof(List<VitalAppendRequestItem>))]
 [JsonSerializable(typeof(AuthResponse))]
+[JsonSerializable(typeof(MobileBootstrapDto))]
+[JsonSerializable(typeof(CloudMedicationDto))]
+[JsonSerializable(typeof(List<CloudMedicationDto>))]
+[JsonSerializable(typeof(CloudSleepSessionDto))]
+[JsonSerializable(typeof(List<CloudSleepSessionDto>))]
+[JsonSerializable(typeof(CloudEnvironmentReadingDto))]
+[JsonSerializable(typeof(List<CloudEnvironmentReadingDto>))]
+[JsonSerializable(typeof(CloudOcrDocumentDto))]
+[JsonSerializable(typeof(List<CloudOcrDocumentDto>))]
+[JsonSerializable(typeof(CloudMedicalHistoryEntryDto))]
+[JsonSerializable(typeof(List<CloudMedicalHistoryEntryDto>))]
 [JsonSerializable(typeof(UserProfileResponse))]
 [JsonSerializable(typeof(CloudUserDto))]
 [JsonSerializable(typeof(SyncResponse))]

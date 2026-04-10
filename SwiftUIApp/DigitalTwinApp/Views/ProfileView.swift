@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct ProfileView: View {
+    @EnvironmentObject private var container: AppContainer
     @StateObject private var viewModel: ProfileViewModel
-    @State private var showEditSheet = false
     @State private var showSignOutAlert = false
 
     private let repository: ProfileRepository
@@ -37,7 +37,9 @@ struct ProfileView: View {
 
                 // "Create Medical Profile" CTA when no profile exists
                 if viewModel.patient == nil {
-                    createProfileCTA
+                    NoPatientProfileProfileCard {
+                        container.shouldPresentProfileEdit = true
+                    }
                 }
 
                 // Completion Checklist (if < 100%)
@@ -72,10 +74,15 @@ struct ProfileView: View {
             }
             Button("Cancel", role: .cancel) {}
         }
-        .sheet(isPresented: $showEditSheet) {
+        .sheet(isPresented: $container.shouldPresentProfileEdit) {
             ProfileEditSheet(
                 viewModel: ProfileEditSheetViewModel(repository: repository, patient: viewModel.patient)
             )
+        }
+        .onChange(of: container.shouldPresentProfileEdit) { _, newValue in
+            if newValue == false {
+                Task { await viewModel.load() }
+            }
         }
         .navigationBarHidden(true)
         } // NavigationView
@@ -144,7 +151,7 @@ struct ProfileView: View {
 
             // 3-dot menu
             Menu {
-                Button { showEditSheet = true } label: {
+                Button { container.shouldPresentProfileEdit = true } label: {
                     Label("Edit Profile", systemImage: "pencil")
                 }
                 Button(role: .destructive) { showSignOutAlert = true } label: {
@@ -158,43 +165,6 @@ struct ProfileView: View {
             }
             .padding(12)
         }
-    }
-
-    // MARK: - Create Profile CTA
-
-    private var createProfileCTA: some View {
-        VStack(spacing: 14) {
-            Image(systemName: "person.crop.circle.badge.plus")
-                .font(.system(size: 36))
-                .foregroundColor(LiquidGlass.amberWarning)
-
-            Text("No medical profile yet")
-                .font(.subheadline.weight(.semibold))
-                .foregroundColor(.white)
-
-            Text("Create your medical profile to unlock personalized health insights and vitals tracking.")
-                .font(.caption)
-                .foregroundColor(.white.opacity(0.5))
-                .multilineTextAlignment(.center)
-
-            Button {
-                showEditSheet = true
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "plus.circle.fill")
-                    Text("Create Medical Profile")
-                        .font(.subheadline.weight(.semibold))
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background {
-                    RoundedRectangle(cornerRadius: LiquidGlass.radiusCard)
-                        .fill(LiquidGlass.tealPrimary.opacity(0.3))
-                }
-            }
-        }
-        .glassCard(tint: LiquidGlass.amberWarning.opacity(0.08))
     }
 
     // MARK: - Completion Checklist

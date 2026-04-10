@@ -13,6 +13,14 @@ CONFIG="${1:-Debug}"
 # ── 0. Generate Secrets.xcconfig from .env ────────────────────────────────
 "$ROOT_DIR/scripts/generate_xcconfig.sh"
 
+# ── 0b. Load .env into environment for engine build ───────────────────────
+# This is used by MSBuild to generate `EngineBuildConfig.g.cs` at compile time.
+if [[ -f "$ROOT_DIR/.env" ]]; then
+  set -a
+  source "$ROOT_DIR/.env"
+  set +a
+fi
+
 # ── 1. Publish NativeAOT for device (ios-arm64) ───────────────────────────
 echo "==> Publishing NativeAOT for ios-arm64 ($CONFIG)..."
 dotnet publish "$PROJ" \

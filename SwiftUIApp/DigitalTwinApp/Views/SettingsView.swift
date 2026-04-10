@@ -30,6 +30,8 @@ struct SettingsView: View {
                 
                 // App Information Section
                 AppInfoSection()
+
+                DatabasePathRow(path: engineWrapper.databasePathString)
                 
                 // Account Actions Section
                 AccountActionsSection(showingSignOutAlert: $showingSignOutAlert)

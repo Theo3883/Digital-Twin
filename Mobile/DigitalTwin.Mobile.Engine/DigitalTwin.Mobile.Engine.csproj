@@ -21,6 +21,31 @@
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
+  <!--
+    Build-time config injection (NativeAOT-safe):
+    - We generate a small source file from environment variables at compile time.
+    - The engine build script loads `.env` before invoking `dotnet publish`, so values flow in.
+  -->
+  <PropertyGroup>
+    <!-- Prefer explicit MSBuild property, fallback to environment var API_BASE_URL -->
+    <EngineDefaultApiBaseUrl Condition="'$(EngineDefaultApiBaseUrl)' == ''">$(API_BASE_URL)</EngineDefaultApiBaseUrl>
+  </PropertyGroup>
+
+  <Target Name="GenerateEngineBuildConfig" BeforeTargets="BeforeCompile">
+    <MakeDir Directories="$(MSBuildProjectDirectory)/Generated" />
+    <WriteLinesToFile
+      File="$(MSBuildProjectDirectory)/Generated/EngineBuildConfig.g.cs"
+      Overwrite="true"
+      Lines="/* This file is generated at build time. Do not edit. */
+namespace DigitalTwin.Mobile.Engine
+{
+    internal static class EngineBuildConfig
+    {
+        internal const string DefaultApiBaseUrl = &quot;$(EngineDefaultApiBaseUrl)&quot;%3B
+    }
+}" />
+  </Target>
+
   <!-- Native compilation can't generate NuGet packages -->
   <PropertyGroup Condition="'$(PublishAot)' == 'true'">
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>

@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using DigitalTwin.Domain.Enums;
 using DigitalTwin.Domain.Interfaces.Repositories;
@@ -62,6 +63,31 @@ public class MobileSyncController : ControllerBase
         User.FindFirstValue(ClaimTypes.Email)
         ?? throw new UnauthorizedAccessException("Email claim missing.");
 
+    private string[] GetGoogleAudiences()
+    {
+        // iOS and web can use different Google OAuth client IDs.
+        // Accept multiple audiences to support:
+        // - iOS (Google:MobileClientId or Google:MobileClientIds)
+        // - existing web/doctor portal (Google:ClientId)
+        var mobileSingle = _config["Google:MobileClientId"];
+        var mobileMany = _config["Google:MobileClientIds"];
+        var defaultClient = _config["Google:ClientId"];
+
+        var values = new List<string>();
+
+        static IEnumerable<string> SplitCsv(string? s) =>
+            string.IsNullOrWhiteSpace(s)
+                ? []
+                : s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        values.AddRange(SplitCsv(mobileMany));
+        if (!string.IsNullOrWhiteSpace(mobileSingle)) values.Add(mobileSingle);
+        if (!string.IsNullOrWhiteSpace(defaultClient)) values.Add(defaultClient);
+
+        // De-dup; empty means misconfig (we'll throw a clear error later).
+        return values.Distinct(StringComparer.Ordinal).ToArray();
+    }
+
     private async Task<(User user, Patient patient)> GetCurrentUserAndPatientAsync()
     {
         var user = await _userRepo.GetByEmailAsync(UserEmail)
@@ -69,6 +95,162 @@ public class MobileSyncController : ControllerBase
         var patient = await _patientRepo.GetByUserIdAsync(user.Id)
                       ?? throw new InvalidOperationException("Patient profile not found.");
         return (user, patient);
+    }
+
+    public record BootstrapPatientDto(
+        Guid Id,
+        Guid UserId,
+        string? BloodType,
+        string? Allergies,
+        string? MedicalHistoryNotes,
+        decimal? Weight,
+        decimal? Height,
+        int? BloodPressureSystolic,
+        int? BloodPressureDiastolic,
+        decimal? Cholesterol,
+        string? Cnp);
+
+    public record BootstrapVitalDto(
+        Guid Id,
+        int Type,
+        double Value,
+        string Unit,
+        string Source,
+        DateTime Timestamp);
+
+    public record BootstrapSleepDto(
+        Guid Id,
+        DateTime StartTime,
+        DateTime EndTime,
+        int DurationMinutes,
+        double QualityScore);
+
+    public record BootstrapEnvironmentDto(
+        Guid Id,
+        double Latitude,
+        double Longitude,
+        string LocationDisplayName,
+        double PM25,
+        double PM10,
+        double O3,
+        double NO2,
+        double Temperature,
+        double Humidity,
+        int AirQuality,
+        int AqiIndex,
+        DateTime Timestamp);
+
+    public record MobileBootstrap(
+        UserProfileDto User,
+        BootstrapPatientDto? Patient,
+        IEnumerable<BootstrapVitalDto> Vitals,
+        IEnumerable<MedicationSyncItem> Medications,
+        IEnumerable<BootstrapSleepDto> SleepSessions,
+        IEnumerable<BootstrapEnvironmentDto> EnvironmentReadings,
+        IEnumerable<OcrDocumentSyncItem> OcrDocuments,
+        IEnumerable<MedicalHistorySyncItem> MedicalHistoryEntries);
+
+    private static Guid StableGuid(params string[] parts)
+    {
+        var joined = string.Join("|", parts);
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(joined));
+        Span<byte> guidBytes = stackalloc byte[16];
+        bytes.AsSpan(0, 16).CopyTo(guidBytes);
+        return new Guid(guidBytes);
+    }
+
+    private async Task<MobileBootstrap> BuildBootstrapAsync(User user)
+    {
+        var userDto = new UserProfileDto(user.Id, user.Email, user.FirstName, user.LastName, user.PhotoUrl, user.Phone, user.DateOfBirth);
+
+        var patient = await _patientRepo.GetByUserIdAsync(user.Id);
+        if (patient is null)
+        {
+            return new MobileBootstrap(
+                userDto,
+                Patient: null,
+                Vitals: [],
+                Medications: [],
+                SleepSessions: [],
+                EnvironmentReadings: [],
+                OcrDocuments: [],
+                MedicalHistoryEntries: []);
+        }
+
+        var vitals = await _vitalRepo.GetByPatientAsync(patient.Id, null, null, null);
+        var vitalItems = vitals.Select(v => new BootstrapVitalDto(
+            Id: StableGuid("vital", patient.Id.ToString(), ((int)v.Type).ToString(), v.Timestamp.ToUniversalTime().ToString("O")),
+            Type: (int)v.Type,
+            Value: v.Value,
+            Unit: v.Unit,
+            Source: v.Source,
+            Timestamp: v.Timestamp));
+
+        var meds = await _medicationRepo.GetByPatientAsync(patient.Id);
+        var medItems = meds.Select(m => new MedicationSyncItem(
+            m.Id, m.Name, m.Dosage, m.Frequency, (int)m.Route,
+            m.RxCui, m.Instructions, m.Reason,
+            m.StartDate, m.EndDate, (int)m.Status,
+            m.DiscontinuedReason, (int)m.AddedByRole, m.CreatedAt, m.UpdatedAt));
+
+        var sleep = await _sleepRepo.GetByPatientAsync(patient.Id, null, null);
+        var sleepItems = sleep.Select(s => new BootstrapSleepDto(
+            Id: StableGuid("sleep", patient.Id.ToString(), s.StartTime.ToUniversalTime().ToString("O")),
+            StartTime: s.StartTime,
+            EndTime: s.EndTime,
+            DurationMinutes: s.DurationMinutes,
+            QualityScore: s.QualityScore));
+
+        // Environment readings are not tied to a patient in the current schema.
+        // Pull a bounded window to avoid unbounded payloads.
+        var since = DateTime.UtcNow.AddDays(-30);
+        var env = await _envRepo.GetSinceAsync(since, limit: 1000);
+        var envItems = env.Select(e => new BootstrapEnvironmentDto(
+            Id: StableGuid("env", e.Timestamp.ToUniversalTime().ToString("O"), e.Latitude.ToString("R"), e.Longitude.ToString("R")),
+            Latitude: e.Latitude,
+            Longitude: e.Longitude,
+            LocationDisplayName: e.LocationDisplayName,
+            PM25: e.PM25,
+            PM10: e.PM10,
+            O3: e.O3,
+            NO2: e.NO2,
+            Temperature: e.Temperature,
+            Humidity: e.Humidity,
+            AirQuality: (int)e.AirQuality,
+            AqiIndex: e.AqiIndex,
+            Timestamp: e.Timestamp));
+
+        var ocrDocs = await _ocrRepo.GetByPatientAsync(patient.Id);
+        var ocrItems = ocrDocs.Select(d => new OcrDocumentSyncItem(
+            d.Id, d.OpaqueInternalName, d.MimeType, d.PageCount,
+            d.SanitizedOcrPreview, d.ScannedAt));
+
+        var history = await _historyRepo.GetByPatientAsync(patient.Id);
+        var historyItems = history.Select(h => new MedicalHistorySyncItem(
+            h.Id, h.SourceDocumentId, h.Title, h.MedicationName,
+            h.Dosage, h.Frequency, h.Duration, h.Notes,
+            h.Summary, h.Confidence, h.EventDate));
+
+        return new MobileBootstrap(
+            userDto,
+            Patient: new BootstrapPatientDto(
+                patient.Id,
+                patient.UserId,
+                patient.BloodType,
+                patient.Allergies,
+                patient.MedicalHistoryNotes,
+                patient.Weight,
+                patient.Height,
+                patient.BloodPressureSystolic,
+                patient.BloodPressureDiastolic,
+                patient.Cholesterol,
+                patient.Cnp),
+            Vitals: vitalItems,
+            Medications: medItems,
+            SleepSessions: sleepItems,
+            EnvironmentReadings: envItems,
+            OcrDocuments: ocrItems,
+            MedicalHistoryEntries: historyItems);
     }
 
     private string GenerateJwt(User user)
@@ -99,7 +281,7 @@ public class MobileSyncController : ControllerBase
     // ═══════════════════════════════════════════════════════════════════════════
 
     public record MobileAuthRequest(string GoogleIdToken);
-    public record MobileAuthResponse(bool Success, string? AccessToken = null, string? ErrorMessage = null);
+    public record MobileAuthResponse(bool Success, string? AccessToken = null, MobileBootstrap? Bootstrap = null, string? ErrorMessage = null);
 
     /// <summary>POST /api/mobile/auth/google — authenticate mobile user via Google id_token.</summary>
     [HttpPost("auth/google")]
@@ -107,9 +289,16 @@ public class MobileSyncController : ControllerBase
     {
         try
         {
+            var audiences = GetGoogleAudiences();
+            if (audiences.Length == 0)
+            {
+                _logger.LogError("[MobileSync] Missing Google client id configuration. Set Google:MobileClientId (or Google:MobileClientIds) and/or Google:ClientId.");
+                return StatusCode(500, new MobileAuthResponse(false, ErrorMessage: "Server misconfiguration: missing Google client id."));
+            }
+
             var settings = new GoogleJsonWebSignature.ValidationSettings
             {
-                Audience = [_config["Google:MobileClientId"] ?? _config["Google:ClientId"]!]
+                Audience = audiences
             };
             var payload = await GoogleJsonWebSignature.ValidateAsync(request.GoogleIdToken, settings);
 
@@ -138,7 +327,9 @@ public class MobileSyncController : ControllerBase
             }
 
             var jwt = GenerateJwt(user);
-            return Ok(new MobileAuthResponse(true, jwt));
+            // Bootstrap cloud state so the app can skip onboarding/profile completion.
+            var bootstrap = await BuildBootstrapAsync(user);
+            return Ok(new MobileAuthResponse(true, jwt, bootstrap));
         }
         catch (InvalidJwtException ex)
         {
@@ -159,6 +350,18 @@ public class MobileSyncController : ControllerBase
         if (user is null) return NotFound();
         return Ok(new { User = new UserProfileDto(user.Id, user.Email, user.FirstName, user.LastName,
             user.PhotoUrl, user.Phone, user.DateOfBirth) });
+    }
+
+    /// <summary>
+    /// GET /api/mobile/bootstrap — fetch all cloud data for the current user (one-shot sync seed).
+    /// </summary>
+    [Authorize]
+    [HttpGet("bootstrap")]
+    public async Task<ActionResult<MobileBootstrap>> Bootstrap()
+    {
+        var user = await _userRepo.GetByEmailAsync(UserEmail);
+        if (user is null) return NotFound();
+        return Ok(await BuildBootstrapAsync(user));
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

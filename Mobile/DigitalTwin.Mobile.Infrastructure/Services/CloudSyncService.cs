@@ -15,20 +15,29 @@ public class CloudSyncService : ICloudSyncService
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<CloudSyncService> _logger;
-    private string? _accessToken;
+    private readonly IAccessTokenStore _tokenStore;
+    private readonly bool _isOffline;
 
-    public CloudSyncService(HttpClient httpClient, ILogger<CloudSyncService> logger)
+    public CloudSyncService(HttpClient httpClient, IAccessTokenStore tokenStore, ILogger<CloudSyncService> logger)
     {
         _httpClient = httpClient;
+        _tokenStore = tokenStore;
         _logger = logger;
+        _isOffline = _httpClient.BaseAddress == null;
+        if (_isOffline)
+        {
+            _logger.LogWarning("[CloudSync] Offline mode: HttpClient BaseAddress is not configured");
+        }
     }
 
     // ── Authentication ────────────────────────────────────────────────────────
 
-    public async Task<bool> AuthenticateAsync(string googleIdToken)
+    public async Task<CloudAuthResult> AuthenticateAsync(string googleIdToken)
     {
         try
         {
+            if (_isOffline) return new CloudAuthResult { Success = false, ErrorMessage = "Offline mode" };
+
             var request = new GoogleAuthRequest
             {
                 GoogleIdToken = googleIdToken,
@@ -40,34 +49,188 @@ public class CloudSyncService : ICloudSyncService
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogError("[CloudSync] Authentication failed: {StatusCode}", response.StatusCode);
-                return false;
+                return new CloudAuthResult { Success = false, ErrorMessage = $"HTTP {(int)response.StatusCode}" };
             }
 
             await using var stream = await response.Content.ReadAsStreamAsync();
             var result = await JsonSerializer.DeserializeAsync(stream, InfrastructureJsonContext.Default.AuthResponse);
             if (result?.Success == true && !string.IsNullOrEmpty(result.AccessToken))
             {
-                _accessToken = result.AccessToken;
+                _tokenStore.AccessToken = result.AccessToken;
                 _httpClient.DefaultRequestHeaders.Authorization = 
-                    new AuthenticationHeaderValue("Bearer", _accessToken);
+                    new AuthenticationHeaderValue("Bearer", _tokenStore.AccessToken);
                 
                 _logger.LogInformation("[CloudSync] Authentication successful");
-                return true;
+                return new CloudAuthResult
+                {
+                    Success = true,
+                    AccessToken = result.AccessToken,
+                    Bootstrap = MapBootstrap(result.Bootstrap),
+                };
             }
 
-            return false;
+            return new CloudAuthResult { Success = false, ErrorMessage = result?.ErrorMessage ?? "Authentication failed" };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[CloudSync] Authentication exception");
-            return false;
+            return new CloudAuthResult { Success = false, ErrorMessage = ex.Message };
         }
+    }
+
+    private static CloudBootstrap? MapBootstrap(MobileBootstrapDto? bootstrap)
+    {
+        if (bootstrap?.User is null) return null;
+
+        var user = new User
+        {
+            Id = bootstrap.User.Id,
+            Email = bootstrap.User.Email,
+            Role = UserRole.Patient,
+            FirstName = bootstrap.User.FirstName,
+            LastName = bootstrap.User.LastName,
+            PhotoUrl = bootstrap.User.PhotoUrl,
+            Phone = bootstrap.User.Phone,
+            DateOfBirth = bootstrap.User.DateOfBirth,
+            IsSynced = true
+        };
+
+        Patient? patient = null;
+        if (bootstrap.Patient is not null)
+        {
+            patient = new Patient
+            {
+                Id = bootstrap.Patient.Id,
+                UserId = bootstrap.Patient.UserId,
+                BloodType = bootstrap.Patient.BloodType,
+                Allergies = bootstrap.Patient.Allergies,
+                MedicalHistoryNotes = bootstrap.Patient.MedicalHistoryNotes,
+                Weight = bootstrap.Patient.Weight,
+                Height = bootstrap.Patient.Height,
+                BloodPressureSystolic = bootstrap.Patient.BloodPressureSystolic,
+                BloodPressureDiastolic = bootstrap.Patient.BloodPressureDiastolic,
+                Cholesterol = bootstrap.Patient.Cholesterol,
+                Cnp = bootstrap.Patient.Cnp,
+                IsSynced = true,
+                UpdatedAt = DateTime.UtcNow
+            };
+        }
+
+        var vitals = (bootstrap.Vitals ?? []).Select(v => new VitalSign
+        {
+            Id = v.Id ?? Guid.NewGuid(),
+            PatientId = patient?.Id ?? Guid.Empty,
+            Type = (VitalSignType)v.Type,
+            Value = v.Value,
+            Unit = v.Unit,
+            Source = v.Source,
+            Timestamp = v.Timestamp,
+            IsSynced = true
+        }).ToArray();
+
+        var medications = (bootstrap.Medications ?? []).Select(m => new Medication
+        {
+            Id = m.Id,
+            PatientId = patient?.Id ?? Guid.Empty,
+            Name = m.Name,
+            Dosage = m.Dosage,
+            Frequency = m.Frequency,
+            Route = (MedicationRoute)m.Route,
+            RxCui = m.RxCui,
+            Instructions = m.Instructions,
+            Reason = m.Reason,
+            StartDate = m.StartDate,
+            EndDate = m.EndDate,
+            Status = (MedicationStatus)m.Status,
+            DiscontinuedReason = m.DiscontinuedReason,
+            AddedByRole = (AddedByRole)m.AddedByRole,
+            CreatedAt = m.CreatedAt,
+            UpdatedAt = m.UpdatedAt,
+            IsSynced = true
+        }).ToArray();
+
+        var sleep = (bootstrap.SleepSessions ?? []).Select(s => new SleepSession
+        {
+            Id = Guid.NewGuid(),
+            PatientId = patient?.Id ?? Guid.Empty,
+            StartTime = s.StartTime,
+            EndTime = s.EndTime,
+            DurationMinutes = s.DurationMinutes,
+            QualityScore = s.QualityScore,
+            CreatedAt = DateTime.UtcNow,
+            IsSynced = true
+        }).ToArray();
+
+        var env = (bootstrap.EnvironmentReadings ?? []).Select(e => new EnvironmentReading
+        {
+            Latitude = e.Latitude,
+            Longitude = e.Longitude,
+            LocationDisplayName = e.LocationDisplayName,
+            PM25 = e.PM25,
+            PM10 = e.PM10,
+            O3 = e.O3,
+            NO2 = e.NO2,
+            Temperature = e.Temperature,
+            Humidity = e.Humidity,
+            AirQuality = (AirQualityLevel)e.AirQuality,
+            AqiIndex = e.AqiIndex,
+            Timestamp = e.Timestamp,
+            IsDirty = false,
+            SyncedAt = DateTime.UtcNow
+        }).ToArray();
+
+        var ocr = (bootstrap.OcrDocuments ?? []).Select(d => new OcrDocument
+        {
+            Id = d.Id,
+            PatientId = patient?.Id ?? Guid.Empty,
+            OpaqueInternalName = d.OpaqueInternalName,
+            MimeType = d.MimeType,
+            PageCount = d.PageCount,
+            SanitizedOcrPreview = d.SanitizedOcrPreview,
+            ScannedAt = d.ScannedAt,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            IsDirty = false,
+            SyncedAt = DateTime.UtcNow
+        }).ToArray();
+
+        var history = (bootstrap.MedicalHistoryEntries ?? []).Select(h => new MedicalHistoryEntry
+        {
+            Id = h.Id,
+            PatientId = patient?.Id ?? Guid.Empty,
+            SourceDocumentId = h.SourceDocumentId,
+            Title = h.Title,
+            MedicationName = h.MedicationName,
+            Dosage = h.Dosage,
+            Frequency = h.Frequency,
+            Duration = h.Duration,
+            Notes = h.Notes,
+            Summary = h.Summary,
+            Confidence = h.Confidence,
+            EventDate = h.EventDate,
+            IsDirty = false,
+            SyncedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        }).ToArray();
+
+        return new CloudBootstrap
+        {
+            User = user,
+            Patient = patient,
+            Vitals = vitals,
+            Medications = medications,
+            SleepSessions = sleep,
+            EnvironmentReadings = env,
+            OcrDocuments = ocr,
+            MedicalHistoryEntries = history
+        };
     }
 
     public async Task<User?> GetCurrentUserProfileAsync()
     {
         try
         {
+            if (_isOffline) return null;
             EnsureAuthenticated();
             
             var response = await _httpClient.GetAsync("/api/mobile/auth/me");
@@ -102,6 +265,7 @@ public class CloudSyncService : ICloudSyncService
     {
         try
         {
+            if (_isOffline) return false;
             EnsureAuthenticated();
 
             var request = new DeviceRequestEnvelope<UpsertUserRequest>
@@ -148,6 +312,7 @@ public class CloudSyncService : ICloudSyncService
     {
         try
         {
+            if (_isOffline) return false;
             EnsureAuthenticated();
 
             var request = new DeviceRequestEnvelope<UpsertPatientRequest>
@@ -191,6 +356,7 @@ public class CloudSyncService : ICloudSyncService
     {
         try
         {
+            if (_isOffline) return null;
             EnsureAuthenticated();
             
             var response = await _httpClient.GetAsync("/api/mobile/sync/patients/profile");
@@ -226,6 +392,7 @@ public class CloudSyncService : ICloudSyncService
     {
         try
         {
+            if (_isOffline) return false;
             EnsureAuthenticated();
 
             var items = vitalSigns.Select(v => new VitalAppendRequestItem
@@ -269,6 +436,7 @@ public class CloudSyncService : ICloudSyncService
     {
         try
         {
+            if (_isOffline) return [];
             EnsureAuthenticated();
             
             var queryParams = new List<string>
@@ -310,6 +478,7 @@ public class CloudSyncService : ICloudSyncService
     {
         try
         {
+            if (_isOffline) return false;
             EnsureAuthenticated();
             var items = medications.Select(m => new MedicationSyncItem
             {
@@ -342,6 +511,7 @@ public class CloudSyncService : ICloudSyncService
     {
         try
         {
+            if (_isOffline) return [];
             EnsureAuthenticated();
             var response = await _httpClient.GetAsync("/api/mobile/sync/medications");
             if (!response.IsSuccessStatusCode) return [];
@@ -373,6 +543,7 @@ public class CloudSyncService : ICloudSyncService
     {
         try
         {
+            if (_isOffline) return false;
             EnsureAuthenticated();
             var items = sessions.Select(s => new SleepSyncItem
             {
@@ -402,6 +573,7 @@ public class CloudSyncService : ICloudSyncService
     {
         try
         {
+            if (_isOffline) return false;
             EnsureAuthenticated();
             var items = readings.Select(e => new EnvironmentSyncItem
             {
@@ -435,6 +607,7 @@ public class CloudSyncService : ICloudSyncService
     {
         try
         {
+            if (_isOffline) return false;
             EnsureAuthenticated();
             var items = documents.Select(d => new OcrDocumentSyncItem
             {
@@ -466,6 +639,7 @@ public class CloudSyncService : ICloudSyncService
     {
         try
         {
+            if (_isOffline) return false;
             EnsureAuthenticated();
             var items = entries.Select(e => new MedicalHistorySyncItem
             {
@@ -497,8 +671,15 @@ public class CloudSyncService : ICloudSyncService
 
     private void EnsureAuthenticated()
     {
-        if (string.IsNullOrEmpty(_accessToken))
+        if (string.IsNullOrEmpty(_tokenStore.AccessToken))
             throw new InvalidOperationException("Not authenticated. Call AuthenticateAsync first.");
+
+        // Each typed client gets its own HttpClient instance; ensure header is applied.
+        if (_httpClient.DefaultRequestHeaders.Authorization?.Parameter != _tokenStore.AccessToken)
+        {
+            _httpClient.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", _tokenStore.AccessToken);
+        }
     }
 
     private static string GetDeviceId()

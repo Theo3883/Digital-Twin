@@ -38,11 +38,9 @@ struct MedicationCard: View {
                     Text(medication.name)
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(.white)
-                    if let dosage = medication.dosage {
-                        Text(dosage)
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.5))
-                    }
+                    Text(medication.dosage)
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.5))
                 }
 
                 if let frequency = medication.frequency {

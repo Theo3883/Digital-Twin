@@ -37,8 +37,8 @@ final class MedicationsViewModel: ObservableObject {
 
     func refreshInteractions() async {
         let rxCuis = medications
-            .filter { $0.isActive && $0.rxCUI != nil }
-            .compactMap { $0.rxCUI }
+            .filter { $0.isActive && $0.rxCui != nil }
+            .compactMap { $0.rxCui }
 
         guard rxCuis.count >= 2 else {
             interactions = []

@@ -1,8 +1,12 @@
 import SwiftUI
 
+// Ensures the view is part of the target even if Xcode grouping lags.
+// (File inclusion is managed by project.pbxproj.)
+
 struct DashboardView: View {
     @Binding var selectedTab: Int
     @StateObject private var viewModel: DashboardViewModel
+    @EnvironmentObject private var container: AppContainer
 
     init(selectedTab: Binding<Int>, viewModel: DashboardViewModel) {
         self._selectedTab = selectedTab
@@ -35,19 +39,27 @@ struct DashboardView: View {
                 VStack(spacing: 0) {
                     Spacer().frame(height: 80)
 
-                    HomeWidgetGrid(
-                        heartRate: latestHR,
-                        spO2: latestSpO2,
-                        steps: latestSteps,
-                        envReading: viewModel.snapshot?.environmentReading,
-                        sleepMinutes: sleepMinutes,
-                        sleepQuality: sleepQuality,
-                        insightText: viewModel.snapshot?.coachingAdvice?.advice,
-                        hasProfile: hasProfile,
-                        selectedTab: $selectedTab
-                    )
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 32)
+                    if hasProfile {
+                        HomeWidgetGrid(
+                            heartRate: latestHR,
+                            spO2: latestSpO2,
+                            steps: latestSteps,
+                            envReading: viewModel.snapshot?.environmentReading,
+                            sleepMinutes: sleepMinutes,
+                            sleepQuality: sleepQuality,
+                            insightText: viewModel.snapshot?.coachingAdvice?.advice,
+                            hasProfile: hasProfile,
+                            selectedTab: $selectedTab
+                        )
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 32)
+                    } else {
+                        NoPatientProfileHomeView {
+                            selectedTab = 5
+                            container.shouldPresentProfileEdit = true
+                        }
+                        .padding(.bottom, 32)
+                    }
                 }
             }
 

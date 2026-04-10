@@ -30,12 +30,14 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IOcrDocumentRepository, OcrDocumentRepository>();
         services.AddScoped<IMedicalHistoryEntryRepository, MedicalHistoryEntryRepository>();
         services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
+        services.AddScoped<ILocalDataResetService, LocalDataResetService>();
+        services.AddSingleton<IAccessTokenStore, InMemoryAccessTokenStore>();
 
         // ── HTTP Clients ─────────────────────────────────────────────────────
         services.AddHttpClient<ICloudSyncService, CloudSyncService>(client =>
         {
-            if (!string.IsNullOrWhiteSpace(apiBaseUrl))
-                client.BaseAddress = new Uri(apiBaseUrl);
+            if (TryGetValidAbsoluteHttpBaseUri(apiBaseUrl, out var uri))
+                client.BaseAddress = uri;
             client.Timeout = TimeSpan.FromSeconds(30);
         });
 
@@ -147,6 +149,17 @@ public static class ServiceCollectionExtensions
         });
 
         return services;
+    }
+
+    private static bool TryGetValidAbsoluteHttpBaseUri(string? value, out Uri uri)
+    {
+        uri = null!;
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var parsed)) return false;
+        if (parsed.Scheme != Uri.UriSchemeHttp && parsed.Scheme != Uri.UriSchemeHttps) return false;
+        if (string.IsNullOrWhiteSpace(parsed.Host)) return false;
+        uri = parsed;
+        return true;
     }
 }
 

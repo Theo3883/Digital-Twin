@@ -8,7 +8,7 @@ namespace DigitalTwin.Mobile.Domain.Interfaces;
 public interface ICloudSyncService
 {
     // Authentication
-    Task<bool> AuthenticateAsync(string googleIdToken);
+    Task<CloudAuthResult> AuthenticateAsync(string googleIdToken);
     Task<User?> GetCurrentUserProfileAsync();
     
     // User sync
@@ -37,4 +37,24 @@ public interface ICloudSyncService
     
     // Medical history sync
     Task<bool> SyncMedicalHistoryAsync(IEnumerable<MedicalHistoryEntry> entries);
+}
+
+public sealed record CloudAuthResult
+{
+    public bool Success { get; init; }
+    public string? AccessToken { get; init; }
+    public CloudBootstrap? Bootstrap { get; init; }
+    public string? ErrorMessage { get; init; }
+}
+
+public sealed record CloudBootstrap
+{
+    public User? User { get; init; }
+    public Patient? Patient { get; init; }
+    public IEnumerable<VitalSign> Vitals { get; init; } = Array.Empty<VitalSign>();
+    public IEnumerable<Medication> Medications { get; init; } = Array.Empty<Medication>();
+    public IEnumerable<SleepSession> SleepSessions { get; init; } = Array.Empty<SleepSession>();
+    public IEnumerable<EnvironmentReading> EnvironmentReadings { get; init; } = Array.Empty<EnvironmentReading>();
+    public IEnumerable<OcrDocument> OcrDocuments { get; init; } = Array.Empty<OcrDocument>();
+    public IEnumerable<MedicalHistoryEntry> MedicalHistoryEntries { get; init; } = Array.Empty<MedicalHistoryEntry>();
 }

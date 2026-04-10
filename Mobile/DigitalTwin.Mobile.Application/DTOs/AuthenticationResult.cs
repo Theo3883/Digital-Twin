@@ -6,6 +6,7 @@ public record AuthenticationResult
     public string? ErrorMessage { get; init; }
     public string? AccessToken { get; init; }
     public UserDto? User { get; init; }
+    public bool HasCloudProfile { get; init; }
 }
 
 public record UserDto

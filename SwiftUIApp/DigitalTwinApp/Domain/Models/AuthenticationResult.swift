@@ -5,5 +5,6 @@ struct AuthenticationResult: Codable {
     let errorMessage: String?
     let accessToken: String?
     let user: UserInfo?
+    let hasCloudProfile: Bool?
 }
 

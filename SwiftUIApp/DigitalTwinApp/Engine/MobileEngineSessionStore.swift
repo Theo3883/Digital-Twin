@@ -10,7 +10,9 @@ class MobileEngineSessionStore: ObservableObject {
     @Published var currentUser: UserInfo?
     @Published var patientProfile: PatientInfo?
     @Published var isLoading = false
+    @Published var isHydratingAfterAuth = false
     @Published var errorMessage: String?
+    @Published var hasCloudProfile = false
 
     // MARK: - Feature State
 
@@ -46,7 +48,21 @@ class MobileEngineSessionStore: ObservableObject {
         self.geminiApiKey = Bundle.main.infoDictionary?["GEMINI_API_KEY"] as? String
         self.openWeatherApiKey = Bundle.main.infoDictionary?["OPENWEATHER_API_KEY"] as? String
         self.googleOAuthClientId = Bundle.main.infoDictionary?["GOOGLE_OAUTH_CLIENT_ID"] as? String
+
+        if apiBaseUrl.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || apiBaseUrl.contains("$(") {
+            errorMessage = "Missing API_BASE_URL. Fill it in Secrets.xcconfig for cloud sync."
+        }
+        if let key = geminiApiKey, !key.isEmpty, !key.contains("$(") {
+            // ok
+        } else {
+            // Non-fatal: only affects Assistant feature.
+            if errorMessage == nil {
+                errorMessage = "Missing GEMINI_API_KEY. Fill it in Secrets.xcconfig to enable the AI assistant."
+            }
+        }
     }
+
+    var databasePathString: String { databasePath }
 
     deinit {
         // We can't `await` in deinit; fire-and-forget cleanup.
@@ -138,7 +154,14 @@ class MobileEngineSessionStore: ObservableObject {
             if result.success {
                 isAuthenticated = true
                 currentUser = result.user
+                hasCloudProfile = result.hasCloudProfile ?? false
+
+                // If the cloud has a profile, the .NET engine should have seeded local SQLite during auth.
+                // Hydrate the in-memory state so UI can route correctly.
+                isHydratingAfterAuth = true
                 await loadPatientProfile()
+                isHydratingAfterAuth = false
+
                 let _ = await performSync()
                 return true
             } else {
@@ -196,6 +219,7 @@ class MobileEngineSessionStore: ObservableObject {
         isAuthenticated = false
         currentUser = nil
         patientProfile = nil
+        hasCloudProfile = false
         medications = []
         chatMessages = []
         ocrDocuments = []

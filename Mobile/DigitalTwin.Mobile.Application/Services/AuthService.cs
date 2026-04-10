@@ -15,21 +15,42 @@ public class AuthService
 {
     private readonly IUserRepository _userRepository;
     private readonly IPatientRepository _patientRepository;
+    private readonly IVitalSignRepository _vitalRepository;
+    private readonly IMedicationRepository _medicationRepository;
+    private readonly ISleepSessionRepository _sleepRepository;
+    private readonly IEnvironmentReadingRepository _environmentRepository;
+    private readonly IOcrDocumentRepository _ocrRepository;
+    private readonly IMedicalHistoryEntryRepository _historyRepository;
     private readonly GoogleTokenValidationService _tokenValidator;
     private readonly ICloudSyncService _cloudSyncService;
+    private readonly ILocalDataResetService _localReset;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         IUserRepository userRepository,
         IPatientRepository patientRepository,
+        IVitalSignRepository vitalRepository,
+        IMedicationRepository medicationRepository,
+        ISleepSessionRepository sleepRepository,
+        IEnvironmentReadingRepository environmentRepository,
+        IOcrDocumentRepository ocrRepository,
+        IMedicalHistoryEntryRepository historyRepository,
         GoogleTokenValidationService tokenValidator,
         ICloudSyncService cloudSyncService,
+        ILocalDataResetService localReset,
         ILogger<AuthService> logger)
     {
         _userRepository = userRepository;
         _patientRepository = patientRepository;
+        _vitalRepository = vitalRepository;
+        _medicationRepository = medicationRepository;
+        _sleepRepository = sleepRepository;
+        _environmentRepository = environmentRepository;
+        _ocrRepository = ocrRepository;
+        _historyRepository = historyRepository;
         _tokenValidator = tokenValidator;
         _cloudSyncService = cloudSyncService;
+        _localReset = localReset;
         _logger = logger;
     }
 
@@ -53,59 +74,60 @@ public class AuthService
                 };
             }
 
-            // 2. Find or create local user from token claims
-            var localUser = await _userRepository.GetByEmailAsync(claims.Email);
-            if (localUser == null)
+            // 2. Cloud auth first (when possible) so we can align local IDs with cloud IDs
+            CloudAuthResult? cloud = null;
+            try
             {
-                localUser = new User
-                {
-                    Id = Guid.NewGuid(),
-                    Email = claims.Email,
-                    Role = UserRole.Patient,
-                    FirstName = claims.GivenName,
-                    LastName = claims.FamilyName,
-                    PhotoUrl = claims.Picture,
-                    IsSynced = false
-                };
+                cloud = await _cloudSyncService.AuthenticateAsync(googleIdToken);
             }
-            else
+            catch (Exception ex)
             {
-                // Update from latest token claims
-                localUser.FirstName = claims.GivenName ?? localUser.FirstName;
-                localUser.LastName = claims.FamilyName ?? localUser.LastName;
-                localUser.PhotoUrl = claims.Picture ?? localUser.PhotoUrl;
-                localUser.UpdatedAt = DateTime.UtcNow;
+                _logger.LogDebug(ex, "[AuthService] Cloud auth failed/skipped");
             }
+
+            // 3. Find or create local user (prefer cloud identity if available)
+            var localUser = cloud?.Bootstrap?.User
+                            ?? await _userRepository.GetByEmailAsync(claims.Email)
+                            ?? new User { Id = Guid.NewGuid(), Email = claims.Email, Role = UserRole.Patient };
+
+            localUser.Email = claims.Email;
+            localUser.Role = UserRole.Patient;
+            localUser.FirstName = claims.GivenName ?? localUser.FirstName;
+            localUser.LastName = claims.FamilyName ?? localUser.LastName;
+            localUser.PhotoUrl = claims.Picture ?? localUser.PhotoUrl;
+            localUser.UpdatedAt = DateTime.UtcNow;
+            localUser.IsSynced = cloud?.Success == true;
 
             await _userRepository.SaveAsync(localUser);
 
-            // 3. Ensure patient profile exists
-            await EnsurePatientProfileAsync(localUser.Id);
-
-            // 4. Best-effort cloud sync (non-blocking, only if API is configured)
-            _ = Task.Run(async () =>
+            // 4. Apply bootstrap (if present) so SwiftUI can skip profile completion
+            if (cloud?.Success == true && cloud.Bootstrap is { } bootstrap)
             {
-                try
-                {
-                    var synced = await _cloudSyncService.AuthenticateAsync(googleIdToken);
-                    if (synced)
-                    {
-                        localUser.IsSynced = true;
-                        await _userRepository.SaveAsync(localUser);
-                        _logger.LogInformation("[AuthService] Cloud sync succeeded for {Email}", localUser.Email);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug(ex, "[AuthService] Cloud sync skipped (no backend or offline)");
-                }
-            });
+                // Ensure local state doesn't contain conflicting IDs from previous runs.
+                await _localReset.ResetAllAsync();
+
+                // Re-save the authenticated user after reset so the Swift layer can
+                // observe an authenticated session (currentUser != nil).
+                localUser.IsSynced = true;
+                localUser.CreatedAt = DateTime.UtcNow;
+                localUser.UpdatedAt = DateTime.UtcNow;
+                await _userRepository.SaveAsync(localUser);
+
+                await ApplyBootstrapAsync(localUser.Id, bootstrap);
+                _logger.LogInformation("[AuthService] Applied cloud bootstrap for {Email}", localUser.Email);
+            }
+            else
+            {
+                // Ensure at least a local patient shell exists
+                await EnsurePatientProfileAsync(localUser.Id);
+            }
 
             _logger.LogInformation("[AuthService] Authentication successful for user {Email}", localUser.Email);
 
             return new AuthenticationResult
             {
                 Success = true,
+                AccessToken = cloud?.AccessToken,
                 User = new UserDto
                 {
                     Id = localUser.Id,
@@ -113,7 +135,8 @@ public class AuthService
                     FirstName = localUser.FirstName,
                     LastName = localUser.LastName,
                     PhotoUrl = localUser.PhotoUrl
-                }
+                },
+                HasCloudProfile = cloud?.Bootstrap?.Patient != null
             };
         }
         catch (Exception ex)
@@ -158,6 +181,81 @@ public class AuthService
                 IsSynced = false // Will be synced later
             };
             await _patientRepository.SaveAsync(patient);
+        }
+    }
+
+    private async Task ApplyBootstrapAsync(Guid localUserId, CloudBootstrap bootstrap)
+    {
+        // Ensure a local user row exists that matches cloud identity.
+        if (bootstrap.User is { } cloudUser)
+        {
+            cloudUser.Id = localUserId;
+            cloudUser.IsSynced = true;
+            cloudUser.UpdatedAt = DateTime.UtcNow;
+            await _userRepository.SaveAsync(cloudUser);
+        }
+
+        // Now save patient + related tables.
+        if (bootstrap.Patient is { } patient)
+        {
+            // Ensure patient points at the local user ID (cloud UserId should match anyway).
+            patient.UserId = localUserId;
+            patient.IsSynced = true;
+            patient.UpdatedAt = DateTime.UtcNow;
+            await _patientRepository.SaveAsync(patient);
+
+            var pid = patient.Id;
+
+            // Vitals
+            foreach (var v in bootstrap.Vitals)
+            {
+                v.PatientId = pid;
+                v.IsSynced = true;
+            }
+            await _vitalRepository.SaveRangeAsync(bootstrap.Vitals);
+
+            // Medications
+            foreach (var m in bootstrap.Medications)
+            {
+                m.PatientId = pid;
+                m.IsSynced = true;
+                await _medicationRepository.SaveAsync(m);
+            }
+
+            // Sleep
+            foreach (var s in bootstrap.SleepSessions)
+            {
+                s.PatientId = pid;
+                s.IsSynced = true;
+            }
+            await _sleepRepository.SaveRangeAsync(bootstrap.SleepSessions);
+
+            // Environment (not patient-scoped in local schema)
+            foreach (var e in bootstrap.EnvironmentReadings)
+            {
+                e.IsDirty = false;
+                e.SyncedAt = DateTime.UtcNow;
+                await _environmentRepository.SaveAsync(e);
+            }
+
+            // OCR documents
+            foreach (var d in bootstrap.OcrDocuments)
+            {
+                d.PatientId = pid;
+                d.IsDirty = false;
+                d.SyncedAt = DateTime.UtcNow;
+                await _ocrRepository.SaveAsync(d);
+            }
+
+            // Medical history entries
+            foreach (var h in bootstrap.MedicalHistoryEntries)
+            {
+                h.PatientId = pid;
+                h.IsDirty = false;
+                h.SyncedAt = DateTime.UtcNow;
+                h.UpdatedAt = DateTime.UtcNow;
+            }
+            await _historyRepository.SaveRangeAsync(bootstrap.MedicalHistoryEntries);
         }
     }
 }

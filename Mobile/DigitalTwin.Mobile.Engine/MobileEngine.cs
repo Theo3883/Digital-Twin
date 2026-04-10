@@ -39,15 +39,37 @@ public class MobileEngine : IDisposable
         var builder = Host.CreateDefaultBuilder()
             .ConfigureServices(services =>
             {
-                services.AddMobileServices(databasePath, apiBaseUrl, geminiApiKey, openWeatherApiKey, googleOAuthClientId);
+                var effectiveApiBaseUrl = ResolveEffectiveApiBaseUrl(apiBaseUrl);
+                services.AddMobileServices(databasePath, effectiveApiBaseUrl, geminiApiKey, openWeatherApiKey, googleOAuthClientId);
             });
 
         _host = builder.Build();
         _scope = _host.Services.CreateScope();
         _logger = _scope.ServiceProvider.GetRequiredService<ILogger<MobileEngine>>();
 
-        _logger.LogInformation("[MobileEngine] Initialized with database: {DatabasePath}, API: {ApiBaseUrl}", 
-            databasePath, apiBaseUrl);
+        var effectiveForLog = ResolveEffectiveApiBaseUrl(apiBaseUrl);
+        _logger.LogInformation("[MobileEngine] Initialized with database: {DatabasePath}, API: {ApiBaseUrl}",
+            databasePath, effectiveForLog);
+    }
+
+    private static string ResolveEffectiveApiBaseUrl(string apiBaseUrlFromSwift)
+    {
+        var compiledDefault = EngineBuildConfig.DefaultApiBaseUrl;
+        if (IsValidAbsoluteHttpUrl(compiledDefault))
+            return compiledDefault;
+
+        if (IsValidAbsoluteHttpUrl(apiBaseUrlFromSwift))
+            return apiBaseUrlFromSwift;
+
+        return "";
+    }
+
+    private static bool IsValidAbsoluteHttpUrl(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        return Uri.TryCreate(value, UriKind.Absolute, out var uri)
+               && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+               && !string.IsNullOrWhiteSpace(uri.Host);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

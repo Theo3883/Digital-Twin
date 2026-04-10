@@ -502,6 +502,8 @@ digital-twin-health/
 .sonarqube
 
 build-secrets.env
+# Generated at build time from .env (NativeAOT engine config)
+Mobile/DigitalTwin.Mobile.Engine/Generated/EngineBuildConfig.g.cs
 # ML training pipeline — temp build artefacts (never committed)
 models/output/
 
