@@ -38,31 +38,42 @@ struct MeshGradientBackground: View {
     var body: some View {
         GeometryReader { geo in
             let w = geo.size.width
+            let h = geo.size.height
+            
             ZStack {
-                LiquidGlass.bgDark.ignoresSafeArea()
+                // 1. Base layer: Pitch black with a very subtle warm undertone
+                Color(red: 5/255, green: 0, blue: 5/255).ignoresSafeArea()
+                
+                // 2. Top-Left: Dusty steel blue/grey sweep - muted
                 RadialGradient(
-                    colors: [LiquidGlass.bgMid1, .clear],
-                    center: .topLeading,
+                    colors: [Color(red: 80/255, green: 120/255, blue: 160/255).opacity(0.35), .clear],
+                    center: UnitPoint(x: 0.0, y: 0.1),
                     startRadius: 0,
-                    endRadius: w
+                    endRadius: max(w, h) * 0.6
                 ).ignoresSafeArea()
+                
+                // 3. Middle-Right: Intense red, significantly toned down to let text pop
                 RadialGradient(
-                    colors: [LiquidGlass.bgMid2, .clear],
-                    center: .topTrailing,
-                    startRadius: 0,
-                    endRadius: w
+                    colors: [Color(red: 255/255, green: 15/255, blue: 30/255).opacity(0.3), .clear],
+                    center: UnitPoint(x: 0.8, y: 0.45),
+                    startRadius: w * 0.1,
+                    endRadius: max(w, h) * 0.7
                 ).ignoresSafeArea()
+                
+                // 4. Center-Left: Hot magenta bridging, dimmed
                 RadialGradient(
-                    colors: [LiquidGlass.bgDark, .clear],
-                    center: .bottomTrailing,
+                    colors: [Color(red: 230/255, green: 20/255, blue: 130/255).opacity(0.25), .clear],
+                    center: UnitPoint(x: 0.3, y: 0.65),
                     startRadius: 0,
-                    endRadius: w
+                    endRadius: max(w, h) * 0.6
                 ).ignoresSafeArea()
+                
+                // 5. Bottom: Bright cyan/aqua, softened deeply
                 RadialGradient(
-                    colors: [LiquidGlass.bgMid1, .clear],
-                    center: .bottomLeading,
+                    colors: [Color(red: 20/255, green: 180/255, blue: 210/255).opacity(0.3), .clear],
+                    center: UnitPoint(x: 0.5, y: 1.0),
                     startRadius: 0,
-                    endRadius: w
+                    endRadius: max(w, h) * 0.55
                 ).ignoresSafeArea()
             }
         }

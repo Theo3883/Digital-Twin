@@ -8,6 +8,8 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
+            MeshGradientBackground()
+            
             Group {
                 if !engineWrapper.isInitialized {
                     LoadingView(message: "Initializing DigitalTwin...")
