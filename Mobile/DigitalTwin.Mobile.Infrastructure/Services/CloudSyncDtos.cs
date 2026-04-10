@@ -292,3 +292,20 @@ public sealed record MedicalHistorySyncItem
     public DateTime EventDate { get; init; }
 }
 
+// ── Doctor assignment DTOs (read-only from cloud) ─────────────────────────
+
+public sealed record AssignedDoctorsResponse
+{
+    public List<CloudAssignedDoctorDto>? Doctors { get; init; }
+}
+
+public sealed record CloudAssignedDoctorDto
+{
+    public Guid DoctorId { get; init; }
+    public string FullName { get; init; } = string.Empty;
+    public string Email { get; init; } = string.Empty;
+    public string? PhotoUrl { get; init; }
+    public DateTime AssignedAt { get; init; }
+    public string? Notes { get; init; }
+}
+

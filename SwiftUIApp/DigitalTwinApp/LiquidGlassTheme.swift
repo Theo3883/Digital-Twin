@@ -36,33 +36,37 @@ enum LiquidGlass {
 
 struct MeshGradientBackground: View {
     var body: some View {
-        ZStack {
-            LiquidGlass.bgDark.ignoresSafeArea()
-            RadialGradient(
-                colors: [LiquidGlass.bgMid1, .clear],
-                center: .topLeading,
-                startRadius: 0,
-                endRadius: UIScreen.main.bounds.width
-            ).ignoresSafeArea()
-            RadialGradient(
-                colors: [LiquidGlass.bgMid2, .clear],
-                center: .topTrailing,
-                startRadius: 0,
-                endRadius: UIScreen.main.bounds.width
-            ).ignoresSafeArea()
-            RadialGradient(
-                colors: [LiquidGlass.bgDark, .clear],
-                center: .bottomTrailing,
-                startRadius: 0,
-                endRadius: UIScreen.main.bounds.width
-            ).ignoresSafeArea()
-            RadialGradient(
-                colors: [LiquidGlass.bgMid1, .clear],
-                center: .bottomLeading,
-                startRadius: 0,
-                endRadius: UIScreen.main.bounds.width
-            ).ignoresSafeArea()
+        GeometryReader { geo in
+            let w = geo.size.width
+            ZStack {
+                LiquidGlass.bgDark.ignoresSafeArea()
+                RadialGradient(
+                    colors: [LiquidGlass.bgMid1, .clear],
+                    center: .topLeading,
+                    startRadius: 0,
+                    endRadius: w
+                ).ignoresSafeArea()
+                RadialGradient(
+                    colors: [LiquidGlass.bgMid2, .clear],
+                    center: .topTrailing,
+                    startRadius: 0,
+                    endRadius: w
+                ).ignoresSafeArea()
+                RadialGradient(
+                    colors: [LiquidGlass.bgDark, .clear],
+                    center: .bottomTrailing,
+                    startRadius: 0,
+                    endRadius: w
+                ).ignoresSafeArea()
+                RadialGradient(
+                    colors: [LiquidGlass.bgMid1, .clear],
+                    center: .bottomLeading,
+                    startRadius: 0,
+                    endRadius: w
+                ).ignoresSafeArea()
+            }
         }
+        .ignoresSafeArea()
     }
 }
 

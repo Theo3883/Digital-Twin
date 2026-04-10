@@ -579,6 +579,100 @@ public class MobileEngine : IDisposable
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    //  Doctor Assignments
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public async Task<string> GetAssignedDoctorsAsync()
+    {
+        try
+        {
+            var service = _scope.ServiceProvider.GetRequiredService<DoctorAssignmentApplicationService>();
+            var doctors = await service.GetAssignedDoctorsAsync();
+            return JsonSerializer.Serialize(doctors, MobileJsonContext.Default.AssignedDoctorDtoArray);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to get assigned doctors");
+            return JsonSerializer.Serialize(Array.Empty<AssignedDoctorDto>(), MobileJsonContext.Default.AssignedDoctorDtoArray);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Local Data Reset
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public async Task<string> ResetLocalDataAsync()
+    {
+        try
+        {
+            var service = _scope.ServiceProvider.GetRequiredService<Domain.Interfaces.ILocalDataResetService>();
+            await service.ResetAllAsync();
+            return JsonSerializer.Serialize(new NativeBridge.OperationResultDto { Success = true }, MobileJsonContext.Default.OperationResultDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to reset local data");
+            return JsonSerializer.Serialize(new NativeBridge.OperationResultDto { Success = false, Error = ex.Message }, MobileJsonContext.Default.OperationResultDto);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Environment Analytics
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public async Task<string> GetEnvironmentAnalyticsAsync()
+    {
+        try
+        {
+            var service = _scope.ServiceProvider.GetRequiredService<EnvironmentAnalyticsApplicationService>();
+            var analytics = await service.GetLast24HoursAsync();
+            return JsonSerializer.Serialize(analytics, MobileJsonContext.Default.EnvironmentAnalyticsDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to get environment analytics");
+            return JsonSerializer.Serialize(new EnvironmentAnalyticsDto { Footnote = "Analytics unavailable" }, MobileJsonContext.Default.EnvironmentAnalyticsDto);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Environment Coaching Advice
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public async Task<string> GetEnvironmentAdviceAsync()
+    {
+        try
+        {
+            var coaching = _scope.ServiceProvider.GetRequiredService<CoachingApplicationService>();
+            var envService = _scope.ServiceProvider.GetRequiredService<EnvironmentApplicationService>();
+
+            var reading = await envService.GetLatestCachedAsync();
+            if (reading == null)
+            {
+                var fallback = new CoachingAdviceDto
+                {
+                    Advice = "Get an environment reading first to receive personalized advice.",
+                    Timestamp = DateTime.UtcNow
+                };
+                return JsonSerializer.Serialize(fallback, MobileJsonContext.Default.CoachingAdviceDto);
+            }
+
+            var advice = await coaching.GetEnvironmentAdviceAsync(reading);
+            return JsonSerializer.Serialize(advice, MobileJsonContext.Default.CoachingAdviceDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to get environment advice");
+            var fallback = new CoachingAdviceDto
+            {
+                Advice = "Monitor your environment regularly for health impacts.",
+                Timestamp = DateTime.UtcNow
+            };
+            return JsonSerializer.Serialize(fallback, MobileJsonContext.Default.CoachingAdviceDto);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     //  Sleep
     // ═══════════════════════════════════════════════════════════════════════════
 

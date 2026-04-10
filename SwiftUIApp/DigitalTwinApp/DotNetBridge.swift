@@ -101,6 +101,22 @@ class DotNetBridge {
     @_silgen_name("mobile_engine_get_sleep_sessions")
     private static func mobile_engine_get_sleep_sessions(_ fromDateIso: UnsafePointer<CChar>?, _ toDateIso: UnsafePointer<CChar>?) -> UnsafePointer<CChar>?
     
+    // Doctor Assignment
+    @_silgen_name("mobile_engine_get_assigned_doctors")
+    private static func mobile_engine_get_assigned_doctors() -> UnsafePointer<CChar>?
+    
+    // Local Data Reset
+    @_silgen_name("mobile_engine_reset_local_data")
+    private static func mobile_engine_reset_local_data() -> UnsafePointer<CChar>?
+    
+    // Environment Analytics
+    @_silgen_name("mobile_engine_get_environment_analytics")
+    private static func mobile_engine_get_environment_analytics() -> UnsafePointer<CChar>?
+    
+    // Environment Advice
+    @_silgen_name("mobile_engine_get_environment_advice")
+    private static func mobile_engine_get_environment_advice() -> UnsafePointer<CChar>?
+    
     // Medical History & OCR
     @_silgen_name("mobile_engine_get_medical_history")
     private static func mobile_engine_get_medical_history() -> UnsafePointer<CChar>?
@@ -414,6 +430,36 @@ class DotNetBridge {
         } ?? Self.mobile_engine_get_sleep_sessions(nil, nil)
         
         return try parseResult(result, as: [SleepSessionInfo].self)
+    }
+    
+    // MARK: - Doctor Assignment
+    
+    /// Get assigned doctors from cloud
+    func getAssignedDoctors() throws -> [AssignedDoctorInfo] {
+        let result = Self.mobile_engine_get_assigned_doctors()
+        return try parseResult(result, as: [AssignedDoctorInfo].self)
+    }
+    
+    // MARK: - Local Data Reset
+    
+    /// Reset all local data
+    func resetLocalData() throws -> OperationResult {
+        let result = Self.mobile_engine_reset_local_data()
+        return try parseResult(result, as: OperationResult.self)
+    }
+    
+    // MARK: - Environment Analytics
+    
+    /// Get 24-hour environment analytics (HR vs PM2.5 correlation)
+    func getEnvironmentAnalytics() throws -> EnvironmentAnalyticsInfo {
+        let result = Self.mobile_engine_get_environment_analytics()
+        return try parseResult(result, as: EnvironmentAnalyticsInfo.self)
+    }
+    
+    /// Get AI-generated environment advice
+    func getEnvironmentAdvice() throws -> CoachingAdviceInfo {
+        let result = Self.mobile_engine_get_environment_advice()
+        return try parseResult(result, as: CoachingAdviceInfo.self)
     }
     
     // MARK: - Medical History & OCR

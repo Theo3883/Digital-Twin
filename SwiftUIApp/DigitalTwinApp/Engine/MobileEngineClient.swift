@@ -42,6 +42,16 @@ protocol MobileEngineClient: Sendable {
     func recordSleepSession(_ input: SleepSessionInput) async throws -> OperationResult
     func getSleepSessions(from: Date?, to: Date?) async throws -> [SleepSessionInfo]
 
+    // MARK: - Doctor Assignment
+    func getAssignedDoctors() async throws -> [AssignedDoctorInfo]
+
+    // MARK: - Local Data Reset
+    func resetLocalData() async throws -> OperationResult
+
+    // MARK: - Environment Analytics
+    func getEnvironmentAnalytics() async throws -> EnvironmentAnalyticsInfo
+    func getEnvironmentAdvice() async throws -> CoachingAdviceInfo
+
     // MARK: - Medical History & OCR
     func getMedicalHistory() async throws -> [MedicalHistoryEntryInfo]
     func getOcrDocuments() async throws -> [OcrDocumentInfo]

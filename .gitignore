@@ -525,3 +525,5 @@ SwiftUIApp/**/*.xcframework/
 Secrets.xcconfig
 
 build/
+
+build/Debug/

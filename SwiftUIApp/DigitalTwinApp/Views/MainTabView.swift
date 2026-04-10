@@ -28,6 +28,10 @@ struct MainTabView: View {
         EngineEcgRepository(engine: engineWrapper)
     }
 
+    private var doctorRepository: EngineDoctorRepository {
+        EngineDoctorRepository(engine: engineWrapper)
+    }
+
     var body: some View {
         TabView(selection: $selectedTab) {
             Tab("Home", systemImage: "house.fill", value: 0) {
@@ -81,7 +85,10 @@ struct MainTabView: View {
             }
             Tab("Profile", systemImage: "person.fill", value: 5) {
                 ProfileView(
-                    viewModel: ProfileViewModel(repository: profileRepository),
+                    viewModel: ProfileViewModel(
+                        repository: profileRepository,
+                        getDoctors: GetAssignedDoctorsUseCase(repository: doctorRepository)
+                    ),
                     repository: profileRepository,
                     ocrRepository: ocrRepository
                 )

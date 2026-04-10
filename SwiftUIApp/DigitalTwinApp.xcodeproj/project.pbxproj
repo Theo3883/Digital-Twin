@@ -25,6 +25,15 @@
 		DD0000000000000000000001 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = DD0000000000000000000010 /* GoogleSignIn */; };
 		DD0000000000000000000002 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = DD0000000000000000000011 /* GoogleSignInSwift */; };
 		DD0000000000000000000003 /* GoogleSignInService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD0000000000000000000004 /* GoogleSignInService.swift */; };
+		CA0000000000000000000001 /* AssignedDoctorInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000011 /* AssignedDoctorInfo.swift */; };
+		CA0000000000000000000002 /* EnvironmentAnalyticsInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000012 /* EnvironmentAnalyticsInfo.swift */; };
+		CA0000000000000000000003 /* DoctorRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000013 /* DoctorRepository.swift */; };
+		CA0000000000000000000004 /* EngineDoctorRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000014 /* EngineDoctorRepository.swift */; };
+		CA0000000000000000000005 /* EnvironmentAnalyticsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000015 /* EnvironmentAnalyticsRepository.swift */; };
+		CA0000000000000000000006 /* EngineEnvironmentAnalyticsRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000016 /* EngineEnvironmentAnalyticsRepository.swift */; };
+		CA0000000000000000000007 /* GetAssignedDoctorsUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000017 /* GetAssignedDoctorsUseCase.swift */; };
+		CA0000000000000000000008 /* GetEnvironmentAnalyticsUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000018 /* GetEnvironmentAnalyticsUseCase.swift */; };
+		CA0000000000000000000009 /* GetEnvironmentAdviceUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000019 /* GetEnvironmentAdviceUseCase.swift */; };
 		BB0000000000000000000011 /* DataModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000001 /* DataModels.swift */; };
 		EF0000000000000000000001 /* MedicationInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000111 /* MedicationInfo.swift */; };
 		EF0000000000000000000002 /* AddMedicationInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000112 /* AddMedicationInput.swift */; };
@@ -148,6 +157,11 @@
 		EE0000000000000000000009 /* HomeTopBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000019 /* HomeTopBar.swift */; };
 		EE000000000000000000000A /* HomeWidgetGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000001A /* HomeWidgetGrid.swift */; };
 		EE000000000000000000000B /* EcgSparkline.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000001B /* EcgSparkline.swift */; };
+		CB0000000000000000000001 /* BodyMannequinView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0000000000000000000011 /* BodyMannequinView.swift */; };
+		CB0000000000000000000002 /* DoctorAssignmentCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0000000000000000000012 /* DoctorAssignmentCard.swift */; };
+		CB0000000000000000000003 /* EcgWebSocketService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0000000000000000000013 /* EcgWebSocketService.swift */; };
+		CC0000000000000000000002 /* GeocodingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000012 /* GeocodingService.swift */; };
+		CC0000000000000000000003 /* EnvironmentAnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000013 /* EnvironmentAnalyticsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -289,11 +303,25 @@
 		F1000000000000000000001D /* DotNetMobileEngineClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DotNetMobileEngineClient.swift; sourceTree = "<group>"; };
 		F1000000000000000000001E /* MobileEngineSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileEngineSessionStore.swift; sourceTree = "<group>"; };
 		F50000000000000000000011 /* AppContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppContainer.swift; sourceTree = "<group>"; };
+		CA0000000000000000000011 /* AssignedDoctorInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssignedDoctorInfo.swift; sourceTree = "<group>"; };
+		CA0000000000000000000012 /* EnvironmentAnalyticsInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentAnalyticsInfo.swift; sourceTree = "<group>"; };
+		CA0000000000000000000013 /* DoctorRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoctorRepository.swift; sourceTree = "<group>"; };
+		CA0000000000000000000014 /* EngineDoctorRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineDoctorRepository.swift; sourceTree = "<group>"; };
+		CA0000000000000000000015 /* EnvironmentAnalyticsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentAnalyticsRepository.swift; sourceTree = "<group>"; };
+		CA0000000000000000000016 /* EngineEnvironmentAnalyticsRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineEnvironmentAnalyticsRepository.swift; sourceTree = "<group>"; };
+		CA0000000000000000000017 /* GetAssignedDoctorsUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetAssignedDoctorsUseCase.swift; sourceTree = "<group>"; };
+		CA0000000000000000000018 /* GetEnvironmentAnalyticsUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetEnvironmentAnalyticsUseCase.swift; sourceTree = "<group>"; };
+		CA0000000000000000000019 /* GetEnvironmentAdviceUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetEnvironmentAdviceUseCase.swift; sourceTree = "<group>"; };
 		F80000000000000000000011 /* DashboardSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardSnapshot.swift; sourceTree = "<group>"; };
 		F80000000000000000000012 /* DashboardRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardRepository.swift; sourceTree = "<group>"; };
 		F80000000000000000000013 /* EngineDashboardRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineDashboardRepository.swift; sourceTree = "<group>"; };
 		F80000000000000000000014 /* GetDashboardSnapshotUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetDashboardSnapshotUseCase.swift; sourceTree = "<group>"; };
 		F80000000000000000000015 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
+		CB0000000000000000000011 /* BodyMannequinView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyMannequinView.swift; sourceTree = "<group>"; };
+		CB0000000000000000000012 /* DoctorAssignmentCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoctorAssignmentCard.swift; sourceTree = "<group>"; };
+		CB0000000000000000000013 /* EcgWebSocketService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EcgWebSocketService.swift; sourceTree = "<group>"; };
+		CC0000000000000000000012 /* GeocodingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeocodingService.swift; sourceTree = "<group>"; };
+		CC0000000000000000000013 /* EnvironmentAnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentAnalyticsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -403,6 +431,7 @@
 		FD2000000000000000000001 /* Profile */ = {
 			isa = PBXGroup;
 			children = (
+				CB0000000000000000000012 /* DoctorAssignmentCard.swift */,
 				AB0000000000000000000012 /* NoPatientProfileProfileCard.swift */,
 				AB0000000000000000000013 /* ProfileSetupGateView.swift */,
 				FD0000000000000000000016 /* ProfileEditSheet.swift */,
@@ -427,6 +456,7 @@
 		AB1000000000000000000001 /* Home */ = {
 			isa = PBXGroup;
 			children = (
+				CB0000000000000000000011 /* BodyMannequinView.swift */,
 				AB0000000000000000000011 /* NoPatientProfileHomeView.swift */,
 			);
 			path = Home;
@@ -451,6 +481,7 @@
 				FB000000000000000000001C /* LocationInfoBar.swift */,
 				FB0000000000000000000019 /* MetricGrid.swift */,
 				FB0000000000000000000018 /* MetricTile.swift */,
+				CC0000000000000000000013 /* EnvironmentAnalyticsView.swift */,
 			);
 			path = Environment;
 			sourceTree = "<group>";
@@ -462,10 +493,12 @@
 				AA0000000000000000000019 /* BackgroundSyncService.swift */,
 				AA000000000000000000001A /* BiometricAuthService.swift */,
 				BB000000000000000000000A /* DocumentScannerView.swift */,
+				CB0000000000000000000013 /* EcgWebSocketService.swift */,
 				FB0000000000000000000016 /* LocationManager.swift */,
 				BB000000000000000000000B /* OcrSessionCoordinator.swift */,
 				BB000000000000000000000C /* OcrVisionService.swift */,
 				DD0000000000000000000004 /* GoogleSignInService.swift */,
+				CC0000000000000000000012 /* GeocodingService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -584,6 +617,7 @@
 			isa = PBXGroup;
 			children = (
 				F00000000000000000000112 /* AddMedicationInput.swift */,
+				CA0000000000000000000011 /* AssignedDoctorInfo.swift */,
 				F80000000000000000000011 /* DashboardSnapshot.swift */,
 				F10000000000000000000017 /* AuthenticationResult.swift */,
 				F00000000000000000000119 /* ChatMessageInfo.swift */,
@@ -592,6 +626,7 @@
 				F0000000000000000000011F /* DocumentIdentityInfo.swift */,
 				F00000000000000000000118 /* EcgEvaluationResult.swift */,
 				F00000000000000000000117 /* EcgFrameInput.swift */,
+				CA0000000000000000000012 /* EnvironmentAnalyticsInfo.swift */,
 				F00000000000000000000116 /* EnvironmentReadingInfo.swift */,
 				F00000000000000000000123 /* ExtractedHistoryItemInfo.swift */,
 				F00000000000000000000121 /* ExtractedMedicationFieldInfo.swift */,
@@ -621,9 +656,13 @@
 			isa = PBXGroup;
 			children = (
 				F80000000000000000000012 /* DashboardRepository.swift */,
+				CA0000000000000000000013 /* DoctorRepository.swift */,
 				F80000000000000000000013 /* EngineDashboardRepository.swift */,
+				CA0000000000000000000014 /* EngineDoctorRepository.swift */,
 				FA0000000000000000000011 /* ChatRepository.swift */,
 				FA0000000000000000000012 /* EngineChatRepository.swift */,
+				CA0000000000000000000015 /* EnvironmentAnalyticsRepository.swift */,
+				CA0000000000000000000016 /* EngineEnvironmentAnalyticsRepository.swift */,
 				FB0000000000000000000011 /* EnvironmentRepository.swift */,
 				FB0000000000000000000012 /* EngineEnvironmentRepository.swift */,
 				FC0000000000000000000011 /* MedicationRepository.swift */,
@@ -645,6 +684,9 @@
 				FB0000000000000000000014 /* FetchEnvironmentReadingUseCase.swift */,
 				FC0000000000000000000017 /* CheckMedicationInteractionsUseCase.swift */,
 				FF0000000000000000000013 /* EvaluateEcgFrameUseCase.swift */,
+				CA0000000000000000000017 /* GetAssignedDoctorsUseCase.swift */,
+				CA0000000000000000000019 /* GetEnvironmentAdviceUseCase.swift */,
+				CA0000000000000000000018 /* GetEnvironmentAnalyticsUseCase.swift */,
 				F80000000000000000000014 /* GetDashboardSnapshotUseCase.swift */,
 				FA0000000000000000000015 /* ClearChatHistoryUseCase.swift */,
 				FC0000000000000000000016 /* DiscontinueMedicationUseCase.swift */,
@@ -895,6 +937,20 @@
 				AB0000000000000000000002 /* NoPatientProfileProfileCard.swift in Sources */,
 				AB0000000000000000000003 /* ProfileSetupGateView.swift in Sources */,
 				AB0000000000000000000004 /* DatabasePathRow.swift in Sources */,
+				CA0000000000000000000001 /* AssignedDoctorInfo.swift in Sources */,
+				CA0000000000000000000002 /* EnvironmentAnalyticsInfo.swift in Sources */,
+				CA0000000000000000000003 /* DoctorRepository.swift in Sources */,
+				CA0000000000000000000004 /* EngineDoctorRepository.swift in Sources */,
+				CA0000000000000000000005 /* EnvironmentAnalyticsRepository.swift in Sources */,
+				CA0000000000000000000006 /* EngineEnvironmentAnalyticsRepository.swift in Sources */,
+				CA0000000000000000000007 /* GetAssignedDoctorsUseCase.swift in Sources */,
+				CA0000000000000000000008 /* GetEnvironmentAnalyticsUseCase.swift in Sources */,
+				CA0000000000000000000009 /* GetEnvironmentAdviceUseCase.swift in Sources */,
+				CB0000000000000000000001 /* BodyMannequinView.swift in Sources */,
+				CB0000000000000000000002 /* DoctorAssignmentCard.swift in Sources */,
+				CB0000000000000000000003 /* EcgWebSocketService.swift in Sources */,
+				CC0000000000000000000002 /* GeocodingService.swift in Sources */,
+				CC0000000000000000000003 /* EnvironmentAnalyticsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

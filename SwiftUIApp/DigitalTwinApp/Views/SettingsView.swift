@@ -383,15 +383,113 @@ struct AccountActionsSection: View {
 // MARK: - Placeholder Detail Views
 
 struct DataUsageView: View {
+    @EnvironmentObject private var engineWrapper: MobileEngineWrapper
+    @State private var dbSize: String = "—"
+    @State private var lastSyncDate: String = "Never"
+    @State private var showResetAlert = false
+    @State private var isResetting = false
+
     var body: some View {
-        VStack {
-            Text("Data Usage Details")
-                .font(.title)
-            Text("Coming soon...")
-                .foregroundColor(.secondary)
+        ScrollView {
+            VStack(spacing: 16) {
+                // Database size
+                HStack {
+                    Image(systemName: "internaldrive.fill")
+                        .foregroundColor(LiquidGlass.tealPrimary)
+                    Text("Local Database")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(.white)
+                    Spacer()
+                    Text(dbSize)
+                        .font(.caption.monospacedDigit())
+                        .foregroundColor(.white.opacity(0.5))
+                }
+                .glassCard()
+
+                // Sync status
+                HStack {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .foregroundColor(LiquidGlass.tealPrimary)
+                    Text("Last Sync")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(.white)
+                    Spacer()
+                    Text(lastSyncDate)
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.5))
+                }
+                .glassCard()
+
+                // Records count
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Stored Records")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(.white)
+                    HStack(spacing: 16) {
+                        dataCountBadge("Medications", count: engineWrapper.medications.count)
+                        dataCountBadge("Chats", count: engineWrapper.chatMessages.count)
+                        dataCountBadge("Documents", count: engineWrapper.ocrDocuments.count)
+                    }
+                }
+                .glassCard()
+
+                // Reset Data
+                Button(role: .destructive) {
+                    showResetAlert = true
+                } label: {
+                    HStack {
+                        Image(systemName: "trash.fill")
+                        Text(isResetting ? "Resetting..." : "Reset All Local Data")
+                    }
+                    .font(.subheadline.weight(.medium))
+                    .foregroundColor(LiquidGlass.redCritical)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                }
+                .glassCard()
+                .disabled(isResetting)
+            }
+            .padding(16)
         }
         .navigationTitle("Data Usage")
         .liquidGlassNavigationStyle()
+        .task { loadStats() }
+        .alert("Reset All Data?", isPresented: $showResetAlert) {
+            Button("Reset", role: .destructive) {
+                Task {
+                    isResetting = true
+                    _ = await engineWrapper.resetLocalData()
+                    isResetting = false
+                    loadStats()
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will permanently delete all local data including vitals, medications, chat history, and documents. Cloud data is not affected.")
+        }
+    }
+
+    private func loadStats() {
+        let path = engineWrapper.databasePathString
+        if let attrs = try? FileManager.default.attributesOfItem(atPath: path),
+           let size = attrs[.size] as? Int64 {
+            let formatter = ByteCountFormatter()
+            formatter.allowedUnits = [.useKB, .useMB]
+            formatter.countStyle = .file
+            dbSize = formatter.string(fromByteCount: size)
+        }
+    }
+
+    private func dataCountBadge(_ label: String, count: Int) -> some View {
+        VStack(spacing: 2) {
+            Text("\(count)")
+                .font(.system(size: 18, weight: .semibold, design: .rounded))
+                .foregroundColor(.white)
+            Text(label)
+                .font(.caption2)
+                .foregroundColor(.white.opacity(0.4))
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
@@ -435,24 +533,103 @@ struct PrivacyPolicyView: View {
 }
 
 struct DataExportView: View {
+    @EnvironmentObject private var engineWrapper: MobileEngineWrapper
+    @State private var isExporting = false
+    @State private var exportURL: URL?
+    @State private var showShareSheet = false
+    @State private var exportError: String?
+
     var body: some View {
         VStack(spacing: 20) {
+            Image(systemName: "square.and.arrow.up.fill")
+                .font(.system(size: 48))
+                .foregroundColor(LiquidGlass.tealPrimary)
+
             Text("Export Your Data")
-                .font(.title)
-            
-            Text("Download a copy of all your health data in JSON format.")
+                .font(.title3.weight(.semibold))
+                .foregroundColor(.white)
+
+            Text("Download a copy of all your health data in JSON format. This includes your profile, vitals, medications, and medical history.")
+                .font(.caption)
                 .multilineTextAlignment(.center)
-                .foregroundColor(.secondary)
-            
-            Button("Export Data") {
-                // Export logic
+                .foregroundColor(.white.opacity(0.5))
+
+            if let error = exportError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundColor(LiquidGlass.redCritical)
+            }
+
+            Button {
+                Task { await exportData() }
+            } label: {
+                HStack {
+                    if isExporting {
+                        ProgressView().tint(.white)
+                    }
+                    Text(isExporting ? "Exporting..." : "Export Data")
+                }
             }
             .liquidGlassButtonStyle()
+            .disabled(isExporting)
         }
         .padding()
         .navigationTitle("Data Export")
         .liquidGlassNavigationStyle()
+        .sheet(isPresented: $showShareSheet) {
+            if let url = exportURL {
+                ShareSheet(items: [url])
+            }
+        }
     }
+
+    private func exportData() async {
+        isExporting = true
+        exportError = nil
+        defer { isExporting = false }
+
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+
+        struct ExportData: Codable {
+            let exportDate: Date
+            let profile: PatientInfo?
+            let medications: [MedicationInfo]
+            let medicalHistory: [MedicalHistoryEntryInfo]
+            let sleepSessions: [SleepSessionInfo]
+        }
+
+        let data = ExportData(
+            exportDate: Date(),
+            profile: engineWrapper.patientProfile,
+            medications: engineWrapper.medications,
+            medicalHistory: engineWrapper.medicalHistory,
+            sleepSessions: engineWrapper.sleepSessions
+        )
+
+        do {
+            let jsonData = try encoder.encode(data)
+            let tempDir = FileManager.default.temporaryDirectory
+            let fileName = "digitaltwin-export-\(ISO8601DateFormatter().string(from: Date())).json"
+            let fileURL = tempDir.appendingPathComponent(fileName)
+            try jsonData.write(to: fileURL)
+            exportURL = fileURL
+            showShareSheet = true
+        } catch {
+            exportError = "Export failed: \(error.localizedDescription)"
+        }
+    }
+}
+
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 struct SupportView: View {

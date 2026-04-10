@@ -5,6 +5,7 @@ using System.Text;
 using DigitalTwin.Domain.Enums;
 using DigitalTwin.Domain.Interfaces.Repositories;
 using DigitalTwin.Domain.Models;
+using DigitalTwin.Application.Interfaces;
 using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -29,6 +30,7 @@ public class MobileSyncController : ControllerBase
     private readonly IEnvironmentReadingRepository _envRepo;
     private readonly IOcrDocumentRepository _ocrRepo;
     private readonly IMedicalHistoryEntryRepository _historyRepo;
+    private readonly IDoctorAssignmentApplicationService _doctorAssignmentService;
     private readonly ILogger<MobileSyncController> _logger;
 
     public MobileSyncController(
@@ -41,6 +43,7 @@ public class MobileSyncController : ControllerBase
         IEnvironmentReadingRepository envRepo,
         IOcrDocumentRepository ocrRepo,
         IMedicalHistoryEntryRepository historyRepo,
+        IDoctorAssignmentApplicationService doctorAssignmentService,
         ILogger<MobileSyncController> logger)
     {
         _config = config;
@@ -52,6 +55,7 @@ public class MobileSyncController : ControllerBase
         _envRepo = envRepo;
         _ocrRepo = ocrRepo;
         _historyRepo = historyRepo;
+        _doctorAssignmentService = doctorAssignmentService;
         _logger = logger;
     }
 
@@ -735,4 +739,26 @@ public class MobileSyncController : ControllerBase
     }
 
     public record MedicalHistoryAppendBody(string? DeviceId, string? RequestId, List<MedicalHistorySyncItem>? Items);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Doctor Assignments (read-only for patient)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public record AssignedDoctorItem(Guid DoctorId, string FullName, string Email, string? PhotoUrl, DateTime AssignedAt, string? Notes);
+    public record AssignedDoctorsResult(List<AssignedDoctorItem>? Doctors);
+
+    /// <summary>GET /api/mobile/doctors/assigned — get doctors assigned to current patient.</summary>
+    [Authorize]
+    [HttpGet("doctors/assigned")]
+    public async Task<ActionResult<AssignedDoctorsResult>> GetAssignedDoctors()
+    {
+        var email = UserEmail;
+        var doctors = await _doctorAssignmentService.GetAssignedDoctorsAsync(email);
+
+        var items = doctors.Select(d => new AssignedDoctorItem(
+            d.DoctorId, d.FullName, d.Email, d.PhotoUrl, d.AssignedAt, d.Notes
+        )).ToList();
+
+        return Ok(new AssignedDoctorsResult(items));
+    }
 }

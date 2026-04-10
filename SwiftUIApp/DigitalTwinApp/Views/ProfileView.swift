@@ -57,6 +57,9 @@ struct ProfileView: View {
                     medicalHistoryTimeline
                 }
 
+                // Assigned Doctors
+                DoctorAssignmentCard(doctors: viewModel.assignedDoctors)
+
                 // Medical Documents Card
                 documentsCard
 

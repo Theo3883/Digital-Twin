@@ -6,6 +6,7 @@ struct EnvironmentView: View {
     @State private var isRefreshing = false
     @State private var showLocationSheet = false
     @State private var cityText = ""
+    private let geocodingService = GeocodingService()
 
     init(viewModel: EnvironmentViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -55,7 +56,11 @@ struct EnvironmentView: View {
                 },
                 onApplyCity: { city in
                     showLocationSheet = false
-                    // TODO: geocode city and fetch
+                    Task {
+                        if let result = await geocodingService.geocode(city: city) {
+                            await viewModel.fetch(latitude: result.latitude, longitude: result.longitude)
+                        }
+                    }
                 }
             )
         }

@@ -37,6 +37,9 @@ public interface ICloudSyncService
     
     // Medical history sync
     Task<bool> SyncMedicalHistoryAsync(IEnumerable<MedicalHistoryEntry> entries);
+
+    // Doctor assignments (read-only from cloud)
+    Task<IEnumerable<AssignedDoctor>> GetAssignedDoctorsAsync();
 }
 
 public sealed record CloudAuthResult

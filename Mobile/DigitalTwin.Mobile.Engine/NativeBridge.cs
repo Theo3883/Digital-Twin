@@ -642,6 +642,70 @@ public static class NativeBridge
     public static IntPtr SaveOcrDocument(IntPtr inputJsonPtr) => SaveOcrDocument_Impl(inputJsonPtr);
 
     // ═══════════════════════════════════════════════════════════════════════════
+    //  Doctor Assignments
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    internal static IntPtr GetAssignedDoctors_Impl()
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            return await _engine.GetAssignedDoctorsAsync();
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_assigned_doctors")]
+    public static IntPtr GetAssignedDoctors() => GetAssignedDoctors_Impl();
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Local Data Reset
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    internal static IntPtr ResetLocalData_Impl()
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            return await _engine.ResetLocalDataAsync();
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_reset_local_data")]
+    public static IntPtr ResetLocalData() => ResetLocalData_Impl();
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Environment Analytics
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    internal static IntPtr GetEnvironmentAnalytics_Impl()
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            return await _engine.GetEnvironmentAnalyticsAsync();
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_environment_analytics")]
+    public static IntPtr GetEnvironmentAnalytics() => GetEnvironmentAnalytics_Impl();
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Environment Coaching Advice
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    internal static IntPtr GetEnvironmentAdvice_Impl()
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            return await _engine.GetEnvironmentAdviceAsync();
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_environment_advice")]
+    public static IntPtr GetEnvironmentAdvice() => GetEnvironmentAdvice_Impl();
+
+    // ═══════════════════════════════════════════════════════════════════════════
     //  Memory Management
     // ═══════════════════════════════════════════════════════════════════════════
 

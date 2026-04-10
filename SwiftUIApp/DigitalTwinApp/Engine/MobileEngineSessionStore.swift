@@ -23,6 +23,9 @@ class MobileEngineSessionStore: ObservableObject {
     @Published var sleepSessions: [SleepSessionInfo] = []
     @Published var medicalHistory: [MedicalHistoryEntryInfo] = []
     @Published var ocrDocuments: [OcrDocumentInfo] = []
+    @Published var assignedDoctors: [AssignedDoctorInfo] = []
+    @Published var environmentAnalytics: EnvironmentAnalyticsInfo?
+    @Published var environmentAdvice: CoachingAdviceInfo?
 
     // MARK: - Native Services
 
@@ -408,6 +411,51 @@ class MobileEngineSessionStore: ObservableObject {
     func sanitizeText(_ text: String) async -> String {
         guard let engine else { return text }
         return await engine.sanitizeText(text)
+    }
+
+    // MARK: - Doctor Assignment
+
+    func loadAssignedDoctors() async {
+        guard let engine else { return }
+        do { assignedDoctors = try await engine.getAssignedDoctors() } catch {}
+    }
+
+    // MARK: - Local Data Reset
+
+    func resetLocalData() async -> Bool {
+        guard let engine else { return false }
+        do {
+            let result = try await engine.resetLocalData()
+            if result.success {
+                // Clear all in-memory state
+                medications = []
+                chatMessages = []
+                ocrDocuments = []
+                medicalHistory = []
+                sleepSessions = []
+                assignedDoctors = []
+                environmentAnalytics = nil
+                environmentAdvice = nil
+                coachingAdvice = nil
+                latestEnvironmentReading = nil
+            }
+            return result.success
+        } catch {
+            errorMessage = "Failed to reset data: \(error.localizedDescription)"
+            return false
+        }
+    }
+
+    // MARK: - Environment Analytics
+
+    func loadEnvironmentAnalytics() async {
+        guard let engine else { return }
+        do { environmentAnalytics = try await engine.getEnvironmentAnalytics() } catch {}
+    }
+
+    func loadEnvironmentAdvice() async {
+        guard let engine else { return }
+        do { environmentAdvice = try await engine.getEnvironmentAdvice() } catch {}
     }
 
     // MARK: - Synchronization

@@ -12,6 +12,7 @@ struct EcgMonitorView: View {
     @State private var wsUrl = "ws://192.168.1.42:8080"
     @State private var frameCount = 0
     @State private var demoPhase: Double = 0
+    @State private var simTimer: Timer?
 
     init(viewModel: EcgMonitorViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -345,32 +346,37 @@ struct EcgMonitorView: View {
 
     private func startDemoAnimation() {
         Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { _ in
-            demoPhase += 0.02
+            Task { @MainActor in
+                demoPhase += 0.02
+            }
         }
     }
 
     private func startSimulatedEcg() {
-        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
-            guard isConnected else { timer.invalidate(); return }
+        simTimer?.invalidate()
+        simTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            MainActor.assumeIsolated {
+                guard isConnected else { simTimer?.invalidate(); simTimer = nil; return }
 
-            var samples: [Double] = []
-            for i in 0..<100 {
-                let t = Double(i) / 100.0
-                let pWave = 0.15 * sin(2 * .pi * t * 5)
-                let qrsComplex = (t > 0.4 && t < 0.5) ? 1.2 * sin(2 * .pi * (t - 0.4) * 20) : 0
-                let tWave = 0.3 * sin(2 * .pi * (t - 0.6) * 3)
-                samples.append(pWave + qrsComplex + tWave + Double.random(in: -0.05...0.05))
-            }
+                var samples: [Double] = []
+                for i in 0..<100 {
+                    let t = Double(i) / 100.0
+                    let pWave = 0.15 * sin(2 * .pi * t * 5)
+                    let qrsComplex = (t > 0.4 && t < 0.5) ? 1.2 * sin(2 * .pi * (t - 0.4) * 20) : 0
+                    let tWave = 0.3 * sin(2 * .pi * (t - 0.6) * 3)
+                    samples.append(pWave + qrsComplex + tWave + Double.random(in: -0.05...0.05))
+                }
 
-            let hr = Double.random(in: 60...100)
-            let sp = Double.random(in: 95...99)
+                let hr = Double.random(in: 60...100)
+                let sp = Double.random(in: 95...99)
 
-            Task { @MainActor in
                 ecgSamples = samples
                 heartRate = hr
                 spO2 = sp
                 frameCount += 100
-                await viewModel.evaluateFrame(samples: samples, spO2: sp, heartRate: hr)
+                Task { @MainActor in
+                    await viewModel.evaluateFrame(samples: samples, spO2: sp, heartRate: hr)
+                }
             }
         }
     }

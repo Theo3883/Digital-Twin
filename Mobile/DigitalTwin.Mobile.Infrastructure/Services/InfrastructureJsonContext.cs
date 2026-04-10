@@ -56,6 +56,10 @@ namespace DigitalTwin.Mobile.Infrastructure.Services;
 [JsonSerializable(typeof(MedicalHistorySyncItem))]
 [JsonSerializable(typeof(List<MedicalHistorySyncItem>))]
 [JsonSerializable(typeof(DeviceRequestEnvelope<MedicalHistorySyncItem>))]
+// Doctor assignments (read-only from cloud)
+[JsonSerializable(typeof(AssignedDoctorsResponse))]
+[JsonSerializable(typeof(CloudAssignedDoctorDto))]
+[JsonSerializable(typeof(List<CloudAssignedDoctorDto>))]
 public partial class InfrastructureJsonContext : JsonSerializerContext;
 
 // NativeAOT-safe JSON context for third-party integration API payloads.

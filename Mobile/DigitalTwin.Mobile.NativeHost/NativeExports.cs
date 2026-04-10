@@ -184,4 +184,28 @@ public static class NativeExports
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_free_string")]
     public static void FreeString(IntPtr ptr)
         => NativeBridge.FreeString_Impl(ptr);
+
+    // ── Doctor Assignments ────────────────────────────────────────────────────
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_assigned_doctors")]
+    public static IntPtr GetAssignedDoctors()
+        => NativeBridge.GetAssignedDoctors_Impl();
+
+    // ── Local Data Reset ──────────────────────────────────────────────────────
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_reset_local_data")]
+    public static IntPtr ResetLocalData()
+        => NativeBridge.ResetLocalData_Impl();
+
+    // ── Environment Analytics ─────────────────────────────────────────────────
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_environment_analytics")]
+    public static IntPtr GetEnvironmentAnalytics()
+        => NativeBridge.GetEnvironmentAnalytics_Impl();
+
+    // ── Environment Coaching Advice ───────────────────────────────────────────
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_environment_advice")]
+    public static IntPtr GetEnvironmentAdvice()
+        => NativeBridge.GetEnvironmentAdvice_Impl();
 }

@@ -132,6 +132,28 @@ actor MobileEngineHandle {
         try bridge.getSleepSessions(from: from, to: to)
     }
 
+    // MARK: - Doctor Assignment
+
+    func getAssignedDoctors() async throws -> [AssignedDoctorInfo] {
+        try bridge.getAssignedDoctors()
+    }
+
+    // MARK: - Local Data Reset
+
+    func resetLocalData() async throws -> OperationResult {
+        try bridge.resetLocalData()
+    }
+
+    // MARK: - Environment Analytics
+
+    func getEnvironmentAnalytics() async throws -> EnvironmentAnalyticsInfo {
+        try bridge.getEnvironmentAnalytics()
+    }
+
+    func getEnvironmentAdvice() async throws -> CoachingAdviceInfo {
+        try bridge.getEnvironmentAdvice()
+    }
+
     // MARK: - Medical History & OCR
 
     func getMedicalHistory() async throws -> [MedicalHistoryEntryInfo] {

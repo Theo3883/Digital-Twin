@@ -691,4 +691,41 @@ public class CloudSyncService : ICloudSyncService
     }
 
     // Note: DTOs moved to `CloudSyncDtos.cs` for NativeAOT-safe source generation.
+
+    // ── Doctor assignments (read-only from cloud) ────────────────────────────
+
+    public async Task<IEnumerable<Domain.Models.AssignedDoctor>> GetAssignedDoctorsAsync()
+    {
+        try
+        {
+            if (_isOffline) return [];
+
+            EnsureAuthenticated();
+
+            var response = await _httpClient.GetAsync("/api/mobile/doctors/assigned");
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("[CloudSync] Doctor assignments fetch failed: {StatusCode}", response.StatusCode);
+                return [];
+            }
+
+            await using var stream = await response.Content.ReadAsStreamAsync();
+            var result = await JsonSerializer.DeserializeAsync(stream, InfrastructureJsonContext.Default.AssignedDoctorsResponse);
+
+            return result?.Doctors?.Select(d => new Domain.Models.AssignedDoctor
+            {
+                DoctorId = d.DoctorId,
+                FullName = d.FullName,
+                Email = d.Email,
+                PhotoUrl = d.PhotoUrl,
+                AssignedAt = d.AssignedAt,
+                Notes = d.Notes
+            }) ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[CloudSync] Could not fetch doctor assignments");
+            return [];
+        }
+    }
 }

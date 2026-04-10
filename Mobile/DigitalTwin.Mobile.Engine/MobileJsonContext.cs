@@ -84,4 +84,11 @@ public sealed record SaveOcrDocumentInput
 [JsonSerializable(typeof(string[]), TypeInfoPropertyName = "StringArray")]
 [JsonSerializable(typeof(NativeBridge.OperationResultDto))]
 [JsonSerializable(typeof(NativeBridge.RecordVitalSignsResultDto))]
+// Doctor Assignments
+[JsonSerializable(typeof(AssignedDoctorDto))]
+[JsonSerializable(typeof(AssignedDoctorDto[]), TypeInfoPropertyName = "AssignedDoctorDtoArray")]
+// Environment Analytics
+[JsonSerializable(typeof(EnvironmentAnalyticsDto))]
+[JsonSerializable(typeof(HourlyDataPoint))]
+[JsonSerializable(typeof(HourlyDataPoint[]), TypeInfoPropertyName = "HourlyDataPointArray")]
 public partial class MobileJsonContext : JsonSerializerContext;

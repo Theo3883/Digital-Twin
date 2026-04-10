@@ -16,7 +16,7 @@ struct DigitalTwinAppApp: App {
                     BackgroundSyncService.shared.engineWrapperRef = container.engine
                 }
                 .onOpenURL { url in
-                    GoogleSignInService.handleURL(url)
+                    _ = GoogleSignInService.handleURL(url)
                 }
         }
     }

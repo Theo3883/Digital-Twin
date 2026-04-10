@@ -33,7 +33,7 @@ final class EngineProfileRepository: ProfileRepository {
     }
 
     func updatePatientProfile(_ input: PatientUpdateInfo) async {
-        await engine.updatePatientProfile(input)
+        _ = await engine.updatePatientProfile(input)
         await engine.loadPatientProfile()
     }
 

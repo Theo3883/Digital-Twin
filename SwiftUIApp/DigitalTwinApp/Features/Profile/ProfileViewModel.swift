@@ -7,11 +7,14 @@ final class ProfileViewModel: ObservableObject {
     @Published private(set) var medicalHistory: [MedicalHistoryEntryInfo] = []
     @Published private(set) var ocrDocuments: [OcrDocumentInfo] = []
     @Published private(set) var latestHeartRate: Int?
+    @Published private(set) var assignedDoctors: [AssignedDoctorInfo] = []
 
     private let repository: ProfileRepository
+    private let getDoctors: GetAssignedDoctorsUseCase?
 
-    init(repository: ProfileRepository) {
+    init(repository: ProfileRepository, getDoctors: GetAssignedDoctorsUseCase? = nil) {
         self.repository = repository
+        self.getDoctors = getDoctors
     }
 
     func load() async {
@@ -26,6 +29,10 @@ final class ProfileViewModel: ObservableObject {
         self.medicalHistory = await history
         self.ocrDocuments = await docs
         self.latestHeartRate = await hr
+
+        if let getDoctors {
+            self.assignedDoctors = await getDoctors()
+        }
     }
 
     func signOut() {

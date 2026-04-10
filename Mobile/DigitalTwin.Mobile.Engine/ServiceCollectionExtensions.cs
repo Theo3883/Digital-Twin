@@ -138,6 +138,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<SleepApplicationService>();
         services.AddScoped<OcrTextProcessingApplicationService>();
 
+        // ── New application services ─────────────────────────────────────────
+        services.AddScoped<DoctorAssignmentApplicationService>();
+        services.AddScoped<EnvironmentAnalyticsApplicationService>();
+
         // ── Infrastructure Services ──────────────────────────────────────────
         services.AddScoped<DatabaseInitializer>();
 

@@ -56,6 +56,11 @@ actor DotNetMobileEngineClient: MobileEngineClient {
     func recordSleepSession(_ input: SleepSessionInput) async throws -> OperationResult { try await handle.recordSleepSession(input) }
     func getSleepSessions(from: Date?, to: Date?) async throws -> [SleepSessionInfo] { try await handle.getSleepSessions(from: from, to: to) }
 
+    func getAssignedDoctors() async throws -> [AssignedDoctorInfo] { try await handle.getAssignedDoctors() }
+    func resetLocalData() async throws -> OperationResult { try await handle.resetLocalData() }
+    func getEnvironmentAnalytics() async throws -> EnvironmentAnalyticsInfo { try await handle.getEnvironmentAnalytics() }
+    func getEnvironmentAdvice() async throws -> CoachingAdviceInfo { try await handle.getEnvironmentAdvice() }
+
     func getMedicalHistory() async throws -> [MedicalHistoryEntryInfo] { try await handle.getMedicalHistory() }
     func getOcrDocuments() async throws -> [OcrDocumentInfo] { try await handle.getOcrDocuments() }
 
