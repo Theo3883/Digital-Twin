@@ -13,32 +13,22 @@ class HealthKitService: ObservableObject {
     
     // MARK: - HealthKit Data Types
     
+    /// Read types: only the 7 cloud-aligned vital types + sleep
     private let readTypes: Set<HKObjectType> = [
         HKObjectType.quantityType(forIdentifier: .heartRate)!,
-        HKObjectType.quantityType(forIdentifier: .bloodPressureSystolic)!,
-        HKObjectType.quantityType(forIdentifier: .bloodPressureDiastolic)!,
-        HKObjectType.quantityType(forIdentifier: .bodyTemperature)!,
         HKObjectType.quantityType(forIdentifier: .oxygenSaturation)!,
-        HKObjectType.quantityType(forIdentifier: .respiratoryRate)!,
-        HKObjectType.quantityType(forIdentifier: .bloodGlucose)!,
-        HKObjectType.quantityType(forIdentifier: .bodyMass)!,
-        HKObjectType.quantityType(forIdentifier: .height)!,
-        HKObjectType.quantityType(forIdentifier: .bodyMassIndex)!,
         HKObjectType.quantityType(forIdentifier: .stepCount)!,
+        HKObjectType.quantityType(forIdentifier: .basalEnergyBurned)!,
         HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
+        HKObjectType.quantityType(forIdentifier: .appleExerciseTime)!,
+        HKObjectType.categoryType(forIdentifier: .appleStandHour)!,
         HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!
     ]
     
     private let writeTypes: Set<HKSampleType> = [
         HKObjectType.quantityType(forIdentifier: .heartRate)!,
-        HKObjectType.quantityType(forIdentifier: .bloodPressureSystolic)!,
-        HKObjectType.quantityType(forIdentifier: .bloodPressureDiastolic)!,
-        HKObjectType.quantityType(forIdentifier: .bodyTemperature)!,
         HKObjectType.quantityType(forIdentifier: .oxygenSaturation)!,
-        HKObjectType.quantityType(forIdentifier: .respiratoryRate)!,
-        HKObjectType.quantityType(forIdentifier: .bloodGlucose)!,
-        HKObjectType.quantityType(forIdentifier: .bodyMass)!,
-        HKObjectType.quantityType(forIdentifier: .height)!
+        HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!
     ]
     
     // MARK: - Initialization
@@ -84,7 +74,7 @@ class HealthKitService: ObservableObject {
     
     // MARK: - Reading Health Data
     
-    /// Read vital signs from HealthKit for a date range
+    /// Read vital signs from HealthKit for a date range (7 cloud-aligned types only)
     func readVitalSigns(from startDate: Date, to endDate: Date) async throws -> [VitalSignInfo] {
         guard isAuthorized else {
             throw HealthKitError.notAuthorized
@@ -92,28 +82,21 @@ class HealthKitService: ObservableObject {
         
         var vitalSigns: [VitalSignInfo] = []
         
-        // Read different types of vital signs
         let heartRates = try await readHeartRate(from: startDate, to: endDate)
-        let bloodPressures = try await readBloodPressure(from: startDate, to: endDate)
-        let temperatures = try await readBodyTemperature(from: startDate, to: endDate)
-        let oxygenSaturations = try await readOxygenSaturation(from: startDate, to: endDate)
-        let respiratoryRates = try await readRespiratoryRate(from: startDate, to: endDate)
-        let bloodGlucose = try await readBloodGlucose(from: startDate, to: endDate)
-        let weights = try await readBodyMass(from: startDate, to: endDate)
-        let heights = try await readHeight(from: startDate, to: endDate)
+        let spO2 = try await readOxygenSaturation(from: startDate, to: endDate)
         let steps = try await readStepCount(from: startDate, to: endDate)
-        let calories = try await readActiveEnergyBurned(from: startDate, to: endDate)
+        let basalCalories = try await readBasalEnergyBurned(from: startDate, to: endDate)
+        let activeEnergy = try await readActiveEnergyBurned(from: startDate, to: endDate)
+        let exerciseMinutes = try await readExerciseMinutes(from: startDate, to: endDate)
+        let standHours = try await readStandHours(from: startDate, to: endDate)
         
         vitalSigns.append(contentsOf: heartRates)
-        vitalSigns.append(contentsOf: bloodPressures)
-        vitalSigns.append(contentsOf: temperatures)
-        vitalSigns.append(contentsOf: oxygenSaturations)
-        vitalSigns.append(contentsOf: respiratoryRates)
-        vitalSigns.append(contentsOf: bloodGlucose)
-        vitalSigns.append(contentsOf: weights)
-        vitalSigns.append(contentsOf: heights)
+        vitalSigns.append(contentsOf: spO2)
         vitalSigns.append(contentsOf: steps)
-        vitalSigns.append(contentsOf: calories)
+        vitalSigns.append(contentsOf: basalCalories)
+        vitalSigns.append(contentsOf: activeEnergy)
+        vitalSigns.append(contentsOf: exerciseMinutes)
+        vitalSigns.append(contentsOf: standHours)
         
         return vitalSigns.sorted { $0.timestamp > $1.timestamp }
     }
@@ -144,65 +127,6 @@ class HealthKitService: ObservableObject {
         }
     }
     
-    private func readBloodPressure(from startDate: Date, to endDate: Date) async throws -> [VitalSignInfo] {
-        guard let systolicType = HKQuantityType.quantityType(forIdentifier: .bloodPressureSystolic),
-              let diastolicType = HKQuantityType.quantityType(forIdentifier: .bloodPressureDiastolic) else {
-            return []
-        }
-        
-        let systolicSamples = try await querySamples(for: systolicType, from: startDate, to: endDate)
-        let diastolicSamples = try await querySamples(for: diastolicType, from: startDate, to: endDate)
-        
-        var bloodPressures: [VitalSignInfo] = []
-        
-        // Group systolic and diastolic readings by correlation
-        let correlatedReadings = correlateBloodPressureReadings(
-            systolic: systolicSamples.compactMap { $0 as? HKQuantitySample },
-            diastolic: diastolicSamples.compactMap { $0 as? HKQuantitySample }
-        )
-        
-        for (systolic, diastolic) in correlatedReadings {
-            let systolicValue = systolic.quantity.doubleValue(for: .millimeterOfMercury())
-            _ = diastolic.quantity.doubleValue(for: .millimeterOfMercury())
-            
-            bloodPressures.append(VitalSignInfo(
-                id: UUID(),
-                type: .bloodPressure,
-                value: systolicValue, // Store systolic as primary value
-                unit: "mmHg",
-                source: "HealthKit",
-                timestamp: systolic.startDate,
-                isSynced: false
-            ))
-        }
-        
-        return bloodPressures
-    }
-    
-    private func readBodyTemperature(from startDate: Date, to endDate: Date) async throws -> [VitalSignInfo] {
-        guard let temperatureType = HKQuantityType.quantityType(forIdentifier: .bodyTemperature) else {
-            return []
-        }
-        
-        let samples = try await querySamples(for: temperatureType, from: startDate, to: endDate)
-        
-        return samples.compactMap { sample in
-            guard let quantitySample = sample as? HKQuantitySample else { return nil }
-            
-            let value = quantitySample.quantity.doubleValue(for: .degreeFahrenheit())
-            
-            return VitalSignInfo(
-                id: UUID(),
-                type: .temperature,
-                value: value,
-                unit: "°F",
-                source: "HealthKit",
-                timestamp: quantitySample.startDate,
-                isSynced: false
-            )
-        }
-    }
-    
     private func readOxygenSaturation(from startDate: Date, to endDate: Date) async throws -> [VitalSignInfo] {
         guard let oxygenType = HKQuantityType.quantityType(forIdentifier: .oxygenSaturation) else {
             return []
@@ -217,105 +141,9 @@ class HealthKitService: ObservableObject {
             
             return VitalSignInfo(
                 id: UUID(),
-                type: .oxygenSaturation,
+                type: .spO2,
                 value: value,
                 unit: "%",
-                source: "HealthKit",
-                timestamp: quantitySample.startDate,
-                isSynced: false
-            )
-        }
-    }
-    
-    private func readRespiratoryRate(from startDate: Date, to endDate: Date) async throws -> [VitalSignInfo] {
-        guard let respiratoryType = HKQuantityType.quantityType(forIdentifier: .respiratoryRate) else {
-            return []
-        }
-        
-        let samples = try await querySamples(for: respiratoryType, from: startDate, to: endDate)
-        
-        return samples.compactMap { sample in
-            guard let quantitySample = sample as? HKQuantitySample else { return nil }
-            
-            let value = quantitySample.quantity.doubleValue(for: HKUnit.count().unitDivided(by: .minute()))
-            
-            return VitalSignInfo(
-                id: UUID(),
-                type: .respiratoryRate,
-                value: value,
-                unit: "breaths/min",
-                source: "HealthKit",
-                timestamp: quantitySample.startDate,
-                isSynced: false
-            )
-        }
-    }
-    
-    private func readBloodGlucose(from startDate: Date, to endDate: Date) async throws -> [VitalSignInfo] {
-        guard let glucoseType = HKQuantityType.quantityType(forIdentifier: .bloodGlucose) else {
-            return []
-        }
-        
-        let samples = try await querySamples(for: glucoseType, from: startDate, to: endDate)
-        
-        return samples.compactMap { sample in
-            guard let quantitySample = sample as? HKQuantitySample else { return nil }
-            
-            let value = quantitySample.quantity.doubleValue(for: HKUnit.gramUnit(with: .milli).unitDivided(by: .literUnit(with: .deci)))
-            
-            return VitalSignInfo(
-                id: UUID(),
-                type: .bloodGlucose,
-                value: value,
-                unit: "mg/dL",
-                source: "HealthKit",
-                timestamp: quantitySample.startDate,
-                isSynced: false
-            )
-        }
-    }
-    
-    private func readBodyMass(from startDate: Date, to endDate: Date) async throws -> [VitalSignInfo] {
-        guard let massType = HKQuantityType.quantityType(forIdentifier: .bodyMass) else {
-            return []
-        }
-        
-        let samples = try await querySamples(for: massType, from: startDate, to: endDate)
-        
-        return samples.compactMap { sample in
-            guard let quantitySample = sample as? HKQuantitySample else { return nil }
-            
-            let value = quantitySample.quantity.doubleValue(for: .pound())
-            
-            return VitalSignInfo(
-                id: UUID(),
-                type: .weight,
-                value: value,
-                unit: "lbs",
-                source: "HealthKit",
-                timestamp: quantitySample.startDate,
-                isSynced: false
-            )
-        }
-    }
-    
-    private func readHeight(from startDate: Date, to endDate: Date) async throws -> [VitalSignInfo] {
-        guard let heightType = HKQuantityType.quantityType(forIdentifier: .height) else {
-            return []
-        }
-        
-        let samples = try await querySamples(for: heightType, from: startDate, to: endDate)
-        
-        return samples.compactMap { sample in
-            guard let quantitySample = sample as? HKQuantitySample else { return nil }
-            
-            let value = quantitySample.quantity.doubleValue(for: .inch())
-            
-            return VitalSignInfo(
-                id: UUID(),
-                type: .height,
-                value: value,
-                unit: "in",
                 source: "HealthKit",
                 timestamp: quantitySample.startDate,
                 isSynced: false
@@ -337,9 +165,33 @@ class HealthKitService: ObservableObject {
             
             return VitalSignInfo(
                 id: UUID(),
-                type: .stepCount,
+                type: .steps,
                 value: value,
                 unit: "steps",
+                source: "HealthKit",
+                timestamp: quantitySample.startDate,
+                isSynced: false
+            )
+        }
+    }
+    
+    private func readBasalEnergyBurned(from startDate: Date, to endDate: Date) async throws -> [VitalSignInfo] {
+        guard let basalType = HKQuantityType.quantityType(forIdentifier: .basalEnergyBurned) else {
+            return []
+        }
+        
+        let samples = try await querySamples(for: basalType, from: startDate, to: endDate)
+        
+        return samples.compactMap { sample in
+            guard let quantitySample = sample as? HKQuantitySample else { return nil }
+            
+            let value = quantitySample.quantity.doubleValue(for: .kilocalorie())
+            
+            return VitalSignInfo(
+                id: UUID(),
+                type: .calories,
+                value: value,
+                unit: "kcal",
                 source: "HealthKit",
                 timestamp: quantitySample.startDate,
                 isSynced: false
@@ -361,14 +213,81 @@ class HealthKitService: ObservableObject {
             
             return VitalSignInfo(
                 id: UUID(),
-                type: .caloriesBurned,
+                type: .activeEnergy,
                 value: value,
-                unit: "cal",
+                unit: "kcal",
                 source: "HealthKit",
                 timestamp: quantitySample.startDate,
                 isSynced: false
             )
         }
+    }
+    
+    private func readExerciseMinutes(from startDate: Date, to endDate: Date) async throws -> [VitalSignInfo] {
+        guard let exerciseType = HKQuantityType.quantityType(forIdentifier: .appleExerciseTime) else {
+            return []
+        }
+        
+        let samples = try await querySamples(for: exerciseType, from: startDate, to: endDate)
+        
+        return samples.compactMap { sample in
+            guard let quantitySample = sample as? HKQuantitySample else { return nil }
+            
+            let value = quantitySample.quantity.doubleValue(for: .minute())
+            
+            return VitalSignInfo(
+                id: UUID(),
+                type: .exerciseMinutes,
+                value: value,
+                unit: "min",
+                source: "HealthKit",
+                timestamp: quantitySample.startDate,
+                isSynced: false
+            )
+        }
+    }
+    
+    private func readStandHours(from startDate: Date, to endDate: Date) async throws -> [VitalSignInfo] {
+        guard let standType = HKObjectType.categoryType(forIdentifier: .appleStandHour) else {
+            return []
+        }
+        
+        let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: .strictStartDate)
+        let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+        
+        let samples: [HKSample] = try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: standType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [sortDescriptor]
+            ) { _, results, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: results ?? [])
+                }
+            }
+            healthStore.execute(query)
+        }
+        
+        // Count stood hours for the period
+        let stoodCount = samples
+            .compactMap { $0 as? HKCategorySample }
+            .filter { $0.value == HKCategoryValueAppleStandHour.stood.rawValue }
+            .count
+        
+        guard stoodCount > 0 else { return [] }
+        
+        return [VitalSignInfo(
+            id: UUID(),
+            type: .standHours,
+            value: Double(stoodCount),
+            unit: "hrs",
+            source: "HealthKit",
+            timestamp: endDate,
+            isSynced: false
+        )]
     }
     
     // MARK: - Writing Health Data
@@ -417,28 +336,6 @@ class HealthKitService: ObservableObject {
         }
     }
     
-    private func correlateBloodPressureReadings(systolic: [HKQuantitySample], diastolic: [HKQuantitySample]) -> [(HKQuantitySample, HKQuantitySample)] {
-        var correlatedReadings: [(HKQuantitySample, HKQuantitySample)] = []
-        
-        for systolicSample in systolic {
-            // Find the closest diastolic reading within a reasonable time window (5 minutes)
-            let timeWindow: TimeInterval = 5 * 60 // 5 minutes
-            
-            let closestDiastolic = diastolic.min { sample1, sample2 in
-                let diff1 = abs(sample1.startDate.timeIntervalSince(systolicSample.startDate))
-                let diff2 = abs(sample2.startDate.timeIntervalSince(systolicSample.startDate))
-                return diff1 < diff2
-            }
-            
-            if let diastolicSample = closestDiastolic,
-               abs(diastolicSample.startDate.timeIntervalSince(systolicSample.startDate)) <= timeWindow {
-                correlatedReadings.append((systolicSample, diastolicSample))
-            }
-        }
-        
-        return correlatedReadings
-    }
-    
     private func createHealthKitSample(from vitalSign: VitalSignInput) throws -> HKQuantitySample {
         let (quantityType, unit) = try getHealthKitTypeAndUnit(for: vitalSign.type)
         let quantity = HKQuantity(unit: unit, doubleValue: vitalSign.value)
@@ -460,61 +357,38 @@ class HealthKitService: ObservableObject {
             }
             return (type, HKUnit.count().unitDivided(by: .minute()))
             
-        case .bloodPressure:
-            guard let type = HKQuantityType.quantityType(forIdentifier: .bloodPressureSystolic) else {
-                throw HealthKitError.unsupportedType
-            }
-            return (type, .millimeterOfMercury())
-            
-        case .temperature:
-            guard let type = HKQuantityType.quantityType(forIdentifier: .bodyTemperature) else {
-                throw HealthKitError.unsupportedType
-            }
-            return (type, .degreeFahrenheit())
-            
-        case .oxygenSaturation:
+        case .spO2:
             guard let type = HKQuantityType.quantityType(forIdentifier: .oxygenSaturation) else {
                 throw HealthKitError.unsupportedType
             }
             return (type, .percent())
             
-        case .respiratoryRate:
-            guard let type = HKQuantityType.quantityType(forIdentifier: .respiratoryRate) else {
-                throw HealthKitError.unsupportedType
-            }
-            return (type, HKUnit.count().unitDivided(by: .minute()))
-            
-        case .bloodGlucose:
-            guard let type = HKQuantityType.quantityType(forIdentifier: .bloodGlucose) else {
-                throw HealthKitError.unsupportedType
-            }
-            return (type, HKUnit.gramUnit(with: .milli).unitDivided(by: .literUnit(with: .deci)))
-            
-        case .weight:
-            guard let type = HKQuantityType.quantityType(forIdentifier: .bodyMass) else {
-                throw HealthKitError.unsupportedType
-            }
-            return (type, .pound())
-            
-        case .height:
-            guard let type = HKQuantityType.quantityType(forIdentifier: .height) else {
-                throw HealthKitError.unsupportedType
-            }
-            return (type, .inch())
-            
-        case .stepCount:
+        case .steps:
             guard let type = HKQuantityType.quantityType(forIdentifier: .stepCount) else {
                 throw HealthKitError.unsupportedType
             }
             return (type, .count())
             
-        case .caloriesBurned:
+        case .calories:
+            guard let type = HKQuantityType.quantityType(forIdentifier: .basalEnergyBurned) else {
+                throw HealthKitError.unsupportedType
+            }
+            return (type, .kilocalorie())
+            
+        case .activeEnergy:
             guard let type = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) else {
                 throw HealthKitError.unsupportedType
             }
             return (type, .kilocalorie())
             
-        case .bmi, .sleepDuration:
+        case .exerciseMinutes:
+            guard let type = HKQuantityType.quantityType(forIdentifier: .appleExerciseTime) else {
+                throw HealthKitError.unsupportedType
+            }
+            return (type, .minute())
+            
+        case .standHours:
+            // Stand hours is a category type, not quantity - cannot create samples
             throw HealthKitError.unsupportedType
         }
     }

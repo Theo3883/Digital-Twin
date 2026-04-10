@@ -43,10 +43,8 @@ struct AQIHeroCard: View {
                 Spacer()
 
                 HStack(spacing: 6) {
-                    if let aqi = reading.aqiIndex {
-                        Text("AQI \(aqi)")
-                            .font(.system(size: 22, weight: .bold, design: .default))
-                    }
+                    Text("AQI \(reading.aqiIndex)")
+                        .font(.system(size: 22, weight: .bold, design: .default))
                     Text("· \(reading.airQualityDisplay)")
                         .font(.system(size: 22, weight: .bold, design: .default))
                 }

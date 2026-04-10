@@ -272,8 +272,8 @@ struct ProfileView: View {
                         Text(entry.displayTitle)
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.white)
-                        if let summary = entry.summary ?? entry.notes {
-                            Text(summary)
+                        if !entry.summary.isEmpty || !entry.notes.isEmpty {
+                            Text(entry.summary.isEmpty ? entry.notes : entry.summary)
                                 .font(.caption)
                                 .foregroundColor(.white.opacity(0.5))
                                 .lineLimit(2)

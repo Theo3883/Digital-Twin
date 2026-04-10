@@ -9,7 +9,7 @@ struct InteractionsSheet: View {
             List(interactions) { interaction in
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text("\(interaction.drugA) + \(interaction.drugB)")
+                        Text("\(interaction.drugARxCui) + \(interaction.drugBRxCui)")
                             .font(.headline)
                         Spacer()
                         MedicationSafetyBadge(severity: interaction.severity)

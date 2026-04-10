@@ -6,11 +6,10 @@ struct OcrDocumentCard: View {
     let onUnlock: () -> Void
 
     private var mimeLabel: String {
-        if let name = document.opaqueInternalName?.lowercased() {
-            if name.hasSuffix(".pdf") { return "PDF" }
-            if name.hasSuffix(".jpg") || name.hasSuffix(".jpeg") { return "JPG" }
-            if name.hasSuffix(".png") { return "PNG" }
-        }
+        let name = document.opaqueInternalName.lowercased()
+        if name.hasSuffix(".pdf") { return "PDF" }
+        if name.hasSuffix(".jpg") || name.hasSuffix(".jpeg") { return "JPG" }
+        if name.hasSuffix(".png") { return "PNG" }
         return "IMG"
     }
 
@@ -35,7 +34,7 @@ struct OcrDocumentCard: View {
                 }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(document.opaqueInternalName ?? "Document")
+                Text(document.opaqueInternalName)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.white)
                     .lineLimit(1)

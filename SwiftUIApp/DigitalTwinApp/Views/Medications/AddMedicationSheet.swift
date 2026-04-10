@@ -8,7 +8,7 @@ struct AddMedicationSheet: View {
     @State private var dosage = ""
     @State private var frequency = ""
     @State private var instructions = ""
-    @State private var selectedRxCUI: String?
+    @State private var selectedRxCui: String?
     @State private var isSaving = false
 
     init(viewModel: AddMedicationSheetViewModel) {
@@ -28,14 +28,11 @@ struct AddMedicationSheet: View {
                         ForEach(viewModel.searchResults) { result in
                             Button {
                                 name = result.name
-                                selectedRxCUI = result.rxCUI
+                                selectedRxCui = result.rxCui
                                 viewModel.clearResults()
                             } label: {
                                 VStack(alignment: .leading) {
                                     Text(result.name).font(.subheadline)
-                                    if let syn = result.synonym {
-                                        Text(syn).font(.caption).foregroundColor(.secondary)
-                                    }
                                 }
                             }
                         }
@@ -67,13 +64,15 @@ struct AddMedicationSheet: View {
         isSaving = true
         let input = AddMedicationInput(
             name: name,
-            dosage: dosage.isEmpty ? nil : dosage,
+            dosage: dosage.isEmpty ? "" : dosage,
             frequency: frequency.isEmpty ? nil : frequency,
             route: 0,
-            rxCUI: selectedRxCUI,
+            rxCui: selectedRxCui,
             instructions: instructions.isEmpty ? nil : instructions,
             reason: nil,
-            prescribedBy: nil
+            prescribedByUserId: nil,
+            startDate: nil,
+            addedByRole: 0
         )
         let _ = await viewModel.add(input: input)
         dismiss()

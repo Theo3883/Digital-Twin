@@ -17,10 +17,10 @@ struct DashboardView: View {
         viewModel.snapshot?.recentVitals.first(where: { $0.type == .heartRate })?.value ?? 0
     }
     private var latestSpO2: Double {
-        viewModel.snapshot?.recentVitals.first(where: { $0.type == .oxygenSaturation })?.value ?? 0
+        viewModel.snapshot?.recentVitals.first(where: { $0.type == .spO2 })?.value ?? 0
     }
     private var latestSteps: Double {
-        viewModel.snapshot?.recentVitals.first(where: { $0.type == .stepCount })?.value ?? 0
+        viewModel.snapshot?.recentVitals.first(where: { $0.type == .steps })?.value ?? 0
     }
     private var sleepMinutes: Int {
         guard let session = viewModel.snapshot?.sleepSessions.first else { return 0 }

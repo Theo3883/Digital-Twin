@@ -6,7 +6,8 @@ struct SleepSessionInfo: Codable, Identifiable {
     let startTime: Date
     let endTime: Date
     let durationMinutes: Int
-    let qualityScore: Double?
+    let qualityScore: Double
+    let createdAt: Date?
     let isSynced: Bool
 
     var durationFormatted: String {
@@ -19,10 +20,9 @@ struct SleepSessionInfo: Codable, Identifiable {
     }
 
     var qualityDisplay: String {
-        guard let score = qualityScore else { return "N/A" }
-        if score >= 80 { return "Excellent" }
-        if score >= 60 { return "Good" }
-        if score >= 40 { return "Fair" }
+        if qualityScore >= 80 { return "Excellent" }
+        if qualityScore >= 60 { return "Good" }
+        if qualityScore >= 40 { return "Fair" }
         return "Poor"
     }
 }

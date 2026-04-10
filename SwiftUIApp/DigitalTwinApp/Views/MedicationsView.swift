@@ -138,7 +138,7 @@ struct MedicationsView: View {
                     
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
-                            Text("\(interaction.drugA) + \(interaction.drugB)")
+                            Text("\(interaction.drugARxCui) + \(interaction.drugBRxCui)")
                                 .font(.subheadline.weight(.medium))
                                 .foregroundColor(.white)
                             Spacer()

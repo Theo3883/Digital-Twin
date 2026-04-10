@@ -14,7 +14,7 @@ struct CorrelationCard: View {
     }
 
     private var pm25DataPoints: [(hour: Int, value: Double)] {
-        let basePM = reading.pm25 ?? 5.0
+        let basePM = reading.pm25
         return (0..<24).map { h in
             let variation = cos(Double(h) * .pi / 8) * basePM * 0.4 + Double.random(in: -1...1)
             return (h, max(0, basePM + variation))
@@ -93,8 +93,8 @@ struct CorrelationCard: View {
 
                 Spacer()
 
-                if let hr = latestHR, let pm25 = reading.pm25 {
-                    let corrLabel = pm25 > 50 && hr > 80 ? "r ≈ 0.42" : "r ≈ 0.12"
+                if let hr = latestHR {
+                    let corrLabel = reading.pm25 > 50 && hr > 80 ? "r ≈ 0.42" : "r ≈ 0.12"
                     Text(corrLabel)
                         .font(.caption2.weight(.medium))
                         .foregroundColor(.white.opacity(0.4))

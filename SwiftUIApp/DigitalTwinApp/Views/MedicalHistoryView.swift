@@ -42,38 +42,36 @@ struct MedicalHistoryCard: View {
                 Text(entry.displayTitle)
                     .font(.headline)
                 Spacer()
-                if let confidence = entry.confidence {
-                    Text(String(format: "%.0f%%", confidence * 100))
-                        .glassChip(tint: confidence > 0.8 ? LiquidGlass.greenPositive :
-                                         confidence > 0.5 ? LiquidGlass.amberWarning :
-                                         LiquidGlass.redCritical)
-                }
+                Text(String(format: "%.0f%%", entry.confidence * 100))
+                    .glassChip(tint: entry.confidence > 0.8 ? LiquidGlass.greenPositive :
+                                     entry.confidence > 0.5 ? LiquidGlass.amberWarning :
+                                     LiquidGlass.redCritical)
             }
 
-            if let medicationName = entry.medicationName {
+            if !entry.medicationName.isEmpty {
                 HStack(spacing: 8) {
-                    Label(medicationName, systemImage: "pills")
+                    Label(entry.medicationName, systemImage: "pills")
                         .font(.subheadline)
-                    if let dosage = entry.dosage {
-                        Text("• \(dosage)")
+                    if !entry.dosage.isEmpty {
+                        Text("• \(entry.dosage)")
                             .font(.caption).foregroundColor(.secondary)
                     }
-                    if let frequency = entry.frequency {
-                        Text("• \(frequency)")
+                    if !entry.frequency.isEmpty {
+                        Text("• \(entry.frequency)")
                             .font(.caption).foregroundColor(.secondary)
                     }
                 }
             }
 
-            if let summary = entry.summary {
-                Text(summary)
+            if !entry.summary.isEmpty {
+                Text(entry.summary)
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(3)
             }
 
-            if let notes = entry.notes, !notes.isEmpty {
-                Text(notes)
+            if !entry.notes.isEmpty {
+                Text(entry.notes)
                     .font(.caption2)
                     .foregroundColor(.secondary)
                     .lineLimit(2)

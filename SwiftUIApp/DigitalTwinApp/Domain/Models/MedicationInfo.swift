@@ -2,6 +2,7 @@ import Foundation
 
 struct MedicationInfo: Codable, Identifiable {
     let id: UUID
+    let patientId: UUID?
     let name: String
     let dosage: String
     let frequency: String?
@@ -16,10 +17,12 @@ struct MedicationInfo: Codable, Identifiable {
     let discontinuedReason: String?
     let addedByRole: Int // AddedByRole enum
     let createdAt: Date?
+    let updatedAt: Date?
     let isSynced: Bool
 
     enum CodingKeys: String, CodingKey {
         case id
+        case patientId
         case name
         case dosage
         case frequency
@@ -34,14 +37,16 @@ struct MedicationInfo: Codable, Identifiable {
         case discontinuedReason
         case addedByRole
         case createdAt
+        case updatedAt
         case isSynced
     }
 
     var statusDisplay: String {
         switch status {
         case 0: return "Active"
-        case 1: return "Inactive"
-        case 2: return "Discontinued"
+        case 1: return "Discontinued"
+        case 2: return "Scheduled"
+        case 3: return "Completed"
         default: return "Unknown"
         }
     }

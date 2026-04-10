@@ -86,11 +86,14 @@ public class CloudSyncService : ICloudSyncService
         {
             Id = bootstrap.User.Id,
             Email = bootstrap.User.Email,
-            Role = UserRole.Patient,
+            Role = (UserRole)bootstrap.User.Role,
             FirstName = bootstrap.User.FirstName,
             LastName = bootstrap.User.LastName,
             PhotoUrl = bootstrap.User.PhotoUrl,
             Phone = bootstrap.User.Phone,
+            Address = bootstrap.User.Address,
+            City = bootstrap.User.City,
+            Country = bootstrap.User.Country,
             DateOfBirth = bootstrap.User.DateOfBirth,
             IsSynced = true
         };
@@ -280,9 +283,9 @@ public class CloudSyncService : ICloudSyncService
                     LastName = user.LastName,
                     PhotoUrl = user.PhotoUrl,
                     Phone = user.Phone,
-                    Address = null,
-                    City = null,
-                    Country = null,
+                    Address = user.Address,
+                    City = user.City,
+                    Country = user.Country,
                     DateOfBirth = user.DateOfBirth
                 }
             };

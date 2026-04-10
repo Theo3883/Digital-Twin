@@ -373,34 +373,24 @@ extension VitalSignType {
     var iconName: String {
         switch self {
         case .heartRate: return "heart.fill"
-        case .bloodPressure: return "drop.fill"
-        case .temperature: return "thermometer"
-        case .oxygenSaturation: return "lungs.fill"
-        case .respiratoryRate: return "wind"
-        case .bloodGlucose: return "drop.triangle.fill"
-        case .weight: return "scalemass.fill"
-        case .height: return "ruler.fill"
-        case .bmi: return "person.fill"
-        case .stepCount: return "figure.walk"
-        case .caloriesBurned: return "flame.fill"
-        case .sleepDuration: return "bed.double.fill"
+        case .spO2: return "lungs.fill"
+        case .steps: return "figure.walk"
+        case .calories: return "flame.fill"
+        case .activeEnergy: return "bolt.fill"
+        case .exerciseMinutes: return "figure.run"
+        case .standHours: return "figure.stand"
         }
     }
     
     var color: Color {
         switch self {
         case .heartRate: return .red
-        case .bloodPressure: return .blue
-        case .temperature: return .orange
-        case .oxygenSaturation: return .cyan
-        case .respiratoryRate: return .mint
-        case .bloodGlucose: return .purple
-        case .weight: return .brown
-        case .height: return .gray
-        case .bmi: return .indigo
-        case .stepCount: return .green
-        case .caloriesBurned: return .yellow
-        case .sleepDuration: return .indigo
+        case .spO2: return .cyan
+        case .steps: return .green
+        case .calories: return .orange
+        case .activeEnergy: return .yellow
+        case .exerciseMinutes: return .mint
+        case .standHours: return .blue
         }
     }
 }
