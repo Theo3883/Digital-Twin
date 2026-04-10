@@ -162,6 +162,7 @@
 		CB0000000000000000000003 /* EcgWebSocketService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0000000000000000000013 /* EcgWebSocketService.swift */; };
 		CC0000000000000000000002 /* GeocodingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000012 /* GeocodingService.swift */; };
 		CC0000000000000000000003 /* EnvironmentAnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000013 /* EnvironmentAnalyticsView.swift */; };
+		CD0000000000000000000001 /* PatientView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0000000000000000000011 /* PatientView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -322,6 +323,7 @@
 		CB0000000000000000000013 /* EcgWebSocketService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EcgWebSocketService.swift; sourceTree = "<group>"; };
 		CC0000000000000000000012 /* GeocodingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeocodingService.swift; sourceTree = "<group>"; };
 		CC0000000000000000000013 /* EnvironmentAnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentAnalyticsView.swift; sourceTree = "<group>"; };
+		CD0000000000000000000011 /* PatientView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -403,6 +405,7 @@
 				BB0000000000000000000008 /* OcrDocumentView.swift */,
 				BB0000000000000000000009 /* SleepView.swift */,
 				EE0000000000000000000016 /* RegistrationField.swift */,
+				CD0000000000000000000011 /* PatientView.swift */,
 				EE0000000000000000000013 /* SyncGateView.swift */,
 			);
 			path = Views;
@@ -951,6 +954,7 @@
 				CB0000000000000000000003 /* EcgWebSocketService.swift in Sources */,
 				CC0000000000000000000002 /* GeocodingService.swift in Sources */,
 				CC0000000000000000000003 /* EnvironmentAnalyticsView.swift in Sources */,
+				CD0000000000000000000001 /* PatientView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

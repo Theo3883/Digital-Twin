@@ -95,7 +95,7 @@ struct HomeWidgetGrid: View {
                         .foregroundColor(LiquidGlass.redCritical.opacity(0.8))
                 } else {
                     Button {
-                        selectedTab = 5
+                        selectedTab = 4
                     } label: {
                         HStack(spacing: 8) {
                             Image(systemName: "person.crop.circle.badge.plus")

@@ -55,7 +55,7 @@ struct DashboardView: View {
                         .padding(.bottom, 32)
                     } else {
                         NoPatientProfileHomeView {
-                            selectedTab = 5
+                            selectedTab = 4
                             container.shouldPresentProfileEdit = true
                         }
                         .padding(.bottom, 32)
@@ -64,7 +64,7 @@ struct DashboardView: View {
             }
 
             HomeTopBar(user: viewModel.snapshot?.user) {
-                selectedTab = 5
+                selectedTab = 4
             }
         }
         .pageEnterAnimation()

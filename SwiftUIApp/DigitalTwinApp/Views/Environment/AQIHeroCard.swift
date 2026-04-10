@@ -5,87 +5,129 @@ struct AQIHeroCard: View {
     var onEditLocation: () -> Void
     var onRefresh: () -> Void
 
+    private let heroImageURL = URL(string: "https://picsum.photos/seed/bucharest/400/200")
+
     private var aqiColor: Color {
         switch reading.airQualityLevel {
-        case 0: return LiquidGlass.greenPositive
-        case 1, 2: return LiquidGlass.amberWarning
-        case 3, 4: return LiquidGlass.redCritical
-        default: return .gray
+        case 0:
+            return LiquidGlass.greenPositive
+        case 1:
+            return LiquidGlass.amberWarning
+        default:
+            return LiquidGlass.redCritical
         }
     }
 
     private var healthGuidance: String {
         switch reading.airQualityLevel {
-        case 0: return "Air quality is ideal for most activities"
-        case 1: return "Sensitive groups should limit prolonged outdoor exertion"
-        case 2: return "Everyone may begin to experience health effects"
-        case 3: return "Health alert — everyone may experience serious effects"
-        case 4: return "Emergency conditions — avoid all outdoor activity"
-        default: return "No data available"
+        case 0:
+            return "Air quality is good. Outdoor activity is generally fine for most people."
+        case 1:
+            return "Air quality is acceptable. Sensitive groups may want to shorten outdoor exertion."
+        default:
+            return "Air quality may affect health. Limit outdoor activity and check local guidance."
+        }
+    }
+
+    private var locationAndDateText: String {
+        let location = reading.locationDisplayName ?? "Current Location"
+        let date = reading.timestamp.formatted(.dateTime.day().month(.abbreviated).year())
+        return "\(location) · \(date)"
+    }
+
+    private var heroGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color(red: 30 / 255, green: 60 / 255, blue: 120 / 255).opacity(0.4),
+                Color(red: 10 / 255, green: 14 / 255, blue: 26 / 255).opacity(0.9)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
+    @ViewBuilder
+    private var heroBackground: some View {
+        ZStack {
+            if let heroImageURL {
+                AsyncImage(url: heroImageURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .empty, .failure:
+                        heroGradient
+                    @unknown default:
+                        heroGradient
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .blur(radius: 2)
+                .overlay {
+                    heroGradient.opacity(0.6)
+                }
+            } else {
+                heroGradient
+            }
+
+            LinearGradient(
+                colors: [Color.clear, Color.black.opacity(0.35)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
         }
     }
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            VStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 0) {
+                Spacer(minLength: 0)
+
                 HStack(spacing: 6) {
                     Image(systemName: "mappin")
                         .font(.system(size: 14))
                         .foregroundColor(.white.opacity(0.8))
-                    let loc = reading.locationDisplayName ?? "Current Location"
-                    let date = reading.timestamp.formatted(.dateTime.day().month(.abbreviated).year())
-                    Text("\(loc) · \(date)")
+                    Text(locationAndDateText)
                         .font(.system(size: 14))
                         .foregroundColor(.white.opacity(0.8))
                     Spacer()
                 }
+                .padding(.bottom, 12)
 
-                Spacer()
-
-                HStack(spacing: 6) {
+                HStack(spacing: 0) {
                     Text("AQI \(reading.aqiIndex)")
                         .font(.system(size: 22, weight: .bold, design: .default))
-                    Text("· \(reading.airQualityDisplay)")
+                    Text(" · \(reading.airQualityDisplay.uppercased())")
                         .font(.system(size: 22, weight: .bold, design: .default))
                 }
                 .foregroundColor(aqiColor)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 6)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
                 .background {
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(aqiColor.opacity(0.15))
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(aqiColor.opacity(0.2))
                         .overlay {
-                            RoundedRectangle(cornerRadius: 16)
-                                .strokeBorder(aqiColor.opacity(0.35), lineWidth: 1)
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .strokeBorder(aqiColor.opacity(0.4), lineWidth: 1)
                         }
                 }
+                .padding(.bottom, 8)
 
                 Text(healthGuidance)
-                    .font(.caption)
+                    .font(.system(size: 12))
                     .foregroundColor(.white.opacity(0.7))
-                    .multilineTextAlignment(.center)
-
-                Spacer()
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(2)
             }
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: 200)
-            .padding()
+            .padding(20)
             .background {
-                ZStack {
-                    LinearGradient(
-                        colors: [aqiColor.opacity(0.4), aqiColor.opacity(0.1), Color.clear],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    LinearGradient(
-                        colors: [Color.clear, Color.black.opacity(0.3)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                }
+                heroBackground
             }
-            .clipShape(RoundedRectangle(cornerRadius: LiquidGlass.radiusCard))
-            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: LiquidGlass.radiusCard))
+            .clipShape(RoundedRectangle(cornerRadius: LiquidGlass.radiusCard, style: .continuous))
+            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: LiquidGlass.radiusCard, style: .continuous))
 
             Menu {
                 Button { onEditLocation() } label: {
@@ -95,10 +137,19 @@ struct AQIHeroCard: View {
                     Label("Refresh Now", systemImage: "arrow.clockwise")
                 }
             } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.white.opacity(0.6))
-                    .frame(width: 36, height: 36)
+                VStack(spacing: 3) {
+                    Circle().fill(Color.white).frame(width: 3.5, height: 3.5)
+                    Circle().fill(Color.white).frame(width: 3.5, height: 3.5)
+                    Circle().fill(Color.white).frame(width: 3.5, height: 3.5)
+                }
+                    .frame(width: 32, height: 32)
+                    .background(
+                        Circle().fill(Color.black.opacity(0.35))
+                    )
+                    .overlay(
+                        Circle()
+                            .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                    )
             }
             .padding(12)
         }

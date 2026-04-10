@@ -58,7 +58,7 @@ struct MainTabView: View {
                     )
                 }
             }
-            Tab("Assistant", systemImage: "bubble.left.fill", value: 2) {
+            Tab("Assistant", systemImage: "brain.head.profile", value: 2) {
                 ZStack {
                     MeshGradientBackground()
                     MedicalAssistantView(
@@ -70,7 +70,7 @@ struct MainTabView: View {
                     )
                 }
             }
-            Tab("Air", systemImage: "leaf.fill", value: 3) {
+            Tab("Air", systemImage: "aqi.medium", value: 3) {
                 ZStack {
                     MeshGradientBackground()
                     EnvironmentView(
@@ -82,11 +82,14 @@ struct MainTabView: View {
                     )
                 }
             }
-            Tab("Meds", systemImage: "pills.fill", value: 4) {
+            Tab("Patient", systemImage: "person.text.rectangle", value: 4) {
                 ZStack {
-                    MeshGradientBackground()
-                    MedicationsView(
-                        viewModel: MedicationsViewModel(
+                    PatientView(
+                        profileVM: ProfileViewModel(
+                            repository: profileRepository,
+                            getDoctors: GetAssignedDoctorsUseCase(repository: doctorRepository)
+                        ),
+                        medsVM: MedicationsViewModel(
                             loadMedications: LoadMedicationsUseCase(repository: medicationRepository),
                             checkInteractions: CheckMedicationInteractionsUseCase(repository: medicationRepository),
                             discontinue: DiscontinueMedicationUseCase(repository: medicationRepository)
@@ -94,26 +97,13 @@ struct MainTabView: View {
                         addSheetViewModel: AddMedicationSheetViewModel(
                             searchDrugs: SearchDrugsUseCase(repository: medicationRepository),
                             addMedication: AddMedicationUseCase(repository: medicationRepository)
-                        )
-                    )
-                }
-            }
-            Tab("Profile", systemImage: "person.fill", value: 5) {
-                ZStack {
-                    MeshGradientBackground()
-                    ProfileView(
-                        viewModel: ProfileViewModel(
-                            repository: profileRepository,
-                            getDoctors: GetAssignedDoctorsUseCase(repository: doctorRepository)
                         ),
-                        repository: profileRepository,
+                        profileRepository: profileRepository,
                         ocrRepository: ocrRepository
                     )
                 }
             }
         }
-        .toolbarBackground(.hidden, for: .tabBar)
-        .toolbarVisibility(.visible, for: .tabBar)
         .tint(LiquidGlass.tealPrimary)
     }
 }
