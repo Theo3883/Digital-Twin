@@ -78,6 +78,9 @@ public static class DependencyInjection
                 sp.GetRequiredService<IMedicationRepository>()),
             sp.GetRequiredService<IMedicationService>(),
             sp.GetRequiredService<IDomainEventDispatcher>()));
+        services.AddScoped<IDoctorPatientAssignmentService>(sp => new DoctorPatientAssignmentService(
+            sp.GetRequiredService<IDoctorPatientAssignmentRepository>(),
+            sp.GetRequiredService<IUserRepository>()));
 
         // ── Infrastructure services ──────────────────────────────────────────
         services.AddSingleton<ITransientFailurePolicy, NpgsqlTransientFailurePolicy>();
@@ -101,6 +104,9 @@ public static class DependencyInjection
             sp.GetRequiredService<IMedicalHistoryEntryRepository>(),
             sp.GetRequiredService<IMedicationInteractionProvider>(),
             sp.GetRequiredService<AppDebugLogger<DoctorPortalApplicationService>>()));
+        services.AddScoped<IDoctorAssignmentApplicationService>(sp => new DoctorAssignmentApplicationService(
+            sp.GetRequiredService<IDoctorPatientAssignmentService>(),
+            sp.GetRequiredService<ILogger<DoctorAssignmentApplicationService>>()));
 
         // ── Validators ───────────────────────────────────────────────────────
         services.AddValidation();

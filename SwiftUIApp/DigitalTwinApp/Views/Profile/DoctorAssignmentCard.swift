@@ -66,12 +66,14 @@ private struct DoctorRow: View {
             .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(doctor.fullName)
+                Text(doctor.fullName.isEmpty ? "Unknown Doctor" : doctor.fullName)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.white)
-                Text(doctor.email)
-                    .font(.caption2)
-                    .foregroundColor(.white.opacity(0.4))
+                if !doctor.email.isEmpty {
+                    Text(doctor.email)
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.4))
+                }
                 if let notes = doctor.notes, !notes.isEmpty {
                     Text(notes)
                         .font(.caption2)
@@ -82,9 +84,11 @@ private struct DoctorRow: View {
 
             Spacer()
 
-            Text(doctor.assignedAt, style: .date)
-                .font(.caption2)
-                .foregroundColor(.white.opacity(0.3))
+            if let assignedAt = doctor.assignedAt {
+                Text(assignedAt, style: .date)
+                    .font(.caption2)
+                    .foregroundColor(.white.opacity(0.3))
+            }
         }
         .padding(.vertical, 4)
     }

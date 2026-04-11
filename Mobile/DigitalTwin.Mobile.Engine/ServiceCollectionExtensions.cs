@@ -30,6 +30,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IOcrDocumentRepository, OcrDocumentRepository>();
         services.AddScoped<IMedicalHistoryEntryRepository, MedicalHistoryEntryRepository>();
         services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
+        services.AddScoped<IDoctorPatientAssignmentRepository, DoctorPatientAssignmentRepository>();
         services.AddScoped<ITypedCacheStore, SqliteTypedCacheStore>();
         services.AddScoped<ILocalDataResetService, LocalDataResetService>();
         services.AddSingleton<IAccessTokenStore, InMemoryAccessTokenStore>();
@@ -287,6 +288,25 @@ public class DatabaseInitializer
         await ExecuteAsync(conn,"""
             CREATE UNIQUE INDEX IF NOT EXISTS "IX_Patients_UserId"
             ON "Patients" ("UserId");
+            """);
+
+        // ── DoctorPatientAssignments (read-only pulled from cloud) ─────────
+        await ExecuteAsync(conn,"""
+            CREATE TABLE IF NOT EXISTS "DoctorPatientAssignments" (
+                "UserId"     TEXT NOT NULL,
+                "DoctorId"   TEXT NOT NULL,
+                "FullName"   TEXT NOT NULL,
+                "Email"      TEXT NOT NULL,
+                "PhotoUrl"   TEXT NULL,
+                "AssignedAt" TEXT NOT NULL,
+                "Notes"      TEXT NULL,
+                CONSTRAINT "PK_DoctorPatientAssignments" PRIMARY KEY ("UserId", "DoctorId")
+            );
+            """);
+
+        await ExecuteAsync(conn,"""
+            CREATE INDEX IF NOT EXISTS "IX_DoctorPatientAssignments_UserId_AssignedAt"
+            ON "DoctorPatientAssignments" ("UserId", "AssignedAt");
             """);
 
         await ExecuteAsync(conn,"""

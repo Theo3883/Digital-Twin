@@ -43,6 +43,24 @@ struct PatientView: View {
         return Double(filled) / Double(total)
     }
 
+    private var profileIdentitySubtitle: String {
+        guard let patient = profileVM.patient else {
+            return "Medical profile"
+        }
+
+        var parts: [String] = []
+
+        if let bloodType = patient.bloodType {
+            parts.append(bloodType)
+        }
+
+        if let cnp = patient.cnp {
+            parts.append("CNP: \(cnp.prefix(4))****")
+        }
+
+        return parts.isEmpty ? "Medical profile" : parts.joined(separator: " • ")
+    }
+
     var body: some View {
         NavigationView {
             ZStack(alignment: .bottom) {
@@ -128,17 +146,18 @@ struct PatientView: View {
     // MARK: - Profile Header
 
     private var profileHeader: some View {
-        ZStack(alignment: .topTrailing) {
-            VStack(spacing: 12) {
-                // Completion ring + avatar
+        VStack(spacing: 10) {
+            HStack(alignment: .center, spacing: 12) {
+                // Compact completion ring + avatar for Home-like proportions
                 ZStack {
                     Circle()
-                        .stroke(Color.white.opacity(0.1), lineWidth: 4)
-                        .frame(width: 96, height: 96)
+                        .stroke(Color.white.opacity(0.1), lineWidth: 3)
+                        .frame(width: 72, height: 72)
+
                     Circle()
                         .trim(from: 0, to: completionPercentage)
-                        .stroke(LiquidGlass.tealPrimary, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                        .frame(width: 96, height: 96)
+                        .stroke(LiquidGlass.tealPrimary, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .frame(width: 72, height: 72)
                         .rotationEffect(.degrees(-90))
                         .animation(.easeInOut(duration: 0.8), value: completionPercentage)
 
@@ -148,87 +167,83 @@ struct PatientView: View {
                             .aspectRatio(contentMode: .fill)
                     } placeholder: {
                         Image(systemName: "person.circle.fill")
-                            .font(.system(size: 56))
+                            .font(.system(size: 40))
                             .foregroundColor(.white.opacity(0.3))
                     }
-                    .frame(width: 80, height: 80)
+                    .frame(width: 60, height: 60)
                     .clipShape(Circle())
                 }
 
-                Text(profileVM.currentUser?.displayName ?? "Unknown User")
-                    .font(.title3.weight(.semibold))
-                    .foregroundColor(.white)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(profileVM.currentUser?.displayName ?? "Unknown User")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
 
-                HStack(spacing: 8) {
-                    if let patient = profileVM.patient {
-                        if let bloodType = patient.bloodType {
-                            Text(bloodType)
-                                .font(.caption)
-                                .foregroundColor(LiquidGlass.tealPrimary)
-                        }
-                        if let cnp = patient.cnp {
-                            Text("CNP: \(cnp.prefix(4))****")
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.4))
-                        }
+                    Text(profileIdentitySubtitle)
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.6))
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 8)
+
+                // 3-dot menu
+                Menu {
+                    Button { container.shouldPresentProfileEdit = true } label: {
+                        Label("Edit Profile", systemImage: "pencil")
                     }
+                    Button(role: .destructive) { showSignOutAlert = true } label: {
+                        Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white.opacity(0.6))
+                        .frame(width: 34, height: 34)
                 }
+            }
 
-                // Quick stats row
-                HStack(spacing: 16) {
-                    quickStatPill(
-                        icon: "heart.fill",
-                        value: "\(completionPercentage >= 1 ? "✓" : "\(Int(completionPercentage * 100))%")",
-                        label: "Profile",
-                        color: completionPercentage >= 1 ? LiquidGlass.greenPositive : LiquidGlass.amberWarning
-                    )
-                    quickStatPill(
-                        icon: "pills.fill",
-                        value: "\(medsVM.activeMedications.count)",
-                        label: "Active Meds",
-                        color: LiquidGlass.tealPrimary
-                    )
-                    quickStatPill(
-                        icon: "doc.text.fill",
-                        value: "\(profileVM.ocrDocuments.count)",
-                        label: "Documents",
-                        color: LiquidGlass.bluePrimary
-                    )
-                }
+            // Quick stats row
+            HStack(spacing: 12) {
+                quickStatPill(
+                    icon: "heart.fill",
+                    value: "\(completionPercentage >= 1 ? "✓" : "\(Int(completionPercentage * 100))%")",
+                    label: "Profile",
+                    color: completionPercentage >= 1 ? LiquidGlass.greenPositive : LiquidGlass.amberWarning
+                )
+                quickStatPill(
+                    icon: "pills.fill",
+                    value: "\(medsVM.activeMedications.count)",
+                    label: "Active Meds",
+                    color: LiquidGlass.tealPrimary
+                )
+                quickStatPill(
+                    icon: "doc.text.fill",
+                    value: "\(profileVM.ocrDocuments.count)",
+                    label: "Documents",
+                    color: LiquidGlass.bluePrimary
+                )
             }
             .frame(maxWidth: .infinity)
-            .glassCard()
-
-            // 3-dot menu
-            Menu {
-                Button { container.shouldPresentProfileEdit = true } label: {
-                    Label("Edit Profile", systemImage: "pencil")
-                }
-                Button(role: .destructive) { showSignOutAlert = true } label: {
-                    Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
-                }
-            } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.white.opacity(0.6))
-                    .frame(width: 36, height: 36)
-            }
-            .padding(12)
         }
+        .frame(maxWidth: .infinity)
+        .glassCard()
     }
 
     private func quickStatPill(icon: String, value: String, label: String, color: Color) -> some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 3) {
             Image(systemName: icon)
-                .font(.system(size: 12))
+                .font(.system(size: 11))
                 .foregroundColor(color)
             Text(value)
-                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .font(.system(size: 14, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
             Text(label)
-                .font(.system(size: 9))
+                .font(.system(size: 8))
                 .foregroundColor(.white.opacity(0.4))
         }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Section Picker

@@ -11,6 +11,7 @@ public class SyncService
     private readonly IUserRepository _userRepository;
     private readonly IPatientRepository _patientRepository;
     private readonly IVitalSignRepository _vitalSignRepository;
+    private readonly IDoctorPatientAssignmentRepository _doctorAssignmentRepository;
     private readonly ICloudSyncService _cloudSyncService;
     private readonly ILogger<SyncService> _logger;
 
@@ -18,12 +19,14 @@ public class SyncService
         IUserRepository userRepository,
         IPatientRepository patientRepository,
         IVitalSignRepository vitalSignRepository,
+        IDoctorPatientAssignmentRepository doctorAssignmentRepository,
         ICloudSyncService cloudSyncService,
         ILogger<SyncService> logger)
     {
         _userRepository = userRepository;
         _patientRepository = patientRepository;
         _vitalSignRepository = vitalSignRepository;
+        _doctorAssignmentRepository = doctorAssignmentRepository;
         _cloudSyncService = cloudSyncService;
         _logger = logger;
     }
@@ -147,6 +150,21 @@ public class SyncService
                 {
                     await _vitalSignRepository.SaveRangeAsync(newVitals);
                 }
+            }
+        }
+
+        // Pull doctor assignments and persist locally for offline display.
+        var currentUser = await _userRepository.GetCurrentUserAsync();
+        if (currentUser != null)
+        {
+            try
+            {
+                var cloudAssignments = await _cloudSyncService.GetAssignedDoctorsAsync();
+                await _doctorAssignmentRepository.ReplaceForUserAsync(currentUser.Id, cloudAssignments);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[SyncService] Failed to refresh doctor assignments from cloud; keeping local assignments cache.");
             }
         }
     }
