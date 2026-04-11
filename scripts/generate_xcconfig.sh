@@ -8,10 +8,12 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 ENV_FILE="$ROOT_DIR/.env"
 # The iOS target uses this xcconfig as its base configuration (see project.pbxproj).
-XCCONFIG_OUT="$ROOT_DIR/SwiftUIApp/DigitalTwinApp/Secrets.xcconfig"
+XCCONFIG_OUT="$ROOT_DIR/SwiftUIApp/Secrets.xcconfig"
 
 ALLOWED_KEYS=(
   GEMINI_API_KEY
+  OPENROUTER_API_KEY
+  OPENROUTER_MODEL
   OPENWEATHERMAP_API_KEY
   GOOGLE_OAUTH_CLIENT_ID
   API_BASE_URL
@@ -24,6 +26,8 @@ if [[ ! -f "$ENV_FILE" ]]; then
 // Auto-generated — do not edit. Run scripts/generate_xcconfig.sh to regenerate.
 SLASH = /
 GEMINI_API_KEY =
+OPENROUTER_API_KEY =
+OPENROUTER_MODEL =
 OPENWEATHERMAP_API_KEY =
 GOOGLE_OAUTH_CLIENT_ID =
 API_BASE_URL =

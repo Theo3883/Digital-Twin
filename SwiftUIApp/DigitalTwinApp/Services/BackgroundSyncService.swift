@@ -102,6 +102,11 @@ final class BackgroundSyncService: ObservableObject {
             print("[BackgroundSyncService] Engine wrapper not available")
             return false
         }
+
+        guard engineWrapper.isCloudAuthenticated else {
+            print("[BackgroundSyncService] Skipping cloud sync: cloud authentication is not ready")
+            return true
+        }
         
         // 1. Sync HealthKit data if authorized
         if healthKitService.isAuthorized {

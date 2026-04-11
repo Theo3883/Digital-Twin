@@ -10,7 +10,6 @@ final class EngineDashboardRepository: DashboardRepository {
 
     func fetchSnapshot(from: Date?, to: Date?) async -> DashboardSnapshot {
         let vitals = await engine.getVitalSigns(from: from, to: to)
-        await engine.fetchCoachingAdvice()
         await engine.loadLatestEnvironmentReading()
         await engine.loadSleepSessions(from: from, to: to)
         await engine.loadMedications()

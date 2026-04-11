@@ -14,7 +14,7 @@ namespace DigitalTwin.Mobile.Engine;
 /// </summary>
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddMobileServices(this IServiceCollection services, string databasePath, string apiBaseUrl, string? geminiApiKey = null, string? openWeatherApiKey = null, string? googleOAuthClientId = null)
+    public static IServiceCollection AddMobileServices(this IServiceCollection services, string databasePath, string apiBaseUrl, string? geminiApiKey = null, string? openWeatherApiKey = null, string? googleOAuthClientId = null, string? openRouterApiKey = null, string? openRouterModel = null)
     {
         // ── Database (raw ADO.NET — no EF Core model building at runtime) ─────
         var connectionString = $"Data Source={databasePath}";
@@ -30,6 +30,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IOcrDocumentRepository, OcrDocumentRepository>();
         services.AddScoped<IMedicalHistoryEntryRepository, MedicalHistoryEntryRepository>();
         services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
+        services.AddScoped<ITypedCacheStore, SqliteTypedCacheStore>();
         services.AddScoped<ILocalDataResetService, LocalDataResetService>();
         services.AddSingleton<IAccessTokenStore, InMemoryAccessTokenStore>();
 
@@ -62,25 +63,72 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMedicationInteractionProvider, OpenFdaInteractionService>();
 
         // Gemini AI
-        var geminiKey = geminiApiKey ?? "";
+        var geminiKey = string.IsNullOrWhiteSpace(geminiApiKey) || geminiApiKey.Contains("$(")
+            ? ""
+            : geminiApiKey.Trim();
+        var openRouterKey = string.IsNullOrWhiteSpace(openRouterApiKey) || openRouterApiKey.Contains("$(")
+            ? ""
+            : openRouterApiKey.Trim();
+        var openRouterModelValue = string.IsNullOrWhiteSpace(openRouterModel)
+            ? "openai/gpt-oss-20b"
+            : openRouterModel.Trim();
+
         services.AddHttpClient("Gemini", client =>
         {
             client.BaseAddress = new Uri("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent");
             client.Timeout = TimeSpan.FromSeconds(30);
         });
+
+        services.AddHttpClient("OpenRouter", client =>
+        {
+            client.BaseAddress = new Uri("https://openrouter.ai/api/v1/chat/completions");
+            client.Timeout = Timeout.InfiniteTimeSpan;
+        });
+
         services.AddScoped<IChatBotProvider>(sp =>
         {
             var factory = sp.GetRequiredService<IHttpClientFactory>();
-            var client = factory.CreateClient("Gemini");
-            var logger = sp.GetRequiredService<ILogger<GeminiChatService>>();
-            return new GeminiChatService(client, geminiKey, logger);
+            var gemini = new GeminiChatService(
+                factory.CreateClient("Gemini"),
+                geminiKey,
+                sp.GetRequiredService<ILogger<GeminiChatService>>());
+
+            if (string.IsNullOrWhiteSpace(openRouterKey))
+                return gemini;
+
+            var openRouter = new OpenRouterChatService(
+                factory.CreateClient("OpenRouter"),
+                openRouterKey,
+                openRouterModelValue,
+                sp.GetRequiredService<ILogger<OpenRouterChatService>>());
+
+            return new ChainedChatBotProvider(
+                gemini,
+                openRouter,
+                sp.GetRequiredService<ILogger<ChainedChatBotProvider>>());
         });
+
         services.AddScoped<ICoachingProvider>(sp =>
         {
             var factory = sp.GetRequiredService<IHttpClientFactory>();
-            var client = factory.CreateClient("Gemini");
-            var logger = sp.GetRequiredService<ILogger<GeminiCoachingService>>();
-            return new GeminiCoachingService(client, geminiKey, logger);
+            var gemini = new GeminiCoachingService(
+                factory.CreateClient("Gemini"),
+                geminiKey,
+                sp.GetRequiredService<ILogger<GeminiCoachingService>>());
+
+            if (string.IsNullOrWhiteSpace(openRouterKey))
+                return gemini;
+
+            var openRouter = new OpenRouterCoachingService(
+                factory.CreateClient("OpenRouter"),
+                openRouterKey,
+                openRouterModelValue,
+                sp.GetRequiredService<ILogger<OpenRouterCoachingService>>());
+
+            return new ChainedCoachingProvider(
+                gemini,
+                openRouter,
+                sp.GetRequiredService<ILogger<ChainedCoachingProvider>>());
         });
 
         // OpenWeather (weather + air quality)
@@ -133,6 +181,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MedicationApplicationService>();
         services.AddScoped<EnvironmentApplicationService>();
         services.AddScoped<EcgApplicationService>();
+        services.AddScoped<PatientAiContextBuilder>();
         services.AddScoped<ChatBotApplicationService>();
         services.AddScoped<CoachingApplicationService>();
         services.AddScoped<SleepApplicationService>();
@@ -404,6 +453,23 @@ public class DatabaseInitializer
                 "Timestamp" TEXT NOT NULL,
                 CONSTRAINT "PK_ChatMessages" PRIMARY KEY ("Id")
             );
+            """);
+
+        // ── AppCache (typed cache payloads) ───────────────────────────────
+        await ExecuteAsync(conn,"""
+            CREATE TABLE IF NOT EXISTS "AppCache" (
+                "Key"         TEXT NOT NULL,
+                "ValueJson"   TEXT NOT NULL,
+                "StoredAtUtc" TEXT NOT NULL,
+                "Fingerprint" TEXT NULL,
+                "UpdatedAtUtc" TEXT NOT NULL,
+                CONSTRAINT "PK_AppCache" PRIMARY KEY ("Key")
+            );
+            """);
+
+        await ExecuteAsync(conn,"""
+            CREATE INDEX IF NOT EXISTS "IX_AppCache_StoredAtUtc"
+            ON "AppCache" ("StoredAtUtc");
             """);
 
         _logger.LogInformation("[DatabaseInitializer] Database initialization complete");

@@ -8,14 +8,18 @@ actor DotNetMobileEngineClient: MobileEngineClient {
         apiBaseUrl: String,
         geminiApiKey: String? = nil,
         openWeatherApiKey: String? = nil,
-        googleOAuthClientId: String? = nil
+        googleOAuthClientId: String? = nil,
+        openRouterApiKey: String? = nil,
+        openRouterModel: String? = nil
     ) throws {
         self.handle = try MobileEngineHandle(
             databasePath: databasePath,
             apiBaseUrl: apiBaseUrl,
             geminiApiKey: geminiApiKey,
             openWeatherApiKey: openWeatherApiKey,
-            googleOAuthClientId: googleOAuthClientId
+            googleOAuthClientId: googleOAuthClientId,
+            openRouterApiKey: openRouterApiKey,
+            openRouterModel: openRouterModel
         )
     }
 

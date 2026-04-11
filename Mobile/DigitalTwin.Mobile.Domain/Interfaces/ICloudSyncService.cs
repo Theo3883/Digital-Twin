@@ -7,6 +7,8 @@ namespace DigitalTwin.Mobile.Domain.Interfaces;
 /// </summary>
 public interface ICloudSyncService
 {
+    bool IsAuthenticated { get; }
+
     // Authentication
     Task<CloudAuthResult> AuthenticateAsync(string googleIdToken);
     Task<User?> GetCurrentUserProfileAsync();

@@ -21,6 +21,12 @@ public class DoctorAssignmentApplicationService
     {
         try
         {
+            if (!_cloudSync.IsAuthenticated)
+            {
+                _logger.LogDebug("[DoctorAssignment] Skipping cloud doctor assignment fetch because authentication is not ready.");
+                return [];
+            }
+
             var doctors = await _cloudSync.GetAssignedDoctorsAsync();
             return doctors.Select(d => new AssignedDoctorDto
             {

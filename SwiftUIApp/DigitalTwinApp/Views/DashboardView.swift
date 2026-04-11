@@ -70,9 +70,17 @@ struct DashboardView: View {
         .pageEnterAnimation()
         .task {
             await viewModel.load()
+
+            Task {
+                await viewModel.refreshCoachingAdvice(using: container.engine)
+            }
         }
         .refreshable {
             await viewModel.load()
+
+            Task {
+                await viewModel.refreshCoachingAdvice(using: container.engine, forceRefresh: true)
+            }
         }
     }
 }

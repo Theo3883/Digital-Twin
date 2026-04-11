@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using DigitalTwin.Mobile.Application.DTOs;
 using DigitalTwin.Mobile.Domain.Interfaces;
 using DigitalTwin.Mobile.Domain.Models;
@@ -9,23 +10,30 @@ public class ChatBotApplicationService
 {
     private readonly IChatBotProvider _chatProvider;
     private readonly IChatMessageRepository _chatRepo;
-    private readonly IPatientRepository _patientRepo;
+    private readonly PatientAiContextBuilder _contextBuilder;
     private readonly ILogger<ChatBotApplicationService> _logger;
 
     public ChatBotApplicationService(
         IChatBotProvider chatProvider,
         IChatMessageRepository chatRepo,
-        IPatientRepository patientRepo,
+        PatientAiContextBuilder contextBuilder,
         ILogger<ChatBotApplicationService> logger)
     {
         _chatProvider = chatProvider;
         _chatRepo = chatRepo;
-        _patientRepo = patientRepo;
+        _contextBuilder = contextBuilder;
         _logger = logger;
     }
 
     public async Task<ChatMessageDto> SendMessageAsync(string userMessage)
     {
+        var correlationId = ResolveCorrelationId();
+
+        _logger.LogInformation(
+            "[ChatBot][{CorrelationId}] Sending chat message ({Length} chars).",
+            correlationId,
+            userMessage.Length);
+
         // Save user message
         var userMsg = new ChatMessage
         {
@@ -36,13 +44,7 @@ public class ChatBotApplicationService
 
         try
         {
-            // Build patient context
-            var patient = await _patientRepo.GetCurrentPatientAsync();
-            string? context = null;
-            if (patient != null)
-            {
-                context = $"Patient: BloodType={patient.BloodType}, Weight={patient.Weight}kg, Height={patient.Height}cm, Allergies={patient.Allergies}";
-            }
+            var context = await _contextBuilder.BuildChatContextAsync();
 
             var response = await _chatProvider.SendMessageAsync(userMessage, context);
 
@@ -54,7 +56,20 @@ public class ChatBotApplicationService
             };
             await _chatRepo.SaveAsync(aiMsg);
 
-            _logger.LogInformation("[ChatBot] Sent message, got response ({Length} chars)", response.Length);
+            if (IsDegradedGeminiResponse(response))
+            {
+                _logger.LogWarning(
+                    "[ChatBot][{CorrelationId}] Provider returned degraded response ({Length} chars).",
+                    correlationId,
+                    response.Length);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "[ChatBot][{CorrelationId}] Sent message, got response ({Length} chars).",
+                    correlationId,
+                    response.Length);
+            }
 
             return new ChatMessageDto
             {
@@ -66,7 +81,7 @@ public class ChatBotApplicationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[ChatBot] Failed to get AI response");
+            _logger.LogError(ex, "[ChatBot][{CorrelationId}] Failed to get AI response", correlationId);
 
             var errorMsg = new ChatMessage
             {
@@ -101,5 +116,23 @@ public class ChatBotApplicationService
     {
         await _chatRepo.ClearAllAsync();
         _logger.LogInformation("[ChatBot] Chat history cleared");
+    }
+
+    private static bool IsDegradedGeminiResponse(string response)
+    {
+        if (string.IsNullOrWhiteSpace(response))
+            return true;
+
+        return response.Contains("temporarily rate limited", StringComparison.OrdinalIgnoreCase) ||
+               response.Contains("trouble connecting", StringComparison.OrdinalIgnoreCase) ||
+               response.Contains("error occurred", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string ResolveCorrelationId()
+    {
+        var traceId = Activity.Current?.TraceId.ToString();
+        return string.IsNullOrWhiteSpace(traceId)
+            ? Guid.NewGuid().ToString("N")[..8]
+            : traceId;
     }
 }

@@ -32,6 +32,7 @@ public sealed class LocalDataResetService : ILocalDataResetService
         await Exec(conn, (SqliteTransaction)tx, "DELETE FROM OcrDocuments");
         await Exec(conn, (SqliteTransaction)tx, "DELETE FROM MedicalHistoryEntries");
         await Exec(conn, (SqliteTransaction)tx, "DELETE FROM ChatMessages");
+        await Exec(conn, (SqliteTransaction)tx, "DELETE FROM AppCache");
         await Exec(conn, (SqliteTransaction)tx, "DELETE FROM Patients");
         await Exec(conn, (SqliteTransaction)tx, "DELETE FROM Users");
 

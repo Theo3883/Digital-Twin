@@ -35,6 +35,9 @@ public class SyncService
     {
         try
         {
+            if (!CanSyncWithCloud())
+                return true;
+
             _logger.LogInformation("[SyncService] Starting full sync");
 
             // 1. Push local changes to cloud
@@ -58,6 +61,9 @@ public class SyncService
     /// </summary>
     public async Task PushLocalChangesAsync()
     {
+        if (!CanSyncWithCloud())
+            return;
+
         // Push users
         var unsyncedUsers = await _userRepository.GetUnsyncedAsync();
         foreach (var user in unsyncedUsers)
@@ -94,6 +100,9 @@ public class SyncService
     /// </summary>
     public async Task PullCloudUpdatesAsync()
     {
+        if (!CanSyncWithCloud())
+            return;
+
         // Pull patient profile updates
         var cloudPatient = await _cloudSyncService.GetPatientProfileAsync();
         if (cloudPatient != null)
@@ -155,5 +164,14 @@ public class SyncService
         local.Cholesterol = cloud.Cholesterol ?? local.Cholesterol;
         local.Cnp = cloud.Cnp ?? local.Cnp;
         local.UpdatedAt = DateTime.UtcNow;
+    }
+
+    private bool CanSyncWithCloud()
+    {
+        if (_cloudSyncService.IsAuthenticated)
+            return true;
+
+        _logger.LogDebug("[SyncService] Skipping cloud sync because authentication is not ready.");
+        return false;
     }
 }

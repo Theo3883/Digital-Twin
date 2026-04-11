@@ -7,7 +7,7 @@ class DotNetBridge {
     // MARK: - C Function Declarations
     
     @_silgen_name("mobile_engine_initialize")
-    private static func mobile_engine_initialize(_ databasePath: UnsafePointer<CChar>, _ apiBaseUrl: UnsafePointer<CChar>, _ geminiApiKey: UnsafePointer<CChar>?, _ openWeatherApiKey: UnsafePointer<CChar>?, _ googleOAuthClientId: UnsafePointer<CChar>?) -> UnsafePointer<CChar>?
+    private static func mobile_engine_initialize(_ databasePath: UnsafePointer<CChar>, _ apiBaseUrl: UnsafePointer<CChar>, _ geminiApiKey: UnsafePointer<CChar>?, _ openWeatherApiKey: UnsafePointer<CChar>?, _ googleOAuthClientId: UnsafePointer<CChar>?, _ openRouterApiKey: UnsafePointer<CChar>?, _ openRouterModel: UnsafePointer<CChar>?) -> UnsafePointer<CChar>?
     
     @_silgen_name("mobile_engine_initialize_database")
     private static func mobile_engine_initialize_database() -> UnsafePointer<CChar>?
@@ -160,7 +160,7 @@ class DotNetBridge {
     // MARK: - Lifecycle Management
     
     /// Initialize the .NET engine
-    func initialize(databasePath: String, apiBaseUrl: String, geminiApiKey: String? = nil, openWeatherApiKey: String? = nil, googleOAuthClientId: String? = nil) throws -> OperationResult {
+    func initialize(databasePath: String, apiBaseUrl: String, geminiApiKey: String? = nil, openWeatherApiKey: String? = nil, googleOAuthClientId: String? = nil, openRouterApiKey: String? = nil, openRouterModel: String? = nil) throws -> OperationResult {
         // Use helper to convert optionals — avoids combinatorial withCString nesting
         func withOptionalCString(_ str: String?, _ body: (UnsafePointer<CChar>?) -> UnsafePointer<CChar>?) -> UnsafePointer<CChar>? {
             if let s = str { return s.withCString { body($0) } }
@@ -172,7 +172,11 @@ class DotNetBridge {
                 withOptionalCString(geminiApiKey) { geminiPtr in
                     withOptionalCString(openWeatherApiKey) { weatherPtr in
                         withOptionalCString(googleOAuthClientId) { googlePtr in
-                            Self.mobile_engine_initialize(dbPathPtr, apiUrlPtr, geminiPtr, weatherPtr, googlePtr)
+                            withOptionalCString(openRouterApiKey) { openRouterKeyPtr in
+                                withOptionalCString(openRouterModel) { openRouterModelPtr in
+                                    Self.mobile_engine_initialize(dbPathPtr, apiUrlPtr, geminiPtr, weatherPtr, googlePtr, openRouterKeyPtr, openRouterModelPtr)
+                                }
+                            }
                         }
                     }
                 }

@@ -5,13 +5,15 @@ import Foundation
 actor MobileEngineHandle {
     private let bridge = DotNetBridge()
 
-    init(databasePath: String, apiBaseUrl: String, geminiApiKey: String? = nil, openWeatherApiKey: String? = nil, googleOAuthClientId: String? = nil) throws {
+    init(databasePath: String, apiBaseUrl: String, geminiApiKey: String? = nil, openWeatherApiKey: String? = nil, googleOAuthClientId: String? = nil, openRouterApiKey: String? = nil, openRouterModel: String? = nil) throws {
         let result = try bridge.initialize(
             databasePath: databasePath,
             apiBaseUrl: apiBaseUrl,
             geminiApiKey: geminiApiKey,
             openWeatherApiKey: openWeatherApiKey,
-            googleOAuthClientId: googleOAuthClientId
+            googleOAuthClientId: googleOAuthClientId,
+            openRouterApiKey: openRouterApiKey,
+            openRouterModel: openRouterModel
         )
         if !result.success {
             throw EngineError.initializationFailed(result.error ?? "Unknown error")

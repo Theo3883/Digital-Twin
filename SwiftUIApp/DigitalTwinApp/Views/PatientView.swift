@@ -34,14 +34,12 @@ struct PatientView: View {
     private var completionPercentage: Double {
         guard let p = profileVM.patient else { return 0 }
         var filled = 0
-        let total = 7
+        let total = 5
+        if p.cnp != nil { filled += 1 }
         if p.bloodType != nil { filled += 1 }
         if p.weight != nil { filled += 1 }
         if p.height != nil { filled += 1 }
         if p.allergies != nil { filled += 1 }
-        if p.bloodPressureSystolic != nil { filled += 1 }
-        if p.cholesterol != nil { filled += 1 }
-        if p.cnp != nil { filled += 1 }
         return Double(filled) / Double(total)
     }
 
@@ -381,13 +379,13 @@ struct PatientView: View {
         let items: [(String, Bool)] = [
             ("Personal info", patient?.cnp != nil),
             ("Blood type", patient?.bloodType != nil),
-            ("Weight & Height", patient?.weight != nil && patient?.height != nil),
-            ("Blood pressure", patient?.bloodPressureSystolic != nil),
+            ("Weight", patient?.weight != nil),
+            ("Height", patient?.height != nil),
             ("Allergies", patient?.allergies != nil),
         ]
 
         return VStack(alignment: .leading, spacing: 10) {
-            Text("Complete Your Profile")
+            Text("Complete Your Patient Profile")
                 .font(.subheadline.weight(.medium))
                 .foregroundColor(.white)
 

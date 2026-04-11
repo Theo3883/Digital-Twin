@@ -12,8 +12,8 @@ public static class NativeExports
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_initialize")]
-    public static IntPtr Initialize(IntPtr databasePathPtr, IntPtr apiBaseUrlPtr, IntPtr geminiApiKeyPtr, IntPtr openWeatherApiKeyPtr, IntPtr googleOAuthClientIdPtr)
-        => NativeBridge.Initialize_Impl(databasePathPtr, apiBaseUrlPtr, geminiApiKeyPtr, openWeatherApiKeyPtr, googleOAuthClientIdPtr);
+    public static IntPtr Initialize(IntPtr databasePathPtr, IntPtr apiBaseUrlPtr, IntPtr geminiApiKeyPtr, IntPtr openWeatherApiKeyPtr, IntPtr googleOAuthClientIdPtr, IntPtr openRouterApiKeyPtr, IntPtr openRouterModelPtr)
+        => NativeBridge.Initialize_Impl(databasePathPtr, apiBaseUrlPtr, geminiApiKeyPtr, openWeatherApiKeyPtr, googleOAuthClientIdPtr, openRouterApiKeyPtr, openRouterModelPtr);
 
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_initialize_database")]
     public static IntPtr InitializeDatabase()

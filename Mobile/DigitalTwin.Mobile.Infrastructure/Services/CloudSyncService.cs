@@ -18,6 +18,8 @@ public class CloudSyncService : ICloudSyncService
     private readonly IAccessTokenStore _tokenStore;
     private readonly bool _isOffline;
 
+    public bool IsAuthenticated => !_isOffline && !string.IsNullOrEmpty(_tokenStore.AccessToken);
+
     public CloudSyncService(HttpClient httpClient, IAccessTokenStore tokenStore, ILogger<CloudSyncService> logger)
     {
         _httpClient = httpClient;

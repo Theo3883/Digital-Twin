@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using DigitalTwin.Mobile.Application.DTOs;
 using DigitalTwin.Mobile.Application.Services;
@@ -21,7 +22,7 @@ public class MobileEngine : IDisposable
     private readonly IServiceScope _scope;
     private readonly ILogger<MobileEngine> _logger;
 
-    public MobileEngine(string databasePath, string apiBaseUrl, string? geminiApiKey = null, string? openWeatherApiKey = null, string? googleOAuthClientId = null)
+    public MobileEngine(string databasePath, string apiBaseUrl, string? geminiApiKey = null, string? openWeatherApiKey = null, string? googleOAuthClientId = null, string? openRouterApiKey = null, string? openRouterModel = null)
     {
         // Ensure SQLite native provider is configured (NativeAOT/iOS-safe).
         // Force system libsqlite3 provider (prevents attempts to dlopen e_sqlite3).
@@ -40,7 +41,7 @@ public class MobileEngine : IDisposable
             .ConfigureServices(services =>
             {
                 var effectiveApiBaseUrl = ResolveEffectiveApiBaseUrl(apiBaseUrl);
-                services.AddMobileServices(databasePath, effectiveApiBaseUrl, geminiApiKey, openWeatherApiKey, googleOAuthClientId);
+                services.AddMobileServices(databasePath, effectiveApiBaseUrl, geminiApiKey, openWeatherApiKey, googleOAuthClientId, openRouterApiKey, openRouterModel);
             });
 
         _host = builder.Build();
@@ -505,15 +506,30 @@ public class MobileEngine : IDisposable
 
     public async Task<string> SendChatMessageAsync(string message)
     {
+        using var activity = new Activity("MobileEngine.SendChatMessage");
+        activity.Start();
+        var correlationId = activity.TraceId.ToString();
+
         try
         {
+            _logger.LogInformation(
+                "[MobileEngine][{CorrelationId}] Sending chat message ({Length} chars).",
+                correlationId,
+                message.Length);
+
             var service = _scope.ServiceProvider.GetRequiredService<ChatBotApplicationService>();
             var response = await service.SendMessageAsync(message);
+
+            _logger.LogInformation(
+                "[MobileEngine][{CorrelationId}] Chat message completed ({Length} chars).",
+                correlationId,
+                response.Content.Length);
+
             return JsonSerializer.Serialize(response, MobileJsonContext.Default.ChatMessageDto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MobileEngine] Chat message failed");
+            _logger.LogError(ex, "[MobileEngine][{CorrelationId}] Chat message failed", correlationId);
             var errorDto = new ChatMessageDto
             {
                 Content = "An error occurred. Please try again.",
@@ -560,15 +576,27 @@ public class MobileEngine : IDisposable
 
     public async Task<string> GetCoachingAdviceAsync()
     {
+        using var activity = new Activity("MobileEngine.GetCoachingAdvice");
+        activity.Start();
+        var correlationId = activity.TraceId.ToString();
+
         try
         {
+            _logger.LogInformation("[MobileEngine][{CorrelationId}] Fetching coaching advice.", correlationId);
+
             var service = _scope.ServiceProvider.GetRequiredService<CoachingApplicationService>();
             var advice = await service.GetAdviceAsync();
+
+            _logger.LogInformation(
+                "[MobileEngine][{CorrelationId}] Coaching advice fetched ({Length} chars).",
+                correlationId,
+                advice.Advice.Length);
+
             return JsonSerializer.Serialize(advice, MobileJsonContext.Default.CoachingAdviceDto);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[MobileEngine] Failed to get coaching advice");
+            _logger.LogError(ex, "[MobileEngine][{CorrelationId}] Failed to get coaching advice", correlationId);
             var fallback = new CoachingAdviceDto
             {
                 Advice = "Stay hydrated, get regular exercise, and maintain a balanced diet.",

@@ -13,6 +13,13 @@ struct MedicalAssistantView: View {
         VStack(spacing: 0) {
             // Custom Top Bar
             assistantTopBar
+
+            if let statusText = viewModel.assistantStatusText {
+                assistantStatusChip(text: statusText)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 8)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
             
             // Chat area
             if viewModel.messages.isEmpty && !viewModel.isSending {
@@ -25,6 +32,7 @@ struct MedicalAssistantView: View {
             chatInputBar
         }
         .pageEnterAnimation()
+        .animation(.easeInOut(duration: 0.2), value: viewModel.assistantStatusText)
         .task {
             await viewModel.onAppear()
         }
@@ -76,6 +84,27 @@ struct MedicalAssistantView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
+    }
+
+    private func assistantStatusChip(text: String) -> some View {
+        let isRateLimitWarning =
+            text.localizedCaseInsensitiveContains("rate limit") ||
+            text.localizedCaseInsensitiveContains("quota")
+
+        return HStack(spacing: 8) {
+            Image(systemName: isRateLimitWarning ? "exclamationmark.triangle.fill" : "arrow.triangle.2.circlepath")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(isRateLimitWarning ? LiquidGlass.amberWarning : LiquidGlass.tealPrimary)
+
+            Text(text)
+                .font(.caption2.weight(.medium))
+                .foregroundColor(.white.opacity(0.9))
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .glassEffect(.regular, in: Capsule())
     }
 
     // MARK: - Welcome Screen
@@ -148,17 +177,20 @@ struct MedicalAssistantView: View {
             }
             
             HStack(spacing: 4) {
-                ForEach(0..<3, id: \.self) { i in
-                    Circle()
-                        .fill(.white.opacity(0.5))
-                        .frame(width: 6, height: 6)
-                        .offset(y: viewModel.isSending ? -4 : 0)
-                        .animation(
-                            .easeInOut(duration: 0.5)
-                            .repeatForever(autoreverses: true)
-                            .delay(Double(i) * 0.15),
-                            value: viewModel.isSending
-                        )
+                TimelineView(.animation(minimumInterval: 0.08)) { timeline in
+                    let now = timeline.date.timeIntervalSinceReferenceDate
+
+                    HStack(spacing: 4) {
+                        ForEach(0..<3, id: \.self) { i in
+                            let phase = now * 2.8 + Double(i) * 0.22
+                            let offset = sin(phase * .pi * 2) * 3.2
+
+                            Circle()
+                                .fill(.white.opacity(0.6))
+                                .frame(width: 6, height: 6)
+                                .offset(y: -offset)
+                        }
+                    }
                 }
             }
             .padding(.horizontal, 16)

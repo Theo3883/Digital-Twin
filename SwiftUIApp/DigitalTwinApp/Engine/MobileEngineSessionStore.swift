@@ -13,6 +13,7 @@ class MobileEngineSessionStore: ObservableObject {
     @Published var isHydratingAfterAuth = false
     @Published var errorMessage: String?
     @Published var hasCloudProfile = false
+    @Published var isCloudAuthenticated = false
 
     // MARK: - Feature State
 
@@ -39,6 +40,8 @@ class MobileEngineSessionStore: ObservableObject {
     private let databasePath: String
     private let apiBaseUrl: String
     private let geminiApiKey: String?
+    private let openRouterApiKey: String?
+    private let openRouterModel: String?
     private let openWeatherApiKey: String?
     private let googleOAuthClientId: String?
 
@@ -48,21 +51,31 @@ class MobileEngineSessionStore: ObservableObject {
         self.apiBaseUrl = Bundle.main.infoDictionary?["API_BASE_URL"] as? String ?? ""
 
         // API keys — injected from Secrets.xcconfig → Info.plist at build time
-        self.geminiApiKey = Bundle.main.infoDictionary?["GEMINI_API_KEY"] as? String
-        self.openWeatherApiKey = Bundle.main.infoDictionary?["OPENWEATHER_API_KEY"] as? String
-        self.googleOAuthClientId = Bundle.main.infoDictionary?["GOOGLE_OAUTH_CLIENT_ID"] as? String
+        self.geminiApiKey = Self.sanitizedConfigValue(Bundle.main.infoDictionary?["GEMINI_API_KEY"] as? String)
+        self.openRouterApiKey = Self.sanitizedConfigValue(Bundle.main.infoDictionary?["OPENROUTER_API_KEY"] as? String)
+        self.openRouterModel = Self.sanitizedConfigValue(Bundle.main.infoDictionary?["OPENROUTER_MODEL"] as? String)
+        self.openWeatherApiKey = Self.sanitizedConfigValue(Bundle.main.infoDictionary?["OPENWEATHER_API_KEY"] as? String)
+        self.googleOAuthClientId = Self.sanitizedConfigValue(Bundle.main.infoDictionary?["GOOGLE_OAUTH_CLIENT_ID"] as? String)
 
         if apiBaseUrl.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || apiBaseUrl.contains("$(") {
             errorMessage = "Missing API_BASE_URL. Fill it in Secrets.xcconfig for cloud sync."
         }
-        if let key = geminiApiKey, !key.isEmpty, !key.contains("$(") {
-            // ok
-        } else {
+        if geminiApiKey == nil && openRouterApiKey == nil {
             // Non-fatal: only affects Assistant feature.
             if errorMessage == nil {
-                errorMessage = "Missing GEMINI_API_KEY. Fill it in Secrets.xcconfig to enable the AI assistant."
+                errorMessage = "Missing AI provider key. Fill GEMINI_API_KEY or OPENROUTER_API_KEY in Secrets.xcconfig to enable the AI assistant."
             }
         }
+    }
+
+    private static func sanitizedConfigValue(_ value: String?) -> String? {
+        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trimmed.isEmpty,
+              !trimmed.contains("$(") else {
+            return nil
+        }
+
+        return trimmed
     }
 
     var databasePathString: String { databasePath }
@@ -85,7 +98,9 @@ class MobileEngineSessionStore: ObservableObject {
                 apiBaseUrl: apiBaseUrl,
                 geminiApiKey: geminiApiKey,
                 openWeatherApiKey: openWeatherApiKey,
-                googleOAuthClientId: googleOAuthClientId
+                googleOAuthClientId: googleOAuthClientId,
+                openRouterApiKey: openRouterApiKey,
+                openRouterModel: openRouterModel
             )
 
             let initResult = try await engine?.initializeDatabase()
@@ -158,6 +173,7 @@ class MobileEngineSessionStore: ObservableObject {
                 isAuthenticated = true
                 currentUser = result.user
                 hasCloudProfile = result.hasCloudProfile ?? false
+                isCloudAuthenticated = !(result.accessToken?.isEmpty ?? true)
 
                 // If the cloud has a profile, the .NET engine should have seeded local SQLite during auth.
                 // Hydrate the in-memory state so UI can route correctly.
@@ -169,10 +185,12 @@ class MobileEngineSessionStore: ObservableObject {
                 return true
             } else {
                 errorMessage = result.errorMessage ?? "Authentication failed"
+                isCloudAuthenticated = false
                 return false
             }
         } catch {
             errorMessage = "Authentication failed: \(error.localizedDescription)"
+            isCloudAuthenticated = false
             return false
         }
     }
@@ -223,6 +241,7 @@ class MobileEngineSessionStore: ObservableObject {
         currentUser = nil
         patientProfile = nil
         hasCloudProfile = false
+        isCloudAuthenticated = false
         medications = []
         chatMessages = []
         ocrDocuments = []
@@ -347,7 +366,11 @@ class MobileEngineSessionStore: ObservableObject {
 
     // MARK: - Coaching
 
-    func fetchCoachingAdvice() async {
+    func fetchCoachingAdvice(forceRefresh: Bool = false) async {
+        if !forceRefresh, isAdviceFresh(coachingAdvice, maxAgeSeconds: 4 * 60 * 60) {
+            return
+        }
+
         guard let engine else { return }
         do { coachingAdvice = try await engine.getCoachingAdvice() } catch {}
     }
@@ -453,15 +476,30 @@ class MobileEngineSessionStore: ObservableObject {
         do { environmentAnalytics = try await engine.getEnvironmentAnalytics() } catch {}
     }
 
-    func loadEnvironmentAdvice() async {
+    func loadEnvironmentAdvice(forceRefresh: Bool = false) async {
+        if !forceRefresh, isAdviceFresh(environmentAdvice, maxAgeSeconds: 2 * 60 * 60) {
+            return
+        }
+
         guard let engine else { return }
         do { environmentAdvice = try await engine.getEnvironmentAdvice() } catch {}
+    }
+
+    private func isAdviceFresh(_ advice: CoachingAdviceInfo?, maxAgeSeconds: TimeInterval) -> Bool {
+        guard let advice else { return false }
+        return Date().timeIntervalSince(advice.timestamp) < maxAgeSeconds
     }
 
     // MARK: - Synchronization
 
     func performSync() async -> Bool {
         guard let engine else { return false }
+
+        if !isCloudAuthenticated {
+            await getCurrentUser()
+            await loadPatientProfile()
+            return true
+        }
 
         isLoading = true
         errorMessage = nil
@@ -537,6 +575,7 @@ class MobileEngineSessionStore: ObservableObject {
 
     func pushLocalChanges() async -> Bool {
         guard let engine else { return false }
+        guard isCloudAuthenticated else { return true }
         do { return try await engine.pushLocalChanges().success } catch { return false }
     }
 }

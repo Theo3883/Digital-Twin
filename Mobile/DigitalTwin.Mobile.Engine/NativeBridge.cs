@@ -22,7 +22,7 @@ public static class NativeBridge
     /// Initialize the mobile engine with database and API configuration
     /// </summary>
     // Internal methods (callable from the NativeAOT host)
-    internal static IntPtr Initialize_Impl(IntPtr databasePathPtr, IntPtr apiBaseUrlPtr, IntPtr geminiApiKeyPtr, IntPtr openWeatherApiKeyPtr, IntPtr googleOAuthClientIdPtr)
+    internal static IntPtr Initialize_Impl(IntPtr databasePathPtr, IntPtr apiBaseUrlPtr, IntPtr geminiApiKeyPtr, IntPtr openWeatherApiKeyPtr, IntPtr googleOAuthClientIdPtr, IntPtr openRouterApiKeyPtr, IntPtr openRouterModelPtr)
     {
         try
         {
@@ -31,8 +31,10 @@ public static class NativeBridge
             var geminiApiKey = Marshal.PtrToStringUTF8(geminiApiKeyPtr);
             var openWeatherApiKey = Marshal.PtrToStringUTF8(openWeatherApiKeyPtr);
             var googleOAuthClientId = Marshal.PtrToStringUTF8(googleOAuthClientIdPtr);
+            var openRouterApiKey = Marshal.PtrToStringUTF8(openRouterApiKeyPtr);
+            var openRouterModel = Marshal.PtrToStringUTF8(openRouterModelPtr);
 
-            _engine = new MobileEngine(databasePath, apiBaseUrl, geminiApiKey, openWeatherApiKey, googleOAuthClientId);
+            _engine = new MobileEngine(databasePath, apiBaseUrl, geminiApiKey, openWeatherApiKey, googleOAuthClientId, openRouterApiKey, openRouterModel);
             
             // Logger is optional here; don't reflect into engine internals.
             _logger = null;
@@ -50,8 +52,8 @@ public static class NativeBridge
     // Exported C ABI (kept for compatibility, but for the NativeHost path we
     // call the _Impl methods to avoid UnmanagedCallersOnly direct-call rules).
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_initialize")]
-    public static IntPtr Initialize(IntPtr databasePathPtr, IntPtr apiBaseUrlPtr, IntPtr geminiApiKeyPtr, IntPtr openWeatherApiKeyPtr, IntPtr googleOAuthClientIdPtr)
-        => Initialize_Impl(databasePathPtr, apiBaseUrlPtr, geminiApiKeyPtr, openWeatherApiKeyPtr, googleOAuthClientIdPtr);
+    public static IntPtr Initialize(IntPtr databasePathPtr, IntPtr apiBaseUrlPtr, IntPtr geminiApiKeyPtr, IntPtr openWeatherApiKeyPtr, IntPtr googleOAuthClientIdPtr, IntPtr openRouterApiKeyPtr, IntPtr openRouterModelPtr)
+        => Initialize_Impl(databasePathPtr, apiBaseUrlPtr, geminiApiKeyPtr, openWeatherApiKeyPtr, googleOAuthClientIdPtr, openRouterApiKeyPtr, openRouterModelPtr);
 
     /// <summary>
     /// Initialize the database (call once on app startup)
