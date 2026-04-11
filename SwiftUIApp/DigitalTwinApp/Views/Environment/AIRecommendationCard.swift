@@ -24,9 +24,13 @@ struct AIRecommendationCard: View {
                 Text("AI Health Recommendation")
                     .font(.subheadline.weight(.medium))
                     .foregroundColor(.white)
-                Text(recommendation)
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.65))
+                MarkdownText(
+                    recommendation,
+                    baseFont: .caption,
+                    baseColor: .white.opacity(0.65),
+                    boldColor: .white,
+                    italicColor: .white.opacity(0.65)
+                )
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text("Source: OpenWeatherMap")
