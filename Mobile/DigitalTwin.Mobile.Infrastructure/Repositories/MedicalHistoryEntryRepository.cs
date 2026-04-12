@@ -60,6 +60,16 @@ public class MedicalHistoryEntryRepository : IMedicalHistoryEntryRepository
         await tx.CommitAsync();
     }
 
+    public async Task DeleteBySourceDocumentIdAsync(Guid sourceDocumentId)
+    {
+        await using var conn = _db.CreateConnection();
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "DELETE FROM MedicalHistoryEntries WHERE SourceDocumentId = @sid";
+        cmd.Parameters.AddWithValue("@sid", sourceDocumentId.ToString());
+        await cmd.ExecuteNonQueryAsync();
+    }
+
     public async Task<IEnumerable<MedicalHistoryEntry>> GetDirtyAsync()
     {
         await using var conn = _db.CreateConnection();

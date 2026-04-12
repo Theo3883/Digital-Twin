@@ -8,6 +8,7 @@ public interface IOcrDocumentRepository
     Task<OcrDocument?> GetByIdAsync(Guid id);
     Task SaveAsync(OcrDocument document);
     Task UpdateAsync(OcrDocument document);
+    Task DeleteAsync(Guid id);
     Task<IEnumerable<OcrDocument>> GetDirtyAsync();
     Task MarkSyncedAsync(Guid id);
 }

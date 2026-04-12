@@ -38,6 +38,7 @@ public sealed class VaultService
             foreach (var sub in new[] { "quarantine", "encrypted", "manifests", "temp" })
                 Directory.CreateDirectory(VaultPath(sub));
 
+            _logger.LogDebug("[OCR Vault] Created subdirectories: quarantine, encrypted, manifests, temp");
             _logger.LogInformation("[OCR Vault] Initialized at opaque path.");
             return OcrResult<bool>.Ok(true);
         }
@@ -59,6 +60,7 @@ public sealed class VaultService
 
         _masterKey = masterKey;
         _isUnlocked = true;
+        _logger.LogDebug("[OCR Vault] Unlock: master key length={KeyLen} bytes", masterKey.Length);
         _logger.LogInformation("[OCR Vault] Unlocked.");
         return OcrResult<bool>.Ok(true);
     }
@@ -84,6 +86,8 @@ public sealed class VaultService
             EnsureVaultDirectoriesExist();
 
             var sha256 = HashingService.ComputeSha256Hex(normalizedBytes);
+            _logger.LogDebug("[OCR Vault] StoreDocument: docId={DocId}, mime={Mime}, pages={Pages}, inputBytes={Size}, sha256={Hash}",
+                documentId, mimeType, pageCount, normalizedBytes.Length, sha256[..Math.Min(16, sha256.Length)]);
             var payload = DocumentEncryptionService.Encrypt(normalizedBytes, _masterKey, documentId, mimeType, pageCount, sha256);
 
             var encPath = VaultPath($"encrypted/{documentId:N}.enc");
@@ -135,7 +139,11 @@ public sealed class VaultService
                 return OcrResult<byte[]>.Fail("Encrypted file missing (vault metadata out of sync).");
 
             var ciphertext = await File.ReadAllBytesAsync(cipherPath);
+            _logger.LogDebug("[OCR Vault] Retrieve: docId={DocId}, cipherSize={Size} bytes",
+                documentId, ciphertext.Length);
             var plaintext = DocumentEncryptionService.Decrypt(ciphertext, descriptor, _masterKey);
+            _logger.LogDebug("[OCR Vault] Retrieve: decrypted {Size} bytes for {Ref}",
+                plaintext.Length, LoggingRedactionPolicy.SafeDocumentRef(documentId));
             return OcrResult<byte[]>.Ok(plaintext);
         }
         catch (Exception ex)
@@ -175,9 +183,12 @@ public sealed class VaultService
             var encPath = VaultPath($"encrypted/{documentId:N}.enc");
             var manifestPath = VaultPath($"manifests/{documentId:N}.json");
 
+            _logger.LogDebug("[OCR Vault] Delete: enc exists={EncExists}, manifest exists={ManExists}",
+                File.Exists(encPath), File.Exists(manifestPath));
             if (File.Exists(encPath)) File.Delete(encPath);
             if (File.Exists(manifestPath)) File.Delete(manifestPath);
 
+            _logger.LogInformation("[OCR Vault] Deleted vault files for {Ref}", LoggingRedactionPolicy.SafeDocumentRef(documentId));
             return OcrResult<bool>.Ok(true);
         }
         catch (Exception ex)

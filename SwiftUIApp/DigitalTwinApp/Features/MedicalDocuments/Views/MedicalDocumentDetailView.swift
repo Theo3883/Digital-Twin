@@ -24,28 +24,37 @@ struct MedicalDocumentDetailView: View {
     @State private var decryptedData: Data?
     @State private var previewError: String?
     @State private var isLoadingPreview = false
+    @State private var isDeleting = false
+    @State private var deleteError: String?
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                metadataCard
+        ZStack {
+            MeshGradientBackground()
 
-                if !document.encryptedVaultPath.isEmpty {
-                    vaultPreviewSection
+            ScrollView {
+                VStack(spacing: 16) {
+                    metadataCard
+
+                    if !document.encryptedVaultPath.isEmpty {
+                        vaultPreviewSection
+                    }
+
+                    actionsSection
+
+                    if let deleteError {
+                        Text(deleteError)
+                            .font(.caption)
+                            .foregroundColor(LiquidGlass.redCritical)
+                    }
+
+                    Spacer(minLength: 100)
                 }
-
-                if !document.sanitizedOcrPreview.isEmpty {
-                    SanitizedPreviewPanelView(sanitizedText: document.sanitizedOcrPreview)
-                }
-
-                actionsSection
-
-                Spacer(minLength: 100)
+                .padding(16)
             }
-            .padding(16)
         }
         .pageEnterAnimation()
-        .navigationTitle("Document Details")
+        .navigationTitle(document.displayType)
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -57,7 +66,7 @@ struct MedicalDocumentDetailView: View {
                     .foregroundColor(LiquidGlass.tealPrimary)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(document.opaqueInternalName)
+                    Text(document.displayType)
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(.white)
                         .lineLimit(2)
@@ -188,12 +197,25 @@ struct MedicalDocumentDetailView: View {
     private var actionsSection: some View {
         Button {
             Task {
-                _ = await repository.vaultDeleteDocument(documentId: document.id.uuidString)
+                isDeleting = true
+                deleteError = nil
+                let result = await repository.vaultDeleteDocument(documentId: document.id.uuidString)
+                isDeleting = false
+                if result?.success == true {
+                    dismiss()
+                } else {
+                    deleteError = result?.error ?? "Failed to delete document."
+                }
             }
         } label: {
             HStack(spacing: 6) {
-                Image(systemName: "trash")
-                    .font(.caption)
+                if isDeleting {
+                    ProgressView()
+                        .tint(LiquidGlass.redCritical)
+                } else {
+                    Image(systemName: "trash")
+                        .font(.caption)
+                }
                 Text("Delete from Vault")
                     .font(.caption.weight(.medium))
             }
@@ -201,6 +223,7 @@ struct MedicalDocumentDetailView: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
         }
+        .disabled(isDeleting)
         .glassPill(tint: LiquidGlass.redCritical.opacity(0.1))
     }
 }

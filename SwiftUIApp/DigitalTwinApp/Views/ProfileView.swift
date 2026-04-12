@@ -313,7 +313,6 @@ struct ProfileView: View {
             HStack(spacing: 12) {
                 NavigationLink(
                     destination: OcrDocumentRootView(
-                        viewModel: OcrDocumentsViewModel(repository: ocrRepository),
                         repository: ocrRepository
                     )
                 ) {
@@ -330,7 +329,6 @@ struct ProfileView: View {
 
                 NavigationLink(
                     destination: OcrDocumentRootView(
-                        viewModel: OcrDocumentsViewModel(repository: ocrRepository),
                         repository: ocrRepository
                     )
                 ) {

@@ -5,6 +5,7 @@ using DigitalTwin.Mobile.Application.Services;
 using DigitalTwin.Mobile.Domain.Models;
 using DigitalTwin.Mobile.Domain.Services;
 using DigitalTwin.Mobile.Domain.Enums;
+using DigitalTwin.Mobile.Domain.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -1075,10 +1076,23 @@ public class MobileEngine : IDisposable
     {
         try
         {
+            var docId = Guid.Parse(documentId);
             var vault = _scope.ServiceProvider.GetRequiredService<OCR.Services.VaultService>();
-            var result = vault.DeleteDocument(Guid.Parse(documentId));
+            var result = vault.DeleteDocument(docId);
+            if (!result.IsSuccess)
+                return JsonSerializer.Serialize(
+                    new VaultResultDto { Success = false, Error = result.Error },
+                    MobileJsonContext.Default.VaultResultDto);
+
+            // Also remove DB records for the document and its history entries
+            var docRepo = _scope.ServiceProvider.GetRequiredService<IOcrDocumentRepository>();
+            var historyRepo = _scope.ServiceProvider.GetRequiredService<IMedicalHistoryEntryRepository>();
+            historyRepo.DeleteBySourceDocumentIdAsync(docId).GetAwaiter().GetResult();
+            docRepo.DeleteAsync(docId).GetAwaiter().GetResult();
+            _logger.LogInformation("[MobileEngine] VaultDeleteDocument: deleted vault files + DB records for {DocId}", docId);
+
             return JsonSerializer.Serialize(
-                new VaultResultDto { Success = result.IsSuccess, Error = result.Error },
+                new VaultResultDto { Success = true },
                 MobileJsonContext.Default.VaultResultDto);
         }
         catch (Exception ex)

@@ -286,24 +286,31 @@ final class OcrSessionController: ObservableObject {
         do {
             let documentId = UUID()
             let ocrT0 = CFAbsoluteTimeGetCurrent()
+            print("[OCR Pipeline] Starting processImages: \(images.count) images, mimeType=\(mimeType), docId=\(documentId)")
 
             currentStep = .recognizing
             let pageTexts = try await visionService.recognizePages(images)
+            print("[OCR Pipeline] Vision recognized \(pageTexts.count) pages, total chars=\(pageTexts.joined().count)")
 
             guard !pageTexts.allSatisfy({ $0.isEmpty }) else {
                 error = "No text recognized in the scanned document."
                 currentStep = .failed
+                print("[OCR Pipeline] FAIL: all pages empty")
                 return
             }
 
             let combinedText = pageTexts.joined(separator: "\n---\n")
             let ocrMs = Int64((CFAbsoluteTimeGetCurrent() - ocrT0) * 1000)
+            print("[OCR Pipeline] OCR took \(ocrMs)ms, combined text \(combinedText.count) chars")
 
             var mlType: String?
             var mlConfidence: Float = 0
             if let ml = await DocumentTypeMlClassifier.classifyDocumentType(ocrText: combinedText) {
                 mlType = ml.type
                 mlConfidence = ml.confidence
+                print("[OCR Pipeline] ML classification: type=\(ml.type), confidence=\(ml.confidence)")
+            } else {
+                print("[OCR Pipeline] ML classification returned nil")
             }
 
             currentStep = .classifying
@@ -313,30 +320,37 @@ final class OcrSessionController: ObservableObject {
             )
             classificationResult = classification
             let classMs = Int64((CFAbsoluteTimeGetCurrent() - classT0) * 1000)
+            print("[OCR Pipeline] Classification took \(classMs)ms → type=\(classification?.type ?? "nil"), conf=\(classification?.confidence ?? 0), method=\(classification?.method ?? "nil")")
 
             currentStep = .extractingIdentity
             guard let rawPipelineJson = await repository.processFullOcrRawJson(combinedText),
                   let jsonData = rawPipelineJson.data(using: .utf8) else {
                 error = "OCR pipeline failed to return a result."
                 currentStep = .failed
+                print("[OCR Pipeline] FAIL: processFullOcrRawJson returned nil")
                 return
             }
+            print("[OCR Pipeline] Full pipeline JSON: \(rawPipelineJson.prefix(200))...")
 
             let result = try pipelineDecoder.decode(OcrProcessingResult.self, from: jsonData)
             processingResult = result
+            print("[OCR Pipeline] Decoded result: docType=\(result.documentType ?? "nil"), identity name=\(result.identity?.extractedName ?? "nil")")
 
             currentStep = .validatingIdentity
             if let validation = result.validation, !validation.isValid {
                 identityMismatch = validation
                 error = validation.reason ?? "Identity on the document does not match your profile."
                 currentStep = .failed
+                print("[OCR Pipeline] FAIL: identity validation failed - \(validation.reason ?? "no reason")")
                 return
             }
+            print("[OCR Pipeline] Identity validation passed")
 
             currentStep = .encryptingAndStoring
             guard ocrSessionVaultUnlocked else {
                 error = "Vault is not ready."
                 currentStep = .failed
+                print("[OCR Pipeline] FAIL: vault not unlocked")
                 return
             }
 
@@ -356,8 +370,10 @@ final class OcrSessionController: ObservableObject {
             guard let payload = vaultData, !payload.isEmpty else {
                 error = "Could not prepare document for encryption."
                 currentStep = .failed
+                print("[OCR Pipeline] FAIL: empty payload for vault")
                 return
             }
+            print("[OCR Pipeline] Vault payload ready: \(payload.count) bytes, mime=\(vaultMime)")
 
             let storeInput = VaultStoreDocumentInput(
                 documentBase64: payload.base64EncodedString(),
@@ -369,8 +385,10 @@ final class OcrSessionController: ObservableObject {
             guard let vaultResult = vaultStoreOutcome, vaultResult.success else {
                 error = vaultStoreOutcome?.error ?? "Failed to store document in the vault."
                 currentStep = .failed
+                print("[OCR Pipeline] FAIL: vault store failed - \(vaultStoreOutcome?.error ?? "nil")")
                 return
             }
+            print("[OCR Pipeline] Vault stored: opaqueName=\(vaultResult.opaqueInternalName ?? "nil"), sha256=\(vaultResult.sha256?.prefix(16) ?? "nil")")
 
             let docType = classification?.type ?? result.documentType
             let classConf = classification?.confidence ?? 0.5
@@ -390,6 +408,7 @@ final class OcrSessionController: ObservableObject {
             let structured = await repository.buildStructuredDocumentFromJson(structuredInput)
             structuredResult = structured
             reviewFlags = structured?.reviewFlags ?? []
+            print("[OCR Pipeline] Structured result: \(structured?.reviewFlags.count ?? 0) review flags")
 
             currentStep = .saving
             let save = SaveOcrDocumentInput(
@@ -407,15 +426,18 @@ final class OcrSessionController: ObservableObject {
             guard let saved = await repository.saveDocument(save) else {
                 error = error ?? "Failed to save document record."
                 currentStep = .failed
+                print("[OCR Pipeline] FAIL: saveDocument returned nil")
                 return
             }
 
             await repository.refreshAfterSave()
             lastSavedDocument = saved
             currentStep = .complete
+            print("[OCR Pipeline] SUCCESS: document saved, id=\(saved.id), type=\(saved.documentType)")
         } catch {
             self.error = error.localizedDescription
             currentStep = .failed
+            print("[OCR Pipeline] EXCEPTION: \(error)")
         }
     }
 
@@ -425,11 +447,13 @@ final class OcrSessionController: ObservableObject {
         identityMismatch = nil
         lastSavedDocument = nil
         defer { isProcessing = false }
+        print("[OCR Pipeline] processFileImport: mime=\(file.mimeType), size=\(file.fileSize), ext=\(file.fileExtension)")
 
         if file.mimeType.hasPrefix("image/") {
             guard let image = UIImage(data: file.data) else {
                 error = "Unable to decode the imported image file."
                 currentStep = .failed
+                print("[OCR Pipeline] FAIL: cannot decode image file")
                 return
             }
             await processImages([image], mimeType: file.mimeType, repository: repository)
@@ -438,6 +462,7 @@ final class OcrSessionController: ObservableObject {
 
         let documentId = UUID()
         let ocrT0 = CFAbsoluteTimeGetCurrent()
+        print("[OCR Pipeline] File import: docId=\(documentId), starting validation")
 
         currentStep = .recognizing
         let headerBase64 = file.data.prefix(8).base64EncodedString()
@@ -464,6 +489,7 @@ final class OcrSessionController: ObservableObject {
         let ocrMs = Int64((CFAbsoluteTimeGetCurrent() - ocrT0) * 1000)
 
         let hasSelectablePdfText = !extracted.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        print("[OCR Pipeline] File: PDF text extraction took \(ocrMs)ms, \(combinedText.count) chars, hasText=\(hasSelectablePdfText)")
         var fileMlType: String?
         var fileMlConfidence: Float = 0
         if hasSelectablePdfText, let ml = await DocumentTypeMlClassifier.classifyDocumentType(ocrText: combinedText) {
@@ -478,12 +504,14 @@ final class OcrSessionController: ObservableObject {
         )
         classificationResult = classification
         let classMs = Int64((CFAbsoluteTimeGetCurrent() - classT0) * 1000)
+        print("[OCR Pipeline] File classification took \(classMs)ms → type=\(classification?.type ?? "nil")")
 
         currentStep = .extractingIdentity
         guard let rawPipelineJson = await repository.processFullOcrRawJson(combinedText),
               let jsonData = rawPipelineJson.data(using: .utf8) else {
             error = "OCR pipeline failed."
             currentStep = .failed
+            print("[OCR Pipeline] FAIL: file import pipeline returned nil")
             return
         }
 
@@ -553,15 +581,18 @@ final class OcrSessionController: ObservableObject {
             guard let saved = await repository.saveDocument(save) else {
                 error = error ?? "Failed to save document."
                 currentStep = .failed
+                print("[OCR Pipeline] FAIL: file import save returned nil")
                 return
             }
 
             await repository.refreshAfterSave()
             lastSavedDocument = saved
             currentStep = .complete
+            print("[OCR Pipeline] SUCCESS: file import saved, id=\(saved.id), type=\(saved.documentType)")
         } catch {
             self.error = error.localizedDescription
             currentStep = .failed
+            print("[OCR Pipeline] EXCEPTION in file import: \(error)")
         }
     }
 }

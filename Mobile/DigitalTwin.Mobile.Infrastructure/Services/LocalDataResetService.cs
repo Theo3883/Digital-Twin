@@ -39,5 +39,35 @@ public sealed class LocalDataResetService : ILocalDataResetService
 
         await tx.CommitAsync();
     }
+
+    public async Task ResetCloudSyncedDataAsync()
+    {
+        await using var conn = _db.CreateConnection();
+        await conn.OpenAsync();
+        await using var tx = await conn.BeginTransactionAsync();
+
+        static async Task Exec(SqliteConnection conn, SqliteTransaction tx, string sql)
+        {
+            await using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = sql;
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        // Only reset cloud-synced tables.
+        // OcrDocuments and MedicalHistoryEntries are intentionally preserved
+        // because they reference local vault encrypted files.
+        await Exec(conn, (SqliteTransaction)tx, "DELETE FROM VitalSigns");
+        await Exec(conn, (SqliteTransaction)tx, "DELETE FROM Medications");
+        await Exec(conn, (SqliteTransaction)tx, "DELETE FROM SleepSessions");
+        await Exec(conn, (SqliteTransaction)tx, "DELETE FROM EnvironmentReadings");
+        await Exec(conn, (SqliteTransaction)tx, "DELETE FROM ChatMessages");
+        await Exec(conn, (SqliteTransaction)tx, "DELETE FROM DoctorPatientAssignments");
+        await Exec(conn, (SqliteTransaction)tx, "DELETE FROM AppCache");
+        await Exec(conn, (SqliteTransaction)tx, "DELETE FROM Patients");
+        await Exec(conn, (SqliteTransaction)tx, "DELETE FROM Users");
+
+        await tx.CommitAsync();
+    }
 }
 

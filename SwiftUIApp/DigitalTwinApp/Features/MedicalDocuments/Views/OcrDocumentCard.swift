@@ -34,7 +34,7 @@ struct OcrDocumentCard: View {
                 }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(document.opaqueInternalName)
+                Text(document.displayType)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.white)
                     .lineLimit(1)

@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using DigitalTwin.Mobile.Domain.Interfaces;
 using DigitalTwin.Mobile.Domain.Models;
+using Microsoft.Extensions.Logging;
 
 namespace DigitalTwin.Mobile.OCR.Services;
 
@@ -9,6 +10,9 @@ namespace DigitalTwin.Mobile.OCR.Services;
 /// </summary>
 public sealed partial class DocumentIdentityExtractor : IDocumentIdentityExtractor
 {
+    private readonly ILogger<DocumentIdentityExtractor> _logger;
+
+    public DocumentIdentityExtractor(ILogger<DocumentIdentityExtractor> logger) => _logger = logger;
     [GeneratedRegex(@"\b[1-8]\d{12}\b")]
     private static partial Regex CnpRegex();
 
@@ -58,11 +62,20 @@ public sealed partial class DocumentIdentityExtractor : IDocumentIdentityExtract
     public DocumentIdentity Extract(string rawText)
     {
         if (string.IsNullOrWhiteSpace(rawText))
+        {
+            _logger.LogDebug("[IdentityExtractor] Input text is null/empty");
             return new DocumentIdentity(null, null, 0f, 0f);
+        }
 
-        var (cnp, _) = ExtractCnpWithFallbacks(rawText);
+        _logger.LogDebug("[IdentityExtractor] Input length={Length} chars, {Lines} lines",
+            rawText.Length, rawText.Split('\n').Length);
+
+        var (cnp, strategy) = ExtractCnpWithFallbacks(rawText);
         var (name, nameConfidence) = ExtractName(rawText);
         var cnpConfidence = cnp is not null ? 1.0f : 0f;
+
+        _logger.LogInformation("[IdentityExtractor] CNP={CnpFound} (strategy={Strategy}), Name={Name} (conf={NameConf:F2})",
+            cnp is not null, strategy, name ?? "(none)", nameConfidence);
 
         return new DocumentIdentity(name, cnp, nameConfidence, cnpConfidence);
     }

@@ -1,4 +1,5 @@
 using DigitalTwin.Mobile.Domain.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace DigitalTwin.Mobile.OCR.Services;
 
@@ -7,49 +8,55 @@ namespace DigitalTwin.Mobile.OCR.Services;
 /// </summary>
 public sealed class DocumentTypeClassifier : IDocumentTypeClassifier
 {
+    private readonly ILogger<DocumentTypeClassifier> _logger;
+
+    public DocumentTypeClassifier(ILogger<DocumentTypeClassifier> logger) => _logger = logger;
+
     public string Classify(string? ocrText)
     {
         if (string.IsNullOrWhiteSpace(ocrText))
+        {
+            _logger.LogDebug("[Classifier] Input text is null/empty → Unknown");
             return "Unknown";
+        }
+
+        _logger.LogDebug("[Classifier] Input length={Length} chars", ocrText.Length);
 
         var text = ocrText.ToUpperInvariant();
 
+        string result;
+
         if (text.Contains("RP.:") || text.Contains("RP:") ||
             text.Contains("REȚETĂ") || text.Contains("RETETA"))
-            return "Prescription";
-
-        if (text.Contains("BILET DE TRIMITERE") || text.Contains("MOTIVUL TRIMITERII"))
-            return "Referral";
-
-        if (text.Contains("BULETIN DE ANALIZE") ||
+            result = "Prescription";
+        else if (text.Contains("BILET DE TRIMITERE") || text.Contains("MOTIVUL TRIMITERII"))
+            result = "Referral";
+        else if (text.Contains("BULETIN DE ANALIZE") ||
             (text.Contains("REZULTAT") && (text.Contains("VALORI DE REFERINȚĂ") || text.Contains("VALORI DE REFERINTA"))))
-            return "LabResult";
-
-        if (text.Contains("SCRISOARE MEDICALĂ") || text.Contains("SCRISOARE MEDICALA") ||
+            result = "LabResult";
+        else if (text.Contains("SCRISOARE MEDICALĂ") || text.Contains("SCRISOARE MEDICALA") ||
             text.Contains("BILET DE IEȘIRE") || text.Contains("BILET DE IESIRE") ||
             text.Contains("EPICRIZĂ") || text.Contains("EPICRIZA"))
-            return "Discharge";
-
-        if (text.Contains("CERTIFICAT MEDICAL") || text.Contains("ADEVERINȚĂ MEDICALĂ") ||
+            result = "Discharge";
+        else if (text.Contains("CERTIFICAT MEDICAL") || text.Contains("ADEVERINȚĂ MEDICALĂ") ||
             text.Contains("CONCEDIU MEDICAL"))
-            return "MedicalCertificate";
-
-        if (text.Contains("ECOGRAFIE") || text.Contains("RADIOGRAFIE") ||
+            result = "MedicalCertificate";
+        else if (text.Contains("ECOGRAFIE") || text.Contains("RADIOGRAFIE") ||
             text.Contains("TOMOGRAFIE") || text.Contains("DESCRIERE IMAGISTICĂ"))
-            return "ImagingReport";
-
-        if (text.Contains("ELECTROCARDIOGRAMĂ") || text.Contains("ELECTROCARDIOGRAMA") ||
+            result = "ImagingReport";
+        else if (text.Contains("ELECTROCARDIOGRAMĂ") || text.Contains("ELECTROCARDIOGRAMA") ||
             (text.Contains("ECG") && (text.Contains("RITM") || text.Contains("FRECVENTA CARDIACA"))))
-            return "EcgReport";
-
-        if (text.Contains("PROTOCOL OPERATOR") || text.Contains("INTERVENTIE CHIRURGICALA") ||
+            result = "EcgReport";
+        else if (text.Contains("PROTOCOL OPERATOR") || text.Contains("INTERVENTIE CHIRURGICALA") ||
             text.Contains("INTERVENȚIE CHIRURGICALĂ"))
-            return "OperativeReport";
-
-        if (text.Contains("CONSULTAȚIE DE SPECIALITATE") || text.Contains("CONSULTATIE DE SPECIALITATE") ||
+            result = "OperativeReport";
+        else if (text.Contains("CONSULTAȚIE DE SPECIALITATE") || text.Contains("CONSULTATIE DE SPECIALITATE") ||
             text.Contains("EXAMEN CLINIC") || text.Contains("EXAMEN OBIECTIV"))
-            return "ConsultationNote";
+            result = "ConsultationNote";
+        else
+            result = "Unknown";
 
-        return "Unknown";
+        _logger.LogInformation("[Classifier] Result={Type} for {Length}-char input", result, ocrText.Length);
+        return result;
     }
 }

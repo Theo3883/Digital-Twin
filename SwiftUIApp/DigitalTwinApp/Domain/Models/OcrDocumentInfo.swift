@@ -35,4 +35,20 @@ struct OcrDocumentInfo: Codable, Identifiable {
         default: return "doc.text.fill"
         }
     }
+
+    var displayType: String {
+        switch documentType {
+        case "LabResult": return "Lab Result"
+        case "Prescription": return "Prescription"
+        case "Referral": return "Referral"
+        case "Discharge": return "Discharge"
+        case "MedicalCertificate": return "Medical Certificate"
+        case "ImagingReport": return "Imaging Report"
+        case "EcgReport": return "ECG Report"
+        case "OperativeReport": return "Operative Report"
+        case "ConsultationNote": return "Consultation Note"
+        case "Unknown": return "Document"
+        default: return documentType.isEmpty ? "Document" : documentType
+        }
+    }
 }

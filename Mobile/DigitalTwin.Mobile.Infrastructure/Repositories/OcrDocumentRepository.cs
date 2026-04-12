@@ -57,6 +57,16 @@ public class OcrDocumentRepository : IOcrDocumentRepository
         await SaveAsync(document);
     }
 
+    public async Task DeleteAsync(Guid id)
+    {
+        await using var conn = _db.CreateConnection();
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "DELETE FROM OcrDocuments WHERE Id = @id";
+        cmd.Parameters.AddWithValue("@id", id.ToString());
+        await cmd.ExecuteNonQueryAsync();
+    }
+
     public async Task<IEnumerable<OcrDocument>> GetDirtyAsync()
     {
         await using var conn = _db.CreateConnection();

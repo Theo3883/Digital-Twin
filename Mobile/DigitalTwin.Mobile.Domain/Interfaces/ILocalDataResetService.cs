@@ -6,5 +6,11 @@ namespace DigitalTwin.Mobile.Domain.Interfaces;
 public interface ILocalDataResetService
 {
     Task ResetAllAsync();
+
+    /// <summary>
+    /// Resets cloud-synced data (user, patient, vitals, etc.) but preserves
+    /// OCR documents and medical history entries which have local vault bindings.
+    /// </summary>
+    Task ResetCloudSyncedDataAsync();
 }
 

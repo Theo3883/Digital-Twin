@@ -75,7 +75,7 @@ final class VaultKeychainService: ObservableObject {
         guard let access = SecAccessControlCreateWithFlags(
             nil,
             kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly,
-            .biometryCurrentSet,
+            .userPresence,
             nil
         ) else { return false }
 

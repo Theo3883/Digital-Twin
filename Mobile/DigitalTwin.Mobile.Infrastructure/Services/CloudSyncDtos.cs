@@ -192,6 +192,7 @@ public sealed record CloudOcrDocumentDto
     public string DocumentType { get; init; } = "Unknown";
     public int PageCount { get; init; }
     public string SanitizedOcrPreview { get; init; } = string.Empty;
+    public string? Sha256OfNormalized { get; init; }
     public DateTime ScannedAt { get; init; }
 }
 
@@ -273,6 +274,7 @@ public sealed record OcrDocumentSyncItem
     public string MimeType { get; init; } = string.Empty;
     public string DocumentType { get; init; } = "Unknown";
     public int PageCount { get; init; }
+    public string? Sha256OfNormalized { get; init; }
     public string SanitizedOcrPreview { get; init; } = string.Empty;
     public DateTime ScannedAt { get; init; }
 }

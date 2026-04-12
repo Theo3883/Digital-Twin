@@ -110,8 +110,9 @@ public class AuthService
             // 4. Apply bootstrap (if present) so SwiftUI can skip profile completion
             if (cloud?.Success == true && cloud.Bootstrap is { } bootstrap)
             {
-                // Ensure local state doesn't contain conflicting IDs from previous runs.
-                await _localReset.ResetAllAsync();
+                // Reset cloud-synced tables but preserve OCR documents & medical history
+                // which have local vault bindings that can't be restored from cloud.
+                await _localReset.ResetCloudSyncedDataAsync();
 
                 // Re-save the authenticated user after reset so the Swift layer can
                 // observe an authenticated session (currentUser != nil).

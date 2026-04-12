@@ -192,6 +192,7 @@ public class CloudSyncService : ICloudSyncService
             MimeType = d.MimeType,
             DocumentType = d.DocumentType,
             PageCount = d.PageCount,
+            Sha256OfNormalized = d.Sha256OfNormalized ?? string.Empty,
             SanitizedOcrPreview = d.SanitizedOcrPreview,
             ScannedAt = d.ScannedAt,
             CreatedAt = DateTime.UtcNow,
@@ -619,6 +620,7 @@ public class CloudSyncService : ICloudSyncService
             {
                 Id = d.Id, OpaqueInternalName = d.OpaqueInternalName,
                 MimeType = d.MimeType, DocumentType = d.DocumentType, PageCount = d.PageCount,
+                Sha256OfNormalized = d.Sha256OfNormalized,
                 SanitizedOcrPreview = d.SanitizedOcrPreview,
                 ScannedAt = d.ScannedAt
             }).ToList();

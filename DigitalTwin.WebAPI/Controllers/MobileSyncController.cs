@@ -226,8 +226,8 @@ public class MobileSyncController : ControllerBase
 
         var ocrDocs = await _ocrRepo.GetByPatientAsync(patient.Id);
         var ocrItems = ocrDocs.Select(d => new OcrDocumentSyncItem(
-            d.Id, d.OpaqueInternalName, d.MimeType, d.PageCount,
-            d.SanitizedOcrPreview, d.ScannedAt));
+            d.Id, d.OpaqueInternalName, d.MimeType, d.DocumentType ?? "Unknown", d.PageCount,
+            d.Sha256OfNormalized, d.SanitizedOcrPreview, d.ScannedAt));
 
         var history = await _historyRepo.GetByPatientAsync(patient.Id);
         var historyItems = history.Select(h => new MedicalHistorySyncItem(
@@ -668,8 +668,8 @@ public class MobileSyncController : ControllerBase
     // ═══════════════════════════════════════════════════════════════════════════
 
     public record OcrDocumentSyncItem(
-        Guid Id, string OpaqueInternalName, string MimeType, int PageCount,
-        string SanitizedOcrPreview, DateTime ScannedAt);
+        Guid Id, string OpaqueInternalName, string MimeType, string DocumentType, int PageCount,
+        string? Sha256OfNormalized, string SanitizedOcrPreview, DateTime ScannedAt);
 
     /// <summary>POST /api/mobile/sync/ocr-documents/upsert — push OCR document metadata.</summary>
     [Authorize]
@@ -687,7 +687,9 @@ public class MobileSyncController : ControllerBase
             PatientId = patient.Id,
             OpaqueInternalName = d.OpaqueInternalName,
             MimeType = d.MimeType,
+            DocumentType = d.DocumentType,
             PageCount = d.PageCount,
+            Sha256OfNormalized = d.Sha256OfNormalized,
             SanitizedOcrPreview = d.SanitizedOcrPreview,
             ScannedAt = d.ScannedAt,
             IsDirty = false

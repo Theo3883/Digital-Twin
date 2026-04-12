@@ -336,7 +336,7 @@ struct PatientView: View {
         // Show recent documents list
         if !profileVM.ocrDocuments.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Recent Scans")
+                Text("Documentation")
                     .font(.subheadline.weight(.medium))
                     .foregroundColor(.white)
                     .padding(.horizontal, 4)
@@ -352,7 +352,7 @@ struct PatientView: View {
                                 .frame(width: 36, height: 36)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(doc.opaqueInternalName)
+                                Text(doc.displayType)
                                     .font(.system(size: 14, weight: .medium))
                                     .foregroundColor(.white)
                                     .lineLimit(1)
@@ -532,40 +532,20 @@ struct PatientView: View {
                 }
             }
 
-            HStack(spacing: 12) {
-                NavigationLink(
-                    destination: OcrDocumentRootView(
-                        viewModel: OcrDocumentsViewModel(repository: ocrRepository),
-                        repository: ocrRepository
-                    )
-                ) {
-                    Text("Import Documents")
-                        .font(.caption.weight(.medium))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background {
-                            RoundedRectangle(cornerRadius: LiquidGlass.radiusButton)
-                                .fill(LiquidGlass.tealPrimary.opacity(0.2))
-                        }
-                }
-
-                NavigationLink(
-                    destination: OcrDocumentRootView(
-                        viewModel: OcrDocumentsViewModel(repository: ocrRepository),
-                        repository: ocrRepository
-                    )
-                ) {
-                    Text("View Documents")
-                        .font(.caption.weight(.medium))
-                        .foregroundColor(.white.opacity(0.6))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background {
-                            RoundedRectangle(cornerRadius: LiquidGlass.radiusButton)
-                                .fill(.white.opacity(0.05))
-                        }
-                }
+            NavigationLink(
+                destination: OcrDocumentRootView(
+                    repository: ocrRepository
+                )
+            ) {
+                Text("Import Documents")
+                    .font(.caption.weight(.medium))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background {
+                        RoundedRectangle(cornerRadius: LiquidGlass.radiusButton)
+                            .fill(LiquidGlass.tealPrimary.opacity(0.2))
+                    }
             }
         }
         .glassCard()
