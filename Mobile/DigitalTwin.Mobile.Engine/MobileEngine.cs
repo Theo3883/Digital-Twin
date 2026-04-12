@@ -984,7 +984,9 @@ public class MobileEngine : IDisposable
         {
             var vault = _scope.ServiceProvider.GetRequiredService<OCR.Services.VaultService>();
             var masterKey = Convert.FromBase64String(masterKeyBase64);
+            _logger.LogDebug("[MobileEngine] VaultUnlock request: keyLen={KeyLen}", masterKey.Length);
             var result = vault.Unlock(masterKey);
+            _logger.LogDebug("[MobileEngine] VaultUnlock result: success={Success}, error={Error}", result.IsSuccess, result.Error);
             return JsonSerializer.Serialize(
                 new VaultResultDto { Success = result.IsSuccess, Error = result.Error },
                 MobileJsonContext.Default.VaultResultDto);

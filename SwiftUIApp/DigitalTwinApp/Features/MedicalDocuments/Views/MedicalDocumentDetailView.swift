@@ -172,26 +172,32 @@ struct MedicalDocumentDetailView: View {
     private func loadDecryptedPreview() async {
         isLoadingPreview = true
         previewError = nil
+        print("[OCR Vault][Detail] Unlock & open requested for docId=\(document.id.uuidString)")
         defer { isLoadingPreview = false }
 
         guard let masterKeyB64 = await keychain.retrieveMasterKey(reason: "Unlock this medical document") else {
             previewError = "Authentication failed or was cancelled."
+            print("[OCR Vault][Detail] retrieveMasterKey returned nil")
             return
         }
 
         let unlock = await repository.vaultUnlock(masterKeyBase64: masterKeyB64)
         guard unlock?.success == true else {
             previewError = unlock?.error ?? "Could not unlock vault."
+            print("[OCR Vault][Detail] vaultUnlock failed: \(unlock?.error ?? "nil")")
             return
         }
+        print("[OCR Vault][Detail] vaultUnlock success")
 
         guard let b64 = await repository.vaultRetrieveDocument(documentId: document.id.uuidString),
               let data = Data(base64Encoded: b64, options: .ignoreUnknownCharacters) else {
-            previewError = "Could not decrypt document."
+            previewError = "Could not decrypt document. Check vault debug logs for root cause."
+            print("[OCR Vault][Detail] vaultRetrieveDocument failed or returned non-base64 payload")
             return
         }
 
         decryptedData = data
+        print("[OCR Vault][Detail] document preview decrypted, bytes=\(data.count)")
     }
 
     private var actionsSection: some View {

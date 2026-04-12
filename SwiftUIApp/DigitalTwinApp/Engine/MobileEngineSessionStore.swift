@@ -447,8 +447,12 @@ class MobileEngineSessionStore: ObservableObject {
         do {
             let result = try await engine.vaultInitialize(input)
             if result.success { isVaultInitialized = true }
+            print("[OCR Vault][SessionStore] vaultInitialize success=\(result.success) error=\(result.error ?? "nil")")
             return result
-        } catch { return nil }
+        } catch {
+            print("[OCR Vault][SessionStore] vaultInitialize threw: \(error.localizedDescription)")
+            return nil
+        }
     }
 
     func vaultUnlock(masterKeyBase64: String) async -> VaultResultInfo? {
@@ -456,8 +460,12 @@ class MobileEngineSessionStore: ObservableObject {
         do {
             let result = try await engine.vaultUnlock(masterKeyBase64: masterKeyBase64)
             if result.success { isVaultUnlocked = true }
+            print("[OCR Vault][SessionStore] vaultUnlock success=\(result.success) error=\(result.error ?? "nil")")
             return result
-        } catch { return nil }
+        } catch {
+            print("[OCR Vault][SessionStore] vaultUnlock threw: \(error.localizedDescription)")
+            return nil
+        }
     }
 
     func vaultLock() async -> VaultResultInfo? {
@@ -465,23 +473,48 @@ class MobileEngineSessionStore: ObservableObject {
         do {
             let result = try await engine.vaultLock()
             if result.success { isVaultUnlocked = false }
+            print("[OCR Vault][SessionStore] vaultLock success=\(result.success) error=\(result.error ?? "nil")")
             return result
-        } catch { return nil }
+        } catch {
+            print("[OCR Vault][SessionStore] vaultLock threw: \(error.localizedDescription)")
+            return nil
+        }
     }
 
     func vaultStoreDocument(_ input: VaultStoreDocumentInput) async -> VaultResultInfo? {
         guard let engine else { return nil }
-        do { return try await engine.vaultStoreDocument(input) } catch { return nil }
+        do {
+            let result = try await engine.vaultStoreDocument(input)
+            print("[OCR Vault][SessionStore] vaultStoreDocument success=\(result.success) error=\(result.error ?? "nil") docId=\(result.documentId ?? "nil")")
+            return result
+        } catch {
+            print("[OCR Vault][SessionStore] vaultStoreDocument threw: \(error.localizedDescription)")
+            return nil
+        }
     }
 
     func vaultRetrieveDocument(documentId: String) async -> String? {
         guard let engine else { return nil }
-        do { return try await engine.vaultRetrieveDocument(documentId: documentId) } catch { return nil }
+        do {
+            let payload = try await engine.vaultRetrieveDocument(documentId: documentId)
+            print("[OCR Vault][SessionStore] vaultRetrieveDocument success docId=\(documentId) base64Length=\(payload.count)")
+            return payload
+        } catch {
+            print("[OCR Vault][SessionStore] vaultRetrieveDocument threw for docId=\(documentId): \(error.localizedDescription)")
+            return nil
+        }
     }
 
     func vaultDeleteDocument(documentId: String) async -> VaultResultInfo? {
         guard let engine else { return nil }
-        do { return try await engine.vaultDeleteDocument(documentId: documentId) } catch { return nil }
+        do {
+            let result = try await engine.vaultDeleteDocument(documentId: documentId)
+            print("[OCR Vault][SessionStore] vaultDeleteDocument success=\(result.success) error=\(result.error ?? "nil") docId=\(documentId)")
+            return result
+        } catch {
+            print("[OCR Vault][SessionStore] vaultDeleteDocument threw for docId=\(documentId): \(error.localizedDescription)")
+            return nil
+        }
     }
 
     func vaultWipe() async -> VaultResultInfo? {
@@ -492,8 +525,12 @@ class MobileEngineSessionStore: ObservableObject {
                 isVaultInitialized = false
                 isVaultUnlocked = false
             }
+            print("[OCR Vault][SessionStore] vaultWipe success=\(result.success) error=\(result.error ?? "nil")")
             return result
-        } catch { return nil }
+        } catch {
+            print("[OCR Vault][SessionStore] vaultWipe threw: \(error.localizedDescription)")
+            return nil
+        }
     }
 
     // MARK: - Advanced OCR — Classification & Structured

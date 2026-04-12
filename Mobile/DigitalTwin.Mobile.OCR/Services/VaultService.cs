@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using DigitalTwin.Mobile.OCR.Models;
 using DigitalTwin.Mobile.OCR.Models.Enums;
@@ -58,9 +59,20 @@ public sealed class VaultService
         if (!valid)
             return OcrResult<bool>.Fail(reason!);
 
-        _masterKey = masterKey;
+        _logger.LogDebug("[OCR Vault] Unlock requested: keyLen={KeyLen}, initialized={Initialized}, isUnlocked={IsUnlocked}, manifestCount={ManifestCount}",
+            masterKey.Length, IsInitialized, _isUnlocked, GetManifestCount());
+
+        var keyValidation = ValidateMasterKeyAgainstExistingData(masterKey);
+        if (!keyValidation.IsSuccess)
+        {
+            _logger.LogWarning("[OCR Vault] Unlock rejected: {Reason}", keyValidation.Error);
+            return OcrResult<bool>.Fail(keyValidation.Error!);
+        }
+
+        _masterKey = [.. masterKey];
         _isUnlocked = true;
-        _logger.LogDebug("[OCR Vault] Unlock: master key length={KeyLen} bytes", masterKey.Length);
+        _logger.LogDebug("[OCR Vault] Unlock: master key length={KeyLen} bytes, keyFingerprint={Fingerprint}",
+            masterKey.Length, KeyFingerprint(masterKey));
         _logger.LogInformation("[OCR Vault] Unlocked.");
         return OcrResult<bool>.Ok(true);
     }
@@ -124,19 +136,27 @@ public sealed class VaultService
             if (descriptor is null)
                 return OcrResult<byte[]>.Fail("Manifest is corrupt.");
 
-            if (string.IsNullOrWhiteSpace(descriptor.VaultPath))
-                return OcrResult<byte[]>.Fail("Manifest is missing vault path.");
+            _logger.LogDebug("[OCR Vault] Retrieve manifest: docId={DocId}, nonceLen={NonceLen}, tagLen={TagLen}, wrappedLen={WrappedLen}",
+                documentId,
+                descriptor.NonceB64?.Length ?? 0,
+                descriptor.TagB64?.Length ?? 0,
+                descriptor.WrappedDekB64?.Length ?? 0);
 
-            var cipherPath = descriptor.VaultPath;
-            if (!File.Exists(cipherPath))
+            var cipherPath = ResolveCipherPath(descriptor, out var resolutionDetail);
+            if (string.IsNullOrWhiteSpace(cipherPath))
             {
-                var healed = HealVaultPath(cipherPath);
-                if (!string.IsNullOrWhiteSpace(healed) && File.Exists(healed))
-                    cipherPath = healed;
+                _logger.LogWarning("[OCR Vault] Retrieve: cipher path unresolved for {Ref}. {Detail}",
+                    LoggingRedactionPolicy.SafeDocumentRef(documentId), resolutionDetail);
+                return OcrResult<byte[]>.Fail("Encrypted file missing (vault metadata out of sync).");
             }
 
-            if (!File.Exists(cipherPath))
-                return OcrResult<byte[]>.Fail("Encrypted file missing (vault metadata out of sync).");
+            if (!string.Equals(descriptor.VaultPath, cipherPath, StringComparison.Ordinal))
+            {
+                _logger.LogInformation("[OCR Vault] Retrieve: resolved cipher path via fallback for {Ref}. {Detail}",
+                    LoggingRedactionPolicy.SafeDocumentRef(documentId), resolutionDetail);
+                descriptor = descriptor with { VaultPath = cipherPath };
+                await TryPersistHealedManifestPathAsync(manifestPath, descriptor);
+            }
 
             var ciphertext = await File.ReadAllBytesAsync(cipherPath);
             _logger.LogDebug("[OCR Vault] Retrieve: docId={DocId}, cipherSize={Size} bytes",
@@ -145,6 +165,12 @@ public sealed class VaultService
             _logger.LogDebug("[OCR Vault] Retrieve: decrypted {Size} bytes for {Ref}",
                 plaintext.Length, LoggingRedactionPolicy.SafeDocumentRef(documentId));
             return OcrResult<byte[]>.Ok(plaintext);
+        }
+        catch (CryptographicException ex)
+        {
+            _logger.LogError(ex, "[OCR Vault] RetrieveDocumentAsync crypto failure for {Ref}. keyFingerprint={Fingerprint}",
+                LoggingRedactionPolicy.SafeDocumentRef(documentId), KeyFingerprint(_masterKey));
+            return OcrResult<byte[]>.Fail("Failed to decrypt document. Vault key mismatch.");
         }
         catch (Exception ex)
         {
@@ -236,5 +262,169 @@ public sealed class VaultService
             return path.Replace(broken, healed, StringComparison.Ordinal);
 
         return null;
+    }
+
+    private string? ResolveCipherPath(EncryptedDocumentDescriptor descriptor, out string resolutionDetail)
+    {
+        var candidates = BuildCipherPathCandidates(descriptor);
+
+        foreach (var candidate in candidates)
+        {
+            if (File.Exists(candidate))
+            {
+                resolutionDetail = string.Equals(candidate, descriptor.VaultPath, StringComparison.Ordinal)
+                    ? "source=manifest"
+                    : $"source=fallback file={Path.GetFileName(candidate)}";
+                return candidate;
+            }
+        }
+
+        resolutionDetail = $"tried={string.Join(" | ", candidates.Select(Path.GetFileName))}";
+        return null;
+    }
+
+    private string[] BuildCipherPathCandidates(EncryptedDocumentDescriptor descriptor)
+    {
+        var candidates = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(descriptor.VaultPath))
+            candidates.Add(descriptor.VaultPath);
+
+        var healedPath = string.IsNullOrWhiteSpace(descriptor.VaultPath)
+            ? null
+            : HealVaultPath(descriptor.VaultPath);
+        if (!string.IsNullOrWhiteSpace(healedPath))
+            candidates.Add(healedPath);
+
+        if (!string.IsNullOrWhiteSpace(descriptor.VaultPath))
+        {
+            var fileName = Path.GetFileName(descriptor.VaultPath);
+            if (!string.IsNullOrWhiteSpace(fileName))
+                candidates.Add(VaultPath(Path.Combine("encrypted", fileName)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(descriptor.OpaqueInternalName))
+        {
+            var opaqueFile = descriptor.OpaqueInternalName.EndsWith(".enc", StringComparison.OrdinalIgnoreCase)
+                ? descriptor.OpaqueInternalName
+                : $"{descriptor.OpaqueInternalName}.enc";
+            candidates.Add(VaultPath(Path.Combine("encrypted", opaqueFile)));
+        }
+
+        candidates.Add(VaultPath($"encrypted/{descriptor.DocumentId:N}.enc"));
+
+        return candidates
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private async Task TryPersistHealedManifestPathAsync(string manifestPath, EncryptedDocumentDescriptor descriptor)
+    {
+        try
+        {
+            await File.WriteAllTextAsync(
+                manifestPath,
+                JsonSerializer.Serialize(descriptor, OcrJsonContext.Default.EncryptedDocumentDescriptor));
+
+            _logger.LogInformation("[OCR Vault] Persisted healed manifest path for {Ref}.",
+                LoggingRedactionPolicy.SafeDocumentRef(descriptor.DocumentId));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "[OCR Vault] Failed to persist healed manifest path for {Ref}.",
+                LoggingRedactionPolicy.SafeDocumentRef(descriptor.DocumentId));
+        }
+    }
+
+    private OcrResult<bool> ValidateMasterKeyAgainstExistingData(byte[] masterKey)
+    {
+        try
+        {
+            var manifestsDir = VaultPath("manifests");
+            if (!Directory.Exists(manifestsDir))
+                return OcrResult<bool>.Ok(true);
+
+            var manifests = Directory.EnumerateFiles(manifestsDir, "*.json").Take(3).ToArray();
+            if (manifests.Length == 0)
+                return OcrResult<bool>.Ok(true);
+
+            foreach (var manifestPath in manifests)
+            {
+                try
+                {
+                    var json = File.ReadAllText(manifestPath);
+                    var descriptor = JsonSerializer.Deserialize(json, OcrJsonContext.Default.EncryptedDocumentDescriptor);
+                    if (descriptor is null)
+                    {
+                        _logger.LogDebug("[OCR Vault] Unlock validation skipped manifest {Manifest}: corrupt descriptor",
+                            Path.GetFileName(manifestPath));
+                        continue;
+                    }
+
+                    var cipherPath = ResolveCipherPath(descriptor, out var resolutionDetail);
+                    if (string.IsNullOrWhiteSpace(cipherPath))
+                    {
+                        _logger.LogDebug("[OCR Vault] Unlock validation skipped manifest {Manifest}: cipher path missing. {Detail}",
+                            Path.GetFileName(manifestPath), resolutionDetail);
+                        continue;
+                    }
+
+                    if (!string.Equals(descriptor.VaultPath, cipherPath, StringComparison.Ordinal))
+                    {
+                        _logger.LogDebug("[OCR Vault] Unlock validation resolved cipher path via fallback for manifest {Manifest}. {Detail}",
+                            Path.GetFileName(manifestPath), resolutionDetail);
+                    }
+
+                    var ciphertext = File.ReadAllBytes(cipherPath);
+                    _ = DocumentEncryptionService.Decrypt(ciphertext, descriptor, masterKey);
+
+                    _logger.LogDebug("[OCR Vault] Unlock validation succeeded using manifest {Manifest}",
+                        Path.GetFileName(manifestPath));
+                    return OcrResult<bool>.Ok(true);
+                }
+                catch (CryptographicException ex)
+                {
+                    _logger.LogWarning(ex, "[OCR Vault] Unlock validation key mismatch on manifest {Manifest}",
+                        Path.GetFileName(manifestPath));
+                    return OcrResult<bool>.Fail("Master key does not match existing vault data.");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "[OCR Vault] Unlock validation ignored manifest {Manifest}",
+                        Path.GetFileName(manifestPath));
+                }
+            }
+
+            _logger.LogDebug("[OCR Vault] Unlock validation found manifests but none usable for key verification; proceeding");
+            return OcrResult<bool>.Ok(true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "[OCR Vault] Unlock validation failed unexpectedly; proceeding without strict key check");
+            return OcrResult<bool>.Ok(true);
+        }
+    }
+
+    private int GetManifestCount()
+    {
+        try
+        {
+            var manifestsDir = VaultPath("manifests");
+            if (!Directory.Exists(manifestsDir))
+                return 0;
+
+            return Directory.EnumerateFiles(manifestsDir, "*.json").Count();
+        }
+        catch
+        {
+            return -1;
+        }
+    }
+
+    private static string KeyFingerprint(ReadOnlySpan<byte> key)
+    {
+        var hash = SHA256.HashData(key);
+        return Convert.ToHexString(hash[..4]);
     }
 }

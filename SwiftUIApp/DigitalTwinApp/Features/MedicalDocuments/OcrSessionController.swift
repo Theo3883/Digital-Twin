@@ -89,6 +89,7 @@ final class OcrSessionController: ObservableObject {
         isLoadingVault = true
         statusMessage = "Initializing vault…"
         vaultError = nil
+        print("[OCR Vault][Controller] initializeVault requested")
         defer {
             isLoadingVault = false
             statusMessage = nil
@@ -110,10 +111,20 @@ final class OcrSessionController: ObservableObject {
 
         guard !keychainService.keyExists else {
             vaultError = "Vault already initialized."
+            print("[OCR Vault][Controller] initializeVault aborted: key already exists")
             return
         }
+
+        let existingDocuments = await repository.loadDocuments()
+        if !existingDocuments.isEmpty {
+            vaultError = "Vault key is missing, but encrypted documents already exist. Reinitializing would make existing documents unreadable."
+            print("[OCR Vault][Controller] initializeVault blocked: existing docs=\(existingDocuments.count), key missing")
+            return
+        }
+
         guard let masterKeyB64 = keychainService.generateAndStoreMasterKey() else {
             vaultError = "Failed to generate vault master key."
+            print("[OCR Vault][Controller] initializeVault failed: generateAndStoreMasterKey returned nil")
             return
         }
         let input = VaultInitInput(
@@ -127,20 +138,24 @@ final class OcrSessionController: ObservableObject {
         let initRes = await repository.vaultInitialize(input)
         guard let ir = initRes, ir.success else {
             vaultError = initRes?.error ?? "Vault initialization failed."
+            print("[OCR Vault][Controller] initializeVault engine init failed: \(initRes?.error ?? "nil")")
             return
         }
         let unlockRes = await repository.vaultUnlock(masterKeyBase64: masterKeyB64)
         guard let ur = unlockRes, ur.success else {
             vaultError = unlockRes?.error ?? "Vault unlock failed."
+            print("[OCR Vault][Controller] initializeVault unlock failed: \(unlockRes?.error ?? "nil")")
             return
         }
         ocrSessionVaultUnlocked = true
+        print("[OCR Vault][Controller] initializeVault success: vault unlocked")
     }
 
     func unlockVault(repository: OcrRepository) async {
         isLoadingVault = true
         statusMessage = "Authenticating…"
         vaultError = nil
+        print("[OCR Vault][Controller] unlockVault requested")
         defer {
             isLoadingVault = false
             statusMessage = nil
@@ -162,29 +177,13 @@ final class OcrSessionController: ObservableObject {
         let bioAvailable = ctx.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
 
         if !keychainService.keyExists {
-            guard let masterKeyB64 = keychainService.generateAndStoreMasterKey() else {
-                vaultError = "Failed to generate vault master key."
-                return
+            let existingDocuments = await repository.loadDocuments()
+            if existingDocuments.isEmpty {
+                vaultError = "Vault is not initialized. Initialize Secure Vault first."
+            } else {
+                vaultError = "Vault key is missing, but encrypted documents exist. Reinitializing would make existing documents unreadable."
             }
-            let input = VaultInitInput(
-                isPasscodeSet: true,
-                isBiometryAvailable: bioAvailable,
-                biometryType: bioLabel,
-                isVaultInitialized: false,
-                isVaultUnlocked: false,
-                activeMode: "Strict"
-            )
-            let initResult = await repository.vaultInitialize(input)
-            guard let ir = initResult, ir.success else {
-                vaultError = initResult?.error ?? "Vault initialization failed."
-                return
-            }
-            let unlockResult = await repository.vaultUnlock(masterKeyBase64: masterKeyB64)
-            guard let ur = unlockResult, ur.success else {
-                vaultError = unlockResult?.error ?? "Vault unlock failed."
-                return
-            }
-            ocrSessionVaultUnlocked = true
+            print("[OCR Vault][Controller] unlockVault blocked: key missing, docs=\(existingDocuments.count), bioAvailable=\(bioAvailable), bioType=\(bioLabel)")
             return
         }
 
@@ -192,17 +191,21 @@ final class OcrSessionController: ObservableObject {
             reason: "Unlock your OCR vault"
         ) else {
             vaultError = "Authentication failed or was cancelled."
+            print("[OCR Vault][Controller] unlockVault failed: retrieveMasterKey returned nil")
             return
         }
         guard let unlock = await repository.vaultUnlock(masterKeyBase64: masterKeyB64) else {
             vaultError = "Vault unlock failed."
+            print("[OCR Vault][Controller] unlockVault failed: repository returned nil")
             return
         }
         guard unlock.success else {
             vaultError = unlock.error ?? "Vault unlock failed."
+            print("[OCR Vault][Controller] unlockVault failed: \(unlock.error ?? "unknown")")
             return
         }
         ocrSessionVaultUnlocked = true
+        print("[OCR Vault][Controller] unlockVault success")
     }
 
     func goToImportPage() {

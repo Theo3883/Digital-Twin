@@ -209,6 +209,8 @@ public static class ServiceCollectionExtensions
             builder.SetMinimumLevel(LogLevel.Information);
             builder.AddFilter("DigitalTwin.Mobile.Application.Services.OcrTextProcessingApplicationService", LogLevel.Debug);
             builder.AddFilter("DigitalTwin.Mobile.OCR.Services.MedicalHistoryExtractor", LogLevel.Debug);
+            builder.AddFilter("DigitalTwin.Mobile.OCR.Services.VaultService", LogLevel.Debug);
+            builder.AddFilter("DigitalTwin.Mobile.Engine.MobileEngine", LogLevel.Debug);
         });
 
         return services;
