@@ -16,7 +16,12 @@ final class EnvironmentViewModel: ObservableObject {
         self.repository = repository
     }
 
-    func loadInitial() async {
+    func loadInitial(preloaded: EnvironmentReadingInfo? = nil) async {
+        if let preloaded {
+            reading = preloaded
+            latestHeartRate = await repository.latestHeartRate()
+            return
+        }
         reading = await loadLatest()
         latestHeartRate = await repository.latestHeartRate()
     }

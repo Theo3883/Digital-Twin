@@ -43,17 +43,22 @@ struct SyncGateView: View {
         }
         .opacity(opacity)
         .task {
-            // Simulate sync steps
-            try? await Task.sleep(for: .milliseconds(400))
+            // Step 0 active — push any pending local changes to cloud
+            let _ = await engineWrapper.pushLocalChanges()
             syncStep = 1
-            try? await Task.sleep(for: .milliseconds(400))
+
+            // Step 1 active — full bidirectional sync (pull from cloud)
+            let _ = await engineWrapper.performSync()
             syncStep = 2
 
-            // Perform actual sync
-            let _ = await engineWrapper.performSync()
-            await engineWrapper.loadMedications()
+            // Step 2 active — rebuild in-memory caches from SQLite
+            if engineWrapper.medications.isEmpty {
+                await engineWrapper.loadMedications()
+            }
+            await engineWrapper.loadLatestEnvironmentReading()
 
-            try? await Task.sleep(for: .milliseconds(600))
+            // Brief pause so the user can see all three checkmarks before dismissal
+            try? await Task.sleep(for: .milliseconds(500))
             withAnimation(.easeOut(duration: 0.3)) {
                 opacity = 0
             }

@@ -69,7 +69,9 @@ struct DashboardView: View {
         }
         .pageEnterAnimation()
         .task {
-            await viewModel.load()
+            // Seed snapshot instantly from cache — prevents the "no profile" flash
+            viewModel.preload(engine: container.engine)
+            await viewModel.loadIfNeeded()
 
             Task {
                 await viewModel.refreshCoachingAdvice(using: container.engine)

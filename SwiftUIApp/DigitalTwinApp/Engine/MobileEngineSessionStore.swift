@@ -18,6 +18,7 @@ class MobileEngineSessionStore: ObservableObject {
     // MARK: - Feature State
 
     @Published var medications: [MedicationInfo] = []
+    @Published var medicationInteractions: [MedicationInteractionInfo] = []
     @Published var latestEnvironmentReading: EnvironmentReadingInfo?
     @Published var chatMessages: [ChatMessageInfo] = []
     @Published var coachingAdvice: CoachingAdviceInfo?
@@ -111,6 +112,7 @@ class MobileEngineSessionStore: ObservableObject {
             if let result = initResult, result.success {
                 isInitialized = true
                 await initializeNativeServices()
+                await restoreCachedSession()
             } else {
                 throw EngineError.initializationFailed(initResult?.error ?? "Unknown error")
             }
@@ -123,6 +125,22 @@ class MobileEngineSessionStore: ObservableObject {
         healthKitService.refreshAuthorizationStatus()
         biometricAuthService.checkBiometricAvailability()
         backgroundSyncService.loadBackgroundSyncPreference()
+    }
+
+    /// Restore a previously authenticated session from the local SQLite cache.
+    /// Called automatically after initialize() — no Google sign-in needed if a user exists.
+    private func restoreCachedSession() async {
+        guard let engine else { return }
+        do {
+            if let user = try await engine.getCurrentUser() {
+                currentUser = user
+                // Load patient profile BEFORE setting isAuthenticated so ContentView
+                // never renders ProfileSetupGateView (and never fires its .onAppear).
+                patientProfile = try? await engine.getPatientProfile()
+                isAuthenticated = true
+                // hasCloudProfile / isCloudAuthenticated are resolved on next performSync()
+            }
+        } catch {}
     }
 
     // MARK: - Native Services Integration
@@ -309,7 +327,22 @@ class MobileEngineSessionStore: ObservableObject {
 
     func loadMedications() async {
         guard let engine else { return }
-        do { medications = try await engine.getMedications() } catch {}
+        do {
+            medications = try await engine.getMedications()
+            await refreshMedicationInteractionsCache()
+        } catch {}
+    }
+
+    /// Rebuild the interactions cache from the currently loaded medications.
+    private func refreshMedicationInteractionsCache() async {
+        let rxCuis = medications
+            .filter { $0.isActive && $0.rxCui != nil }
+            .compactMap { $0.rxCui }
+        guard rxCuis.count >= 2 else {
+            medicationInteractions = []
+            return
+        }
+        medicationInteractions = await checkInteractions(rxCuis: rxCuis)
     }
 
     func addMedication(_ input: AddMedicationInput) async -> Bool {
@@ -673,6 +706,8 @@ class MobileEngineSessionStore: ObservableObject {
 
                 await getCurrentUser()
                 await loadPatientProfile()
+                // Invalidate & rebuild medications cache so doctor-side changes are reflected
+                await loadMedications()
                 return true
             } else {
                 errorMessage = result.error ?? "Sync failed"

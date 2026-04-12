@@ -12,14 +12,28 @@ final class MedicationsViewModel: ObservableObject {
     @Published var isEndReasonDialogPresented: Bool = false
     @Published var selectedMedication: MedicationInfo?
 
+    /// True once data has been loaded at least once — prevents redundant fetches on re-navigation.
+    @Published private(set) var hasLoaded: Bool = false
+
     private let loadMedications: LoadMedicationsUseCase
     private let checkInteractions: CheckMedicationInteractionsUseCase
     private let discontinue: DiscontinueMedicationUseCase
 
-    init(loadMedications: LoadMedicationsUseCase, checkInteractions: CheckMedicationInteractionsUseCase, discontinue: DiscontinueMedicationUseCase) {
+    init(
+        loadMedications: LoadMedicationsUseCase,
+        checkInteractions: CheckMedicationInteractionsUseCase,
+        discontinue: DiscontinueMedicationUseCase,
+        preloadedMedications: [MedicationInfo] = [],
+        preloadedInteractions: [MedicationInteractionInfo] = []
+    ) {
         self.loadMedications = loadMedications
         self.checkInteractions = checkInteractions
         self.discontinue = discontinue
+        if !preloadedMedications.isEmpty {
+            self.medications = preloadedMedications
+            self.interactions = preloadedInteractions
+            self.hasLoaded = true
+        }
     }
 
     var activeMedications: [MedicationInfo] {
@@ -30,9 +44,16 @@ final class MedicationsViewModel: ObservableObject {
         medications.filter { !$0.isActive }
     }
 
+    /// Load only if not already loaded — call this from view `.task` to avoid re-fetching on re-navigation.
+    func loadIfNeeded() async {
+        guard !hasLoaded else { return }
+        await refresh()
+    }
+
     func refresh() async {
         medications = await loadMedications()
         await refreshInteractions()
+        hasLoaded = true
     }
 
     func refreshInteractions() async {
@@ -73,4 +94,3 @@ final class MedicationsViewModel: ObservableObject {
         }
     }
 }
-

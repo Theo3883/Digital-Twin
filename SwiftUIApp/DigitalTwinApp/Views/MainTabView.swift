@@ -92,7 +92,9 @@ struct MainTabView: View {
                         medsVM: MedicationsViewModel(
                             loadMedications: LoadMedicationsUseCase(repository: medicationRepository),
                             checkInteractions: CheckMedicationInteractionsUseCase(repository: medicationRepository),
-                            discontinue: DiscontinueMedicationUseCase(repository: medicationRepository)
+                            discontinue: DiscontinueMedicationUseCase(repository: medicationRepository),
+                            preloadedMedications: engineWrapper.medications,
+                            preloadedInteractions: engineWrapper.medicationInteractions
                         ),
                         addSheetViewModel: AddMedicationSheetViewModel(
                             searchDrugs: SearchDrugsUseCase(repository: medicationRepository),

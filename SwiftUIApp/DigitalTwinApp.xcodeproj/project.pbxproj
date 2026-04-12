@@ -188,6 +188,7 @@
 		E1B000000000000000000001 /* OcrResultCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A000000000000000000001 /* OcrResultCard.swift */; };
 		E1B000000000000000000002 /* OcrDocumentCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A000000000000000000002 /* OcrDocumentCard.swift */; };
 		E1B000000000000000000003 /* EmptyDocumentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A000000000000000000003 /* EmptyDocumentsView.swift */; };
+		CE0000000000000000000001 /* PermissionsOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0000000000000000000011 /* PermissionsOnboardingView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -344,6 +345,7 @@
 		CC0000000000000000000012 /* GeocodingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeocodingService.swift; sourceTree = "<group>"; };
 		CC0000000000000000000013 /* EnvironmentAnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentAnalyticsView.swift; sourceTree = "<group>"; };
 		CD0000000000000000000011 /* PatientView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientView.swift; sourceTree = "<group>"; };
+		CE0000000000000000000011 /* PermissionsOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsOnboardingView.swift; sourceTree = "<group>"; };
 		DA0000000000000000000011 /* VaultResultInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultResultInfo.swift; sourceTree = "<group>"; };
 		DA0000000000000000000012 /* ClassificationResultInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClassificationResultInfo.swift; sourceTree = "<group>"; };
 		DA0000000000000000000013 /* MlAuditSummaryInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MlAuditSummaryInfo.swift; sourceTree = "<group>"; };
@@ -435,6 +437,7 @@
 				FF2000000000000000000001 /* ECG */,
 				FB2000000000000000000001 /* Environment */,
 				EE0000000000000000000015 /* AuthenticationView.swift */,
+				CE0000000000000000000011 /* PermissionsOnboardingView.swift */,
 				EE0000000000000000000018 /* DashboardView.swift */,
 				EE000000000000000000001B /* EcgSparkline.swift */,
 				EE0000000000000000000014 /* LoadingView.swift */,
@@ -922,6 +925,7 @@
 				EE0000000000000000000003 /* SyncGateView.swift in Sources */,
 				EE0000000000000000000004 /* LoadingView.swift in Sources */,
 				EE0000000000000000000005 /* AuthenticationView.swift in Sources */,
+				CE0000000000000000000001 /* PermissionsOnboardingView.swift in Sources */,
 				EE0000000000000000000006 /* RegistrationField.swift in Sources */,
 				EE0000000000000000000007 /* MainTabView.swift in Sources */,
 				EE0000000000000000000008 /* DashboardView.swift in Sources */,

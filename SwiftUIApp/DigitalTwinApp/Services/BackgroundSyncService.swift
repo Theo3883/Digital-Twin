@@ -45,7 +45,7 @@ final class BackgroundSyncService: ObservableObject {
         guard isBackgroundSyncEnabled else { return }
         
         let request = BGAppRefreshTaskRequest(identifier: backgroundTaskIdentifier)
-        request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60) // 15 minutes from now
+        request.earliestBeginDate = Date(timeIntervalSinceNow: 60 * 60) // 1 hour from now
         
         do {
             try BGTaskScheduler.shared.submit(request)
@@ -127,7 +127,11 @@ final class BackgroundSyncService: ObservableObject {
             return false
         }
 
-        // 4. Send local notification if significant changes
+        // 4. Rebuild medications + environment caches so they are hot on next foreground
+        await engineWrapper.loadMedications()
+        await engineWrapper.loadLatestEnvironmentReading()
+
+        // 5. Send local notification if significant changes
         await sendSyncNotificationIfNeeded()
 
         return true

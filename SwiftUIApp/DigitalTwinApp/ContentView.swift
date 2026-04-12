@@ -7,6 +7,7 @@ struct ContentView: View {
     @State private var showSyncGate = true
     @State private var didAutoPresentProfileSetup = false
     @State private var shouldOpenPatientSetupAfterUserSave = false
+    @AppStorage("permissionsOnboardingShown") private var permissionsShown = false
     
     var body: some View {
         ZStack {
@@ -15,6 +16,8 @@ struct ContentView: View {
             Group {
                 if !engineWrapper.isInitialized {
                     LoadingView(message: "Initializing DigitalTwin...")
+                } else if !permissionsShown {
+                    PermissionsOnboardingView(onDone: { permissionsShown = true })
                 } else if !engineWrapper.isAuthenticated {
                     AuthenticationView()
                 } else if engineWrapper.isHydratingAfterAuth {

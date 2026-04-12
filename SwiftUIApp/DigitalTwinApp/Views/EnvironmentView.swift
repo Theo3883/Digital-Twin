@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct EnvironmentView: View {
+    @EnvironmentObject private var engineWrapper: MobileEngineWrapper
     @StateObject private var locationManager = LocationManager()
     @StateObject private var viewModel: EnvironmentViewModel
     @State private var isRefreshing = false
@@ -40,7 +41,7 @@ struct EnvironmentView: View {
         }
         .pageEnterAnimation()
         .task {
-            await viewModel.loadInitial()
+            await viewModel.loadInitial(preloaded: engineWrapper.latestEnvironmentReading)
             if viewModel.reading == nil {
                 await fetchWithLocation()
             }

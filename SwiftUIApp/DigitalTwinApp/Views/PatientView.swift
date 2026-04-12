@@ -104,7 +104,7 @@ struct PatientView: View {
             }
             .task {
                 await profileVM.load()
-                await medsVM.refresh()
+                await medsVM.loadIfNeeded()
             }
             .refreshable {
                 await profileVM.load()
