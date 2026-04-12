@@ -28,6 +28,10 @@ class MobileEngineSessionStore: ObservableObject {
     @Published var environmentAnalytics: EnvironmentAnalyticsInfo?
     @Published var environmentAdvice: CoachingAdviceInfo?
 
+    // Vault State
+    @Published var isVaultInitialized = false
+    @Published var isVaultUnlocked = false
+
     // MARK: - Native Services
 
     @Published var healthKitService = HealthKitService()
@@ -246,6 +250,8 @@ class MobileEngineSessionStore: ObservableObject {
         chatMessages = []
         ocrDocuments = []
         medicalHistory = []
+        isVaultInitialized = false
+        isVaultUnlocked = false
     }
 
     // MARK: - Latest Vitals (convenience)
@@ -419,21 +425,102 @@ class MobileEngineSessionStore: ObservableObject {
         do { return try await engine.processFullOcr(ocrText) } catch { return nil }
     }
 
-    func saveOcrDocument(opaqueInternalName: String, mimeType: String, pageCount: Int, pageTexts: [String]) async {
-        guard let engine else { return }
-        do {
-            _ = try await engine.saveOcrDocument(
-                opaqueInternalName: opaqueInternalName,
-                mimeType: mimeType,
-                pageCount: pageCount,
-                pageTexts: pageTexts
-            )
-        } catch {}
+    func processFullOcrRawJson(_ ocrText: String) async -> String? {
+        guard let engine else { return nil }
+        do { return try await engine.processFullOcrRawJson(ocrText) } catch { return nil }
+    }
+
+    func saveOcrDocument(_ input: SaveOcrDocumentInput) async -> OcrDocumentInfo? {
+        guard let engine else { return nil }
+        do { return try await engine.saveOcrDocument(input) } catch { return nil }
     }
 
     func sanitizeText(_ text: String) async -> String {
         guard let engine else { return text }
         return await engine.sanitizeText(text)
+    }
+
+    // MARK: - Advanced OCR — Vault
+
+    func vaultInitialize(_ input: VaultInitInput) async -> VaultResultInfo? {
+        guard let engine else { return nil }
+        do {
+            let result = try await engine.vaultInitialize(input)
+            if result.success { isVaultInitialized = true }
+            return result
+        } catch { return nil }
+    }
+
+    func vaultUnlock(masterKeyBase64: String) async -> VaultResultInfo? {
+        guard let engine else { return nil }
+        do {
+            let result = try await engine.vaultUnlock(masterKeyBase64: masterKeyBase64)
+            if result.success { isVaultUnlocked = true }
+            return result
+        } catch { return nil }
+    }
+
+    func vaultLock() async -> VaultResultInfo? {
+        guard let engine else { return nil }
+        do {
+            let result = try await engine.vaultLock()
+            if result.success { isVaultUnlocked = false }
+            return result
+        } catch { return nil }
+    }
+
+    func vaultStoreDocument(_ input: VaultStoreDocumentInput) async -> VaultResultInfo? {
+        guard let engine else { return nil }
+        do { return try await engine.vaultStoreDocument(input) } catch { return nil }
+    }
+
+    func vaultRetrieveDocument(documentId: String) async -> String? {
+        guard let engine else { return nil }
+        do { return try await engine.vaultRetrieveDocument(documentId: documentId) } catch { return nil }
+    }
+
+    func vaultDeleteDocument(documentId: String) async -> VaultResultInfo? {
+        guard let engine else { return nil }
+        do { return try await engine.vaultDeleteDocument(documentId: documentId) } catch { return nil }
+    }
+
+    func vaultWipe() async -> VaultResultInfo? {
+        guard let engine else { return nil }
+        do {
+            let result = try await engine.vaultWipe()
+            if result.success {
+                isVaultInitialized = false
+                isVaultUnlocked = false
+            }
+            return result
+        } catch { return nil }
+    }
+
+    // MARK: - Advanced OCR — Classification & Structured
+
+    func classifyWithOrchestrator(ocrText: String, mlType: String? = nil, mlConfidence: Float = 0) async -> ClassificationResultInfo? {
+        guard let engine else { return nil }
+        do { return try await engine.classifyWithOrchestrator(ocrText: ocrText, mlType: mlType, mlConfidence: mlConfidence) } catch { return nil }
+    }
+
+    func buildStructuredDocument(ocrText: String, docType: String, classConfidence: Float, classMethod: String) async -> StructuredMedicalDocumentInfo? {
+        guard let engine else { return nil }
+        do { return try await engine.buildStructuredDocument(ocrText: ocrText, docType: docType, classConfidence: classConfidence, classMethod: classMethod) } catch { return nil }
+    }
+
+    func buildStructuredDocumentFromJson(_ input: BuildStructuredDocumentInput) async -> StructuredMedicalDocumentInfo? {
+        guard let engine else { return nil }
+        do { return try await engine.buildStructuredDocumentFromJson(input) } catch { return nil }
+    }
+
+    func getMlAuditSummary() async -> MlAuditSummaryInfo? {
+        guard let engine else { return nil }
+        do { return try await engine.getMlAuditSummary() } catch { return nil }
+    }
+
+    func validateDocument(headerBase64: String, fileExtension: String, fileSizeBytes: Int64) async -> VaultResultInfo? {
+        guard let engine else { return nil }
+        do { return try await engine.validateDocument(headerBase64: headerBase64, fileExtension: fileExtension, fileSizeBytes: fileSizeBytes) } catch { return nil }
     }
 
     // MARK: - Doctor Assignment

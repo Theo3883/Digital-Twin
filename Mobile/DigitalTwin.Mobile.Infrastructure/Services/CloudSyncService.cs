@@ -190,6 +190,7 @@ public class CloudSyncService : ICloudSyncService
             PatientId = patient?.Id ?? Guid.Empty,
             OpaqueInternalName = d.OpaqueInternalName,
             MimeType = d.MimeType,
+            DocumentType = d.DocumentType,
             PageCount = d.PageCount,
             SanitizedOcrPreview = d.SanitizedOcrPreview,
             ScannedAt = d.ScannedAt,
@@ -617,7 +618,7 @@ public class CloudSyncService : ICloudSyncService
             var items = documents.Select(d => new OcrDocumentSyncItem
             {
                 Id = d.Id, OpaqueInternalName = d.OpaqueInternalName,
-                MimeType = d.MimeType, PageCount = d.PageCount,
+                MimeType = d.MimeType, DocumentType = d.DocumentType, PageCount = d.PageCount,
                 SanitizedOcrPreview = d.SanitizedOcrPreview,
                 ScannedAt = d.ScannedAt
             }).ToList();

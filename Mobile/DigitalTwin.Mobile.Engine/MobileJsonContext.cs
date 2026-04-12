@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using DigitalTwin.Mobile.Application.DTOs;
+using DigitalTwin.Mobile.Domain.Models;
 
 namespace DigitalTwin.Mobile.Engine;
 
@@ -18,12 +19,50 @@ public sealed record EcgEvaluationResult
     public CriticalAlertDto? Alert { get; init; }
 }
 
-public sealed record SaveOcrDocumentInput
+// Vault operation inputs/outputs for NativeBridge
+public sealed record VaultInitInput
 {
-    public string OpaqueInternalName { get; init; } = string.Empty;
+    public bool IsPasscodeSet { get; init; }
+    public bool IsBiometryAvailable { get; init; }
+    public string BiometryType { get; init; } = "None";
+    public bool IsVaultInitialized { get; init; }
+    public bool IsVaultUnlocked { get; init; }
+    public string ActiveMode { get; init; } = "Strict";
+}
+
+public sealed record VaultStoreInput
+{
+    public string DocumentBase64 { get; init; } = string.Empty;
     public string MimeType { get; init; } = string.Empty;
     public int PageCount { get; init; }
-    public string[] PageTexts { get; init; } = [];
+    public string DocumentId { get; init; } = string.Empty;
+}
+
+public sealed record VaultResultDto
+{
+    public bool Success { get; init; }
+    public string? Error { get; init; }
+    public string? DocumentId { get; init; }
+    public string? VaultPath { get; init; }
+    public string? Sha256 { get; init; }
+    public string? OpaqueInternalName { get; init; }
+}
+
+public sealed record ClassifyResultDto
+{
+    public string Type { get; init; } = "Unknown";
+    public float Confidence { get; init; }
+    public string Method { get; init; } = string.Empty;
+}
+
+public sealed record MlAuditSummaryDto
+{
+    public int TotalDocuments { get; init; }
+    public double AverageOcrMs { get; init; }
+    public double AverageClassifyMs { get; init; }
+    public double AverageExtractMs { get; init; }
+    public double AverageConfidence { get; init; }
+    public double BertUsagePercent { get; init; }
 }
 
 // NativeAOT-safe System.Text.Json source generation context.
@@ -80,6 +119,27 @@ public sealed record SaveOcrDocumentInput
 [JsonSerializable(typeof(DigitalTwin.Mobile.Domain.Models.ExtractedHistoryItem[]), TypeInfoPropertyName = "ExtractedHistoryItemArray")]
 [JsonSerializable(typeof(DigitalTwin.Mobile.Domain.Models.ExtractedMedicationField))]
 [JsonSerializable(typeof(SaveOcrDocumentInput))]
+[JsonSerializable(typeof(BuildStructuredDocumentInput))]
+// Advanced OCR / Vault / ML
+[JsonSerializable(typeof(VaultInitInput))]
+[JsonSerializable(typeof(VaultStoreInput))]
+[JsonSerializable(typeof(VaultResultDto))]
+[JsonSerializable(typeof(ClassifyResultDto))]
+[JsonSerializable(typeof(MlAuditSummaryDto))]
+[JsonSerializable(typeof(DigitalTwin.Mobile.OCR.Models.EncryptedDocumentDescriptor))]
+[JsonSerializable(typeof(DigitalTwin.Mobile.OCR.Models.Structured.StructuredMedicalDocument))]
+[JsonSerializable(typeof(DigitalTwin.Mobile.OCR.Models.Structured.ExtractedField<string>))]
+[JsonSerializable(typeof(DigitalTwin.Mobile.OCR.Models.Structured.ExtractedLabResult))]
+[JsonSerializable(typeof(DigitalTwin.Mobile.OCR.Models.Structured.ExtractedLabResult[]), TypeInfoPropertyName = "ExtractedLabResultArray")]
+[JsonSerializable(typeof(DigitalTwin.Mobile.OCR.Models.Structured.ExtractedMedication))]
+[JsonSerializable(typeof(DigitalTwin.Mobile.OCR.Models.Structured.ExtractedMedication[]), TypeInfoPropertyName = "ExtractedMedicationArray")]
+[JsonSerializable(typeof(DigitalTwin.Mobile.OCR.Models.Structured.ReviewFlag))]
+[JsonSerializable(typeof(DigitalTwin.Mobile.OCR.Models.Structured.ReviewFlag[]), TypeInfoPropertyName = "ReviewFlagArray")]
+[JsonSerializable(typeof(DigitalTwin.Mobile.OCR.Models.Structured.DocumentExtractionMetrics))]
+[JsonSerializable(typeof(DigitalTwin.Mobile.OCR.Models.ML.ClassificationResult))]
+[JsonSerializable(typeof(DigitalTwin.Mobile.OCR.Models.ML.MlAuditRecord))]
+[JsonSerializable(typeof(DigitalTwin.Mobile.OCR.Models.ML.MlAuditRecord[]), TypeInfoPropertyName = "MlAuditRecordArray")]
+[JsonSerializable(typeof(DigitalTwin.Mobile.OCR.Models.ML.MlPerformanceSummary))]
 // Utility
 [JsonSerializable(typeof(string[]), TypeInfoPropertyName = "StringArray")]
 [JsonSerializable(typeof(NativeBridge.OperationResultDto))]

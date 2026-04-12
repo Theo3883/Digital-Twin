@@ -145,7 +145,44 @@ class DotNetBridge {
     
     @_silgen_name("mobile_engine_save_ocr_document")
     private static func mobile_engine_save_ocr_document(_ inputJson: UnsafePointer<CChar>?) -> UnsafePointer<CChar>?
-    
+
+    // Advanced OCR — Vault, Encryption, Structured Extraction
+    @_silgen_name("mobile_engine_vault_initialize")
+    private static func mobile_engine_vault_initialize(_ inputJson: UnsafePointer<CChar>?) -> UnsafePointer<CChar>?
+
+    @_silgen_name("mobile_engine_vault_unlock")
+    private static func mobile_engine_vault_unlock(_ masterKeyB64: UnsafePointer<CChar>?) -> UnsafePointer<CChar>?
+
+    @_silgen_name("mobile_engine_vault_lock")
+    private static func mobile_engine_vault_lock() -> UnsafePointer<CChar>?
+
+    @_silgen_name("mobile_engine_vault_store_document")
+    private static func mobile_engine_vault_store_document(_ inputJson: UnsafePointer<CChar>?) -> UnsafePointer<CChar>?
+
+    @_silgen_name("mobile_engine_vault_retrieve_document")
+    private static func mobile_engine_vault_retrieve_document(_ docId: UnsafePointer<CChar>?) -> UnsafePointer<CChar>?
+
+    @_silgen_name("mobile_engine_vault_delete_document")
+    private static func mobile_engine_vault_delete_document(_ docId: UnsafePointer<CChar>?) -> UnsafePointer<CChar>?
+
+    @_silgen_name("mobile_engine_vault_wipe")
+    private static func mobile_engine_vault_wipe() -> UnsafePointer<CChar>?
+
+    @_silgen_name("mobile_engine_classify_with_orchestrator")
+    private static func mobile_engine_classify_with_orchestrator(_ ocrText: UnsafePointer<CChar>?, _ mlType: UnsafePointer<CChar>?, _ mlConfidence: Float) -> UnsafePointer<CChar>?
+
+    @_silgen_name("mobile_engine_build_structured_document")
+    private static func mobile_engine_build_structured_document(_ ocrText: UnsafePointer<CChar>?, _ docType: UnsafePointer<CChar>?, _ classConfidence: Float, _ classMethod: UnsafePointer<CChar>?) -> UnsafePointer<CChar>?
+
+    @_silgen_name("mobile_engine_build_structured_document_json")
+    private static func mobile_engine_build_structured_document_json(_ inputJson: UnsafePointer<CChar>?) -> UnsafePointer<CChar>?
+
+    @_silgen_name("mobile_engine_get_ml_audit_summary")
+    private static func mobile_engine_get_ml_audit_summary() -> UnsafePointer<CChar>?
+
+    @_silgen_name("mobile_engine_validate_document")
+    private static func mobile_engine_validate_document(_ headerB64: UnsafePointer<CChar>?, _ fileExtension: UnsafePointer<CChar>?, _ fileSizeBytes: Int64) -> UnsafePointer<CChar>?
+
     // MARK: - Public Interface
     
     private let jsonDecoder = JSONDecoder()
@@ -527,21 +564,136 @@ class DotNetBridge {
         let result = ocrText.withCString { Self.mobile_engine_process_full_ocr($0) }
         return try parseResult(result, as: OcrProcessingResult.self)
     }
+
+    /// Raw JSON from `ProcessFullOcr` for round-trip save (avoids Swift re-encoding drift).
+    func processFullOcrRawJson(_ ocrText: String) throws -> String {
+        let result = ocrText.withCString { Self.mobile_engine_process_full_ocr($0) }
+        guard let result else { throw BridgeError.nullResponse }
+        defer { Self.mobile_engine_free_string(UnsafeMutablePointer(mutating: result)) }
+        return String(cString: result)
+    }
     
     /// Save scanned document and extract medical history
-    func saveOcrDocument(opaqueInternalName: String, mimeType: String, pageCount: Int, pageTexts: [String]) throws -> OcrDocumentInfo {
-        let input = SaveOcrDocumentInput(
-            opaqueInternalName: opaqueInternalName,
-            mimeType: mimeType,
-            pageCount: pageCount,
-            pageTexts: pageTexts
-        )
+    func saveOcrDocument(_ input: SaveOcrDocumentInput) throws -> OcrDocumentInfo {
         let json = try jsonEncoder.encode(input)
         let jsonStr = String(data: json, encoding: .utf8)!
         let result = jsonStr.withCString { Self.mobile_engine_save_ocr_document($0) }
         return try parseResult(result, as: OcrDocumentInfo.self)
     }
-    
+
+    // MARK: - Advanced OCR — Vault
+
+    /// Initialize the encrypted vault
+    func vaultInitialize(_ input: VaultInitInput) throws -> VaultResultInfo {
+        let json = try jsonEncoder.encode(input)
+        let jsonStr = String(data: json, encoding: .utf8)!
+        let result = jsonStr.withCString { Self.mobile_engine_vault_initialize($0) }
+        return try parseResult(result, as: VaultResultInfo.self)
+    }
+
+    /// Unlock the vault with a base64-encoded master key
+    func vaultUnlock(masterKeyBase64: String) throws -> VaultResultInfo {
+        let result = masterKeyBase64.withCString { Self.mobile_engine_vault_unlock($0) }
+        return try parseResult(result, as: VaultResultInfo.self)
+    }
+
+    /// Lock the vault (clears master key from memory)
+    func vaultLock() throws -> VaultResultInfo {
+        let result = Self.mobile_engine_vault_lock()
+        return try parseResult(result, as: VaultResultInfo.self)
+    }
+
+    /// Store an encrypted document in the vault
+    func vaultStoreDocument(_ input: VaultStoreDocumentInput) throws -> VaultResultInfo {
+        let json = try jsonEncoder.encode(input)
+        let jsonStr = String(data: json, encoding: .utf8)!
+        let result = jsonStr.withCString { Self.mobile_engine_vault_store_document($0) }
+        return try parseResult(result, as: VaultResultInfo.self)
+    }
+
+    /// Retrieve a decrypted document from the vault (returns base64 string)
+    func vaultRetrieveDocument(documentId: String) throws -> String {
+        let result = documentId.withCString { Self.mobile_engine_vault_retrieve_document($0) }
+        guard let result else { throw BridgeError.nullResponse }
+        defer { Self.mobile_engine_free_string(result) }
+        let str = String(cString: result)
+        // Check if it's a JSON error
+        if str.contains("\"success\":false") || str.contains("\"Success\":false") {
+            if let data = str.data(using: .utf8),
+               let vr = try? JSONDecoder().decode(VaultResultInfo.self, from: data) {
+                throw BridgeError.engineError(vr.error ?? "Vault retrieve failed")
+            }
+        }
+        return str
+    }
+
+    /// Delete a document from the vault
+    func vaultDeleteDocument(documentId: String) throws -> VaultResultInfo {
+        let result = documentId.withCString { Self.mobile_engine_vault_delete_document($0) }
+        return try parseResult(result, as: VaultResultInfo.self)
+    }
+
+    /// Wipe the entire vault
+    func vaultWipe() throws -> VaultResultInfo {
+        let result = Self.mobile_engine_vault_wipe()
+        return try parseResult(result, as: VaultResultInfo.self)
+    }
+
+    // MARK: - Advanced OCR — Classification & Structured
+
+    /// Classify document using orchestrator (keyword + optional ML fusion)
+    func classifyWithOrchestrator(ocrText: String, mlType: String?, mlConfidence: Float) throws -> ClassificationResultInfo {
+        let result: UnsafePointer<CChar>?
+        if let mlType {
+            result = ocrText.withCString { ocrPtr in
+                mlType.withCString { mlPtr in
+                    Self.mobile_engine_classify_with_orchestrator(ocrPtr, mlPtr, mlConfidence)
+                }
+            }
+        } else {
+            result = ocrText.withCString { ocrPtr in
+                Self.mobile_engine_classify_with_orchestrator(ocrPtr, nil, mlConfidence)
+            }
+        }
+        return try parseResult(result, as: ClassificationResultInfo.self)
+    }
+
+    /// Build a structured medical document from OCR text
+    func buildStructuredDocument(ocrText: String, docType: String, classConfidence: Float, classMethod: String) throws -> StructuredMedicalDocumentInfo {
+        let result = ocrText.withCString { ocrPtr in
+            docType.withCString { typePtr in
+                classMethod.withCString { methodPtr in
+                    Self.mobile_engine_build_structured_document(ocrPtr, typePtr, classConfidence, methodPtr)
+                }
+            }
+        }
+        return try parseResult(result, as: StructuredMedicalDocumentInfo.self)
+    }
+
+    /// Structured document with stable document id, ML extraction, and audit (MAUI parity).
+    func buildStructuredDocumentFromJson(_ input: BuildStructuredDocumentInput) throws -> StructuredMedicalDocumentInfo {
+        let json = try jsonEncoder.encode(input)
+        let jsonStr = String(data: json, encoding: .utf8)!
+        let result = jsonStr.withCString { Self.mobile_engine_build_structured_document_json($0) }
+        return try parseResult(result, as: StructuredMedicalDocumentInfo.self)
+    }
+
+    /// Get ML pipeline audit summary
+    func getMlAuditSummary() throws -> MlAuditSummaryInfo {
+        let result = Self.mobile_engine_get_ml_audit_summary()
+        return try parseResult(result, as: MlAuditSummaryInfo.self)
+    }
+
+    /// Validate document file (magic bytes, extension, size)
+    func validateDocument(headerBase64: String, fileExtension: String, fileSizeBytes: Int64) throws -> VaultResultInfo {
+        let result = headerBase64.withCString { headerPtr in
+            fileExtension.withCString { extPtr in
+                Self.mobile_engine_validate_document(headerPtr, extPtr, fileSizeBytes)
+            }
+        }
+        return try parseResult(result, as: VaultResultInfo.self)
+    }
+
     // MARK: - Private Helpers
     
     private func parseResult<T: Codable>(_ cStringPtr: UnsafePointer<CChar>?, as type: T.Type) throws -> T {

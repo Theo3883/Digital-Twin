@@ -4,6 +4,7 @@ using DigitalTwin.Mobile.Domain.Services;
 using DigitalTwin.Mobile.Infrastructure.Data;
 using DigitalTwin.Mobile.Infrastructure.Repositories;
 using DigitalTwin.Mobile.Infrastructure.Services;
+using DigitalTwin.Mobile.OCR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -188,6 +189,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<SleepApplicationService>();
         services.AddScoped<OcrTextProcessingApplicationService>();
 
+        // ── Mobile OCR (vault, encryption, ML, structured extraction) ────────
+        var vaultRoot = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "OCRVault");
+        services.AddMobileOcr(vaultRoot);
+
         // ── New application services ─────────────────────────────────────────
         services.AddScoped<DoctorAssignmentApplicationService>();
         services.AddScoped<EnvironmentAnalyticsApplicationService>();
@@ -200,6 +207,8 @@ public static class ServiceCollectionExtensions
         {
             builder.AddConsole();
             builder.SetMinimumLevel(LogLevel.Information);
+            builder.AddFilter("DigitalTwin.Mobile.Application.Services.OcrTextProcessingApplicationService", LogLevel.Debug);
+            builder.AddFilter("DigitalTwin.Mobile.OCR.Services.MedicalHistoryExtractor", LogLevel.Debug);
         });
 
         return services;
@@ -246,6 +255,9 @@ public class DatabaseInitializer
         await ExecuteAsync(conn,"""
             CREATE TABLE IF NOT EXISTS "Users" (
                 "Id"          TEXT NOT NULL,
+                "Address"     TEXT NULL,
+                "City"        TEXT NULL,
+                "Country"     TEXT NULL,
                 "CreatedAt"   TEXT NOT NULL,
                 "DateOfBirth" TEXT NULL,
                 "Email"       TEXT NOT NULL,
@@ -264,6 +276,11 @@ public class DatabaseInitializer
             CREATE UNIQUE INDEX IF NOT EXISTS "IX_Users_Email"
             ON "Users" ("Email");
             """);
+
+        // Add columns that may be missing from earlier schema versions.
+        await ExecuteAsync(conn, """ALTER TABLE "Users" ADD COLUMN "Address" TEXT NULL;""", ignoreDuplicateColumn: true);
+        await ExecuteAsync(conn, """ALTER TABLE "Users" ADD COLUMN "City"    TEXT NULL;""", ignoreDuplicateColumn: true);
+        await ExecuteAsync(conn, """ALTER TABLE "Users" ADD COLUMN "Country" TEXT NULL;""", ignoreDuplicateColumn: true);
 
         await ExecuteAsync(conn,"""
             CREATE TABLE IF NOT EXISTS "Patients" (
@@ -413,6 +430,7 @@ public class DatabaseInitializer
                 "PatientId"           TEXT NOT NULL,
                 "OpaqueInternalName"  TEXT NOT NULL,
                 "MimeType"            TEXT NULL,
+                "DocumentType"        TEXT NOT NULL DEFAULT 'Unknown',
                 "PageCount"           INTEGER NOT NULL,
                 "Sha256OfNormalized"  TEXT NULL,
                 "SanitizedOcrPreview" TEXT NULL,
@@ -430,6 +448,12 @@ public class DatabaseInitializer
             CREATE INDEX IF NOT EXISTS "IX_OcrDocuments_PatientId_IsDirty"
             ON "OcrDocuments" ("PatientId", "IsDirty");
             """);
+
+        // Backward-compatible migration for existing local DBs created before DocumentType was introduced.
+        await ExecuteAsync(conn,"""
+            ALTER TABLE "OcrDocuments"
+            ADD COLUMN "DocumentType" TEXT NOT NULL DEFAULT 'Unknown';
+            """, ignoreDuplicateColumn: true);
 
         // ── MedicalHistoryEntries ──────────────────────────────────────────
         await ExecuteAsync(conn,"""
@@ -495,10 +519,21 @@ public class DatabaseInitializer
         _logger.LogInformation("[DatabaseInitializer] Database initialization complete");
     }
 
-    private static async Task ExecuteAsync(Microsoft.Data.Sqlite.SqliteConnection conn, string sql)
+    private static async Task ExecuteAsync(
+        Microsoft.Data.Sqlite.SqliteConnection conn,
+        string sql,
+        bool ignoreDuplicateColumn = false)
     {
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = sql;
-        await cmd.ExecuteNonQueryAsync();
+        try
+        {
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = sql;
+            await cmd.ExecuteNonQueryAsync();
+        }
+        catch (Microsoft.Data.Sqlite.SqliteException ex) when (
+            ignoreDuplicateColumn && ex.Message.Contains("duplicate column name", StringComparison.OrdinalIgnoreCase))
+        {
+            // No-op: column already exists from a previous app run.
+        }
     }
 }

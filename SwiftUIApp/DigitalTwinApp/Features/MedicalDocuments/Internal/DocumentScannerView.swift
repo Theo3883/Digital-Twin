@@ -1,7 +1,6 @@
 import SwiftUI
 import VisionKit
 
-/// SwiftUI wrapper around VNDocumentCameraViewController for scanning physical documents.
 struct DocumentScannerView: UIViewControllerRepresentable {
     let onScanComplete: ([UIImage]) -> Void
     let onCancel: () -> Void

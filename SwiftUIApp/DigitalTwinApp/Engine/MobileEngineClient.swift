@@ -59,7 +59,24 @@ protocol MobileEngineClient: Sendable {
     // MARK: - OCR Text Processing
     func classifyDocument(_ ocrText: String) async -> String
     func processFullOcr(_ ocrText: String) async throws -> OcrProcessingResult
-    func saveOcrDocument(opaqueInternalName: String, mimeType: String, pageCount: Int, pageTexts: [String]) async throws -> OcrDocumentInfo
+    func processFullOcrRawJson(_ ocrText: String) async throws -> String
+    func saveOcrDocument(_ input: SaveOcrDocumentInput) async throws -> OcrDocumentInfo
     func sanitizeText(_ text: String) async -> String
+
+    // MARK: - Advanced OCR — Vault
+    func vaultInitialize(_ input: VaultInitInput) async throws -> VaultResultInfo
+    func vaultUnlock(masterKeyBase64: String) async throws -> VaultResultInfo
+    func vaultLock() async throws -> VaultResultInfo
+    func vaultStoreDocument(_ input: VaultStoreDocumentInput) async throws -> VaultResultInfo
+    func vaultRetrieveDocument(documentId: String) async throws -> String
+    func vaultDeleteDocument(documentId: String) async throws -> VaultResultInfo
+    func vaultWipe() async throws -> VaultResultInfo
+
+    // MARK: - Advanced OCR — Classification & Structured
+    func classifyWithOrchestrator(ocrText: String, mlType: String?, mlConfidence: Float) async throws -> ClassificationResultInfo
+    func buildStructuredDocument(ocrText: String, docType: String, classConfidence: Float, classMethod: String) async throws -> StructuredMedicalDocumentInfo
+    func buildStructuredDocumentFromJson(_ input: BuildStructuredDocumentInput) async throws -> StructuredMedicalDocumentInfo
+    func getMlAuditSummary() async throws -> MlAuditSummaryInfo
+    func validateDocument(headerBase64: String, fileExtension: String, fileSizeBytes: Int64) async throws -> VaultResultInfo
 }
 

@@ -91,10 +91,17 @@ public class AuthService
                             ?? new User { Id = Guid.NewGuid(), Email = claims.Email, Role = UserRole.Patient };
 
             localUser.Email = claims.Email;
-            localUser.Role = UserRole.Patient;
-            localUser.FirstName = claims.GivenName ?? localUser.FirstName;
-            localUser.LastName = claims.FamilyName ?? localUser.LastName;
-            localUser.PhotoUrl = claims.Picture ?? localUser.PhotoUrl;
+
+            // Only fall back to Google token claims when we don't have cloud data.
+            // Cloud profile is authoritative; Google token provides only initial defaults.
+            if (cloud?.Bootstrap?.User is null)
+            {
+                localUser.Role = UserRole.Patient;
+                localUser.FirstName = claims.GivenName ?? localUser.FirstName;
+                localUser.LastName = claims.FamilyName ?? localUser.LastName;
+                localUser.PhotoUrl = claims.Picture ?? localUser.PhotoUrl;
+            }
+
             localUser.UpdatedAt = DateTime.UtcNow;
             localUser.IsSynced = cloud?.Success == true;
 
@@ -128,14 +135,7 @@ public class AuthService
             {
                 Success = true,
                 AccessToken = cloud?.AccessToken,
-                User = new UserDto
-                {
-                    Id = localUser.Id,
-                    Email = localUser.Email,
-                    FirstName = localUser.FirstName,
-                    LastName = localUser.LastName,
-                    PhotoUrl = localUser.PhotoUrl
-                },
+                User = MapUserDto(localUser),
                 HasCloudProfile = cloud?.Bootstrap?.Patient != null
             };
         }
@@ -158,15 +158,25 @@ public class AuthService
         var user = await _userRepository.GetCurrentUserAsync();
         if (user == null) return null;
 
-        return new UserDto
-        {
-            Id = user.Id,
-            Email = user.Email,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            PhotoUrl = user.PhotoUrl
-        };
+        return MapUserDto(user);
     }
+
+    private static UserDto MapUserDto(User user) => new()
+    {
+        Id = user.Id,
+        Email = user.Email,
+        Role = (int)user.Role,
+        FirstName = user.FirstName,
+        LastName = user.LastName,
+        PhotoUrl = user.PhotoUrl,
+        Phone = user.Phone,
+        Address = user.Address,
+        City = user.City,
+        Country = user.Country,
+        DateOfBirth = user.DateOfBirth,
+        CreatedAt = user.CreatedAt,
+        UpdatedAt = user.UpdatedAt
+    };
 
     private async Task EnsurePatientProfileAsync(Guid userId)
     {

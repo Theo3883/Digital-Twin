@@ -20,6 +20,7 @@
 		AA000000000000000000000A /* BiometricAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000001A /* BiometricAuthService.swift */; };
 		AA000000000000000000000B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000021 /* Assets.xcassets */; };
 		AA000000000000000000000C /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000022 /* Preview Assets.xcassets */; };
+		EF0000000000000000000019 /* doc_type_classifier_v1.mlmodelc in Resources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000135 /* doc_type_classifier_v1.mlmodelc */; };
 		AA000000000000000000000E /* DigitalTwin.Mobile.Engine.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = AA000000000000000000001C /* DigitalTwin.Mobile.Engine.xcframework */; };
 		AA000000000000000000000F /* DotNetRuntimeInit.c in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000001D /* DotNetRuntimeInit.c */; };
 		DD0000000000000000000001 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = DD0000000000000000000010 /* GoogleSignIn */; };
@@ -56,6 +57,7 @@
 		EF0000000000000000000013 /* ExtractedHistoryItemInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000123 /* ExtractedHistoryItemInfo.swift */; };
 		EF0000000000000000000014 /* OcrProcessingResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000124 /* OcrProcessingResult.swift */; };
 		EF0000000000000000000015 /* SaveOcrDocumentInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000125 /* SaveOcrDocumentInput.swift */; };
+		EF0000000000000000000016 /* BuildStructuredDocumentInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = F00000000000000000000126 /* BuildStructuredDocumentInput.swift */; };
 		F20000000000000000000001 /* UserInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000011 /* UserInfo.swift */; };
 		F20000000000000000000002 /* PatientInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000012 /* PatientInfo.swift */; };
 		F20000000000000000000003 /* PatientUpdateInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = F10000000000000000000013 /* PatientUpdateInfo.swift */; };
@@ -122,9 +124,6 @@
 		FE0000000000000000000001 /* OcrRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000011 /* OcrRepository.swift */; };
 		FE0000000000000000000002 /* EngineOcrRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000012 /* EngineOcrRepository.swift */; };
 		FE0000000000000000000003 /* OcrDocumentsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000013 /* OcrDocumentsViewModel.swift */; };
-		FE0000000000000000000004 /* OcrResultCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000014 /* OcrResultCard.swift */; };
-		FE0000000000000000000005 /* OcrDocumentCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000015 /* OcrDocumentCard.swift */; };
-		FE0000000000000000000006 /* EmptyDocumentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000016 /* EmptyDocumentsView.swift */; };
 		FF0000000000000000000001 /* EcgRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000011 /* EcgRepository.swift */; };
 		FF0000000000000000000002 /* EngineEcgRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000012 /* EngineEcgRepository.swift */; };
 		FF0000000000000000000003 /* EvaluateEcgFrameUseCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000013 /* EvaluateEcgFrameUseCase.swift */; };
@@ -142,11 +141,7 @@
 		BB0000000000000000000015 /* MedicalAssistantView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000005 /* MedicalAssistantView.swift */; };
 		BB0000000000000000000016 /* MedicalHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000006 /* MedicalHistoryView.swift */; };
 		BB0000000000000000000017 /* MedicationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000007 /* MedicationsView.swift */; };
-		BB0000000000000000000018 /* OcrDocumentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000008 /* OcrDocumentView.swift */; };
 		BB0000000000000000000019 /* SleepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000009 /* SleepView.swift */; };
-		BB000000000000000000001A /* DocumentScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000A /* DocumentScannerView.swift */; };
-		BB000000000000000000001B /* OcrSessionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000B /* OcrSessionCoordinator.swift */; };
-		BB000000000000000000001C /* OcrVisionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000C /* OcrVisionService.swift */; };
 		EE0000000000000000000002 /* View+LiquidGlassStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000012 /* View+LiquidGlassStyles.swift */; };
 		EE0000000000000000000003 /* SyncGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000013 /* SyncGateView.swift */; };
 		EE0000000000000000000004 /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000014 /* LoadingView.swift */; };
@@ -163,6 +158,36 @@
 		CC0000000000000000000002 /* GeocodingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000012 /* GeocodingService.swift */; };
 		CC0000000000000000000003 /* EnvironmentAnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0000000000000000000013 /* EnvironmentAnalyticsView.swift */; };
 		CD0000000000000000000001 /* PatientView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0000000000000000000011 /* PatientView.swift */; };
+		DA0000000000000000000001 /* VaultResultInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA0000000000000000000011 /* VaultResultInfo.swift */; };
+		DA0000000000000000000002 /* ClassificationResultInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA0000000000000000000012 /* ClassificationResultInfo.swift */; };
+		DA0000000000000000000003 /* MlAuditSummaryInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA0000000000000000000013 /* MlAuditSummaryInfo.swift */; };
+		DA0000000000000000000004 /* VaultInitInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA0000000000000000000014 /* VaultInitInput.swift */; };
+		DA0000000000000000000005 /* VaultStoreDocumentInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA0000000000000000000015 /* VaultStoreDocumentInput.swift */; };
+		DA0000000000000000000006 /* StructuredMedicalDocumentInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA0000000000000000000016 /* StructuredMedicalDocumentInfo.swift */; };
+		DA0000000000000000000007 /* OcrPipelineStep.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA0000000000000000000017 /* OcrPipelineStep.swift */; };
+		FA952670ECC1B67B621F6CEF /* OcrSecurityMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = B459A455C1275A48FF3D61DA /* OcrSecurityMode.swift */; };
+		D48121990DFC9343C6976265 /* DocumentSecurityPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02A94F187A0F80742931A7FA /* DocumentSecurityPolicy.swift */; };
+		6DF31F0CF81F1E83F46159CD /* OcrSecurityPosture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FC3BB78E741E4C45688EAE0 /* OcrSecurityPosture.swift */; };
+		F8F9292F47F8E2FEE8CC6DA4 /* VaultKeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E6A2AB7861E40A7C6E0BB4F /* VaultKeychainService.swift */; };
+		E60C9C49C487B616F177E612 /* DocumentScanNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A68A72FB4337039D200ECF2 /* DocumentScanNormalizer.swift */; };
+		03646D66F5CD83E87F892BEF /* DocumentTypeMlClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E929B242F264D126884BA14 /* DocumentTypeMlClassifier.swift */; };
+		220C2540FBB4DEB0733F06B7 /* OcrVisionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA93725FB742B80D23707678 /* OcrVisionService.swift */; };
+		65765D1927EAE629802C6CDF /* DocumentScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2F605015DCF2FF24952D47 /* DocumentScannerView.swift */; };
+		5A64237EEA35C6DF2A3B71A9 /* PhotoLibraryPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13454D7A16E9B61E9E9F42D2 /* PhotoLibraryPicker.swift */; };
+		D200710710081CBA475780A4 /* FileImportPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = E37F4677EDCB7C08F5015AEB /* FileImportPicker.swift */; };
+		B8461890F29EF04EF9F1097D /* OcrSessionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35B8741E047FDF298C2C2E95 /* OcrSessionController.swift */; };
+		A224298888DC1BE019C83E80 /* PostureRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C85DA4856D47E1B4D5D127F /* PostureRowView.swift */; };
+		74C1621DAE4304A21244C359 /* SecurityPostureCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72D59C1FB1159CBAD46F1940 /* SecurityPostureCardView.swift */; };
+		662DCAB0BD5F0817642C077C /* SanitizedPreviewPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3545E6A1F1D938DBE0AF872C /* SanitizedPreviewPanelView.swift */; };
+		BF8A7E7300BBC87FC06D0E19 /* ScanPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8F5D278B79D6068DC8FE5BF /* ScanPageView.swift */; };
+		58A5CFC5185D39DC8D3F0EAC /* ImportPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51109CBC1AE487E550261F42 /* ImportPageView.swift */; };
+		E153F1CB5F40E03C218EF360 /* OcrResultPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 888668FC10C641F9CEE4F306 /* OcrResultPageView.swift */; };
+		1531A3119B52A649A21F700D /* OcrSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF9544026E3F3957FED3755D /* OcrSheetView.swift */; };
+		9AFE1AE9F3520D5A87F005B8 /* MedicalDocumentDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F873A8A0B3188F4E26EECFD5 /* MedicalDocumentDetailView.swift */; };
+		CFAAE2265E7C3EBDF2173875 /* OcrDocumentRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B46720B211E11960BFFE6EDA /* OcrDocumentRootView.swift */; };
+		E1B000000000000000000001 /* OcrResultCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A000000000000000000001 /* OcrResultCard.swift */; };
+		E1B000000000000000000002 /* OcrDocumentCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A000000000000000000002 /* OcrDocumentCard.swift */; };
+		E1B000000000000000000003 /* EmptyDocumentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A000000000000000000003 /* EmptyDocumentsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -191,11 +216,7 @@
 		BB0000000000000000000005 /* MedicalAssistantView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicalAssistantView.swift; sourceTree = "<group>"; };
 		BB0000000000000000000006 /* MedicalHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicalHistoryView.swift; sourceTree = "<group>"; };
 		BB0000000000000000000007 /* MedicationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationsView.swift; sourceTree = "<group>"; };
-		BB0000000000000000000008 /* OcrDocumentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OcrDocumentView.swift; sourceTree = "<group>"; };
 		BB0000000000000000000009 /* SleepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepView.swift; sourceTree = "<group>"; };
-		BB000000000000000000000A /* DocumentScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentScannerView.swift; sourceTree = "<group>"; };
-		BB000000000000000000000B /* OcrSessionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OcrSessionCoordinator.swift; sourceTree = "<group>"; };
-		BB000000000000000000000C /* OcrVisionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OcrVisionService.swift; sourceTree = "<group>"; };
 		CC0000000000000000000001 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		DD0000000000000000000004 /* GoogleSignInService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleSignInService.swift; sourceTree = "<group>"; };
 		FA0000000000000000000011 /* ChatRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatRepository.swift; sourceTree = "<group>"; };
@@ -244,9 +265,6 @@
 		FE0000000000000000000011 /* OcrRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OcrRepository.swift; sourceTree = "<group>"; };
 		FE0000000000000000000012 /* EngineOcrRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineOcrRepository.swift; sourceTree = "<group>"; };
 		FE0000000000000000000013 /* OcrDocumentsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OcrDocumentsViewModel.swift; sourceTree = "<group>"; };
-		FE0000000000000000000014 /* OcrResultCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OcrResultCard.swift; sourceTree = "<group>"; };
-		FE0000000000000000000015 /* OcrDocumentCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OcrDocumentCard.swift; sourceTree = "<group>"; };
-		FE0000000000000000000016 /* EmptyDocumentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyDocumentsView.swift; sourceTree = "<group>"; };
 		FF0000000000000000000011 /* EcgRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EcgRepository.swift; sourceTree = "<group>"; };
 		FF0000000000000000000012 /* EngineEcgRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineEcgRepository.swift; sourceTree = "<group>"; };
 		FF0000000000000000000013 /* EvaluateEcgFrameUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvaluateEcgFrameUseCase.swift; sourceTree = "<group>"; };
@@ -289,6 +307,8 @@
 		F00000000000000000000123 /* ExtractedHistoryItemInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractedHistoryItemInfo.swift; sourceTree = "<group>"; };
 		F00000000000000000000124 /* OcrProcessingResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OcrProcessingResult.swift; sourceTree = "<group>"; };
 		F00000000000000000000125 /* SaveOcrDocumentInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveOcrDocumentInput.swift; sourceTree = "<group>"; };
+		F00000000000000000000126 /* BuildStructuredDocumentInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildStructuredDocumentInput.swift; sourceTree = "<group>"; };
+		F00000000000000000000135 /* doc_type_classifier_v1.mlmodelc */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = doc_type_classifier_v1.mlmodelc; sourceTree = "<group>"; };
 		F10000000000000000000011 /* UserInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserInfo.swift; sourceTree = "<group>"; };
 		F10000000000000000000012 /* PatientInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientInfo.swift; sourceTree = "<group>"; };
 		F10000000000000000000013 /* PatientUpdateInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientUpdateInfo.swift; sourceTree = "<group>"; };
@@ -324,6 +344,36 @@
 		CC0000000000000000000012 /* GeocodingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeocodingService.swift; sourceTree = "<group>"; };
 		CC0000000000000000000013 /* EnvironmentAnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentAnalyticsView.swift; sourceTree = "<group>"; };
 		CD0000000000000000000011 /* PatientView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatientView.swift; sourceTree = "<group>"; };
+		DA0000000000000000000011 /* VaultResultInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultResultInfo.swift; sourceTree = "<group>"; };
+		DA0000000000000000000012 /* ClassificationResultInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClassificationResultInfo.swift; sourceTree = "<group>"; };
+		DA0000000000000000000013 /* MlAuditSummaryInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MlAuditSummaryInfo.swift; sourceTree = "<group>"; };
+		DA0000000000000000000014 /* VaultInitInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultInitInput.swift; sourceTree = "<group>"; };
+		DA0000000000000000000015 /* VaultStoreDocumentInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultStoreDocumentInput.swift; sourceTree = "<group>"; };
+		DA0000000000000000000016 /* StructuredMedicalDocumentInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StructuredMedicalDocumentInfo.swift; sourceTree = "<group>"; };
+		DA0000000000000000000017 /* OcrPipelineStep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OcrPipelineStep.swift; sourceTree = "<group>"; };
+		B459A455C1275A48FF3D61DA /* OcrSecurityMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Policy/OcrSecurityMode.swift"; sourceTree = "<group>"; };
+		02A94F187A0F80742931A7FA /* DocumentSecurityPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Policy/DocumentSecurityPolicy.swift"; sourceTree = "<group>"; };
+		2FC3BB78E741E4C45688EAE0 /* OcrSecurityPosture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Models/OcrSecurityPosture.swift"; sourceTree = "<group>"; };
+		6E6A2AB7861E40A7C6E0BB4F /* VaultKeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Internal/VaultKeychainService.swift"; sourceTree = "<group>"; };
+		1A68A72FB4337039D200ECF2 /* DocumentScanNormalizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Internal/DocumentScanNormalizer.swift"; sourceTree = "<group>"; };
+		0E929B242F264D126884BA14 /* DocumentTypeMlClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Internal/DocumentTypeMlClassifier.swift"; sourceTree = "<group>"; };
+		DA93725FB742B80D23707678 /* OcrVisionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Internal/OcrVisionService.swift"; sourceTree = "<group>"; };
+		FD2F605015DCF2FF24952D47 /* DocumentScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Internal/DocumentScannerView.swift"; sourceTree = "<group>"; };
+		13454D7A16E9B61E9E9F42D2 /* PhotoLibraryPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Internal/PhotoLibraryPicker.swift"; sourceTree = "<group>"; };
+		E37F4677EDCB7C08F5015AEB /* FileImportPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Internal/FileImportPicker.swift"; sourceTree = "<group>"; };
+		35B8741E047FDF298C2C2E95 /* OcrSessionController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OcrSessionController.swift"; sourceTree = "<group>"; };
+		3C85DA4856D47E1B4D5D127F /* PostureRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Views/PostureRowView.swift"; sourceTree = "<group>"; };
+		72D59C1FB1159CBAD46F1940 /* SecurityPostureCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Views/SecurityPostureCardView.swift"; sourceTree = "<group>"; };
+		3545E6A1F1D938DBE0AF872C /* SanitizedPreviewPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Views/SanitizedPreviewPanelView.swift"; sourceTree = "<group>"; };
+		C8F5D278B79D6068DC8FE5BF /* ScanPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Views/ScanPageView.swift"; sourceTree = "<group>"; };
+		51109CBC1AE487E550261F42 /* ImportPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Views/ImportPageView.swift"; sourceTree = "<group>"; };
+		888668FC10C641F9CEE4F306 /* OcrResultPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Views/OcrResultPageView.swift"; sourceTree = "<group>"; };
+		FF9544026E3F3957FED3755D /* OcrSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Views/OcrSheetView.swift"; sourceTree = "<group>"; };
+		F873A8A0B3188F4E26EECFD5 /* MedicalDocumentDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Views/MedicalDocumentDetailView.swift"; sourceTree = "<group>"; };
+		B46720B211E11960BFFE6EDA /* OcrDocumentRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OcrDocumentRootView.swift"; sourceTree = "<group>"; };
+		E1A000000000000000000001 /* OcrResultCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Views/OcrResultCard.swift"; sourceTree = "<group>"; };
+		E1A000000000000000000002 /* OcrDocumentCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Views/OcrDocumentCard.swift"; sourceTree = "<group>"; };
+		E1A000000000000000000003 /* EmptyDocumentsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Views/EmptyDocumentsView.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -368,6 +418,7 @@
 				AA0000000000000000000303 /* Services */,
 				AA0000000000000000000305 /* Interop */,
 				AA0000000000000000000021 /* Assets.xcassets */,
+				F00000000000000000000133 /* Resources */,
 				AA0000000000000000000020 /* Info.plist */,
 				AA0000000000000000000304 /* Preview Content */,
 			);
@@ -392,7 +443,6 @@
 				EE0000000000000000000017 /* MainTabView.swift */,
 				FA0000000000000000000019 /* MarkdownText.swift */,
 				FC2000000000000000000001 /* Medications */,
-				FE2000000000000000000001 /* OCR */,
 				FD2000000000000000000001 /* Profile */,
 				AA0000000000000000000015 /* VitalSignsView.swift */,
 				AA0000000000000000000016 /* ProfileView.swift */,
@@ -402,7 +452,6 @@
 				BB0000000000000000000005 /* MedicalAssistantView.swift */,
 				BB0000000000000000000006 /* MedicalHistoryView.swift */,
 				BB0000000000000000000007 /* MedicationsView.swift */,
-				BB0000000000000000000008 /* OcrDocumentView.swift */,
 				BB0000000000000000000009 /* SleepView.swift */,
 				EE0000000000000000000016 /* RegistrationField.swift */,
 				CD0000000000000000000011 /* PatientView.swift */,
@@ -419,16 +468,6 @@
 				FF0000000000000000000015 /* EcgWaveformPath.swift */,
 			);
 			path = ECG;
-			sourceTree = "<group>";
-		};
-		FE2000000000000000000001 /* OCR */ = {
-			isa = PBXGroup;
-			children = (
-				FE0000000000000000000016 /* EmptyDocumentsView.swift */,
-				FE0000000000000000000015 /* OcrDocumentCard.swift */,
-				FE0000000000000000000014 /* OcrResultCard.swift */,
-			);
-			path = OCR;
 			sourceTree = "<group>";
 		};
 		FD2000000000000000000001 /* Profile */ = {
@@ -495,11 +534,8 @@
 				AA0000000000000000000018 /* HealthKitService.swift */,
 				AA0000000000000000000019 /* BackgroundSyncService.swift */,
 				AA000000000000000000001A /* BiometricAuthService.swift */,
-				BB000000000000000000000A /* DocumentScannerView.swift */,
 				CB0000000000000000000013 /* EcgWebSocketService.swift */,
 				FB0000000000000000000016 /* LocationManager.swift */,
-				BB000000000000000000000B /* OcrSessionCoordinator.swift */,
-				BB000000000000000000000C /* OcrVisionService.swift */,
 				DD0000000000000000000004 /* GoogleSignInService.swift */,
 				CC0000000000000000000012 /* GeocodingService.swift */,
 			);
@@ -544,6 +580,7 @@
 				FC1000000000000000000001 /* Medications */,
 				FD1000000000000000000001 /* Profile */,
 				FE1000000000000000000001 /* OCR */,
+				A1MEDICAL000000000000001 /* MedicalDocuments */,
 				F82000000000000000000031 /* Home */,
 			);
 			path = Features;
@@ -582,6 +619,37 @@
 			path = Profile;
 			sourceTree = "<group>";
 		};
+		A1MEDICAL000000000000001 /* MedicalDocuments */ = {
+			isa = PBXGroup;
+			children = (
+				B459A455C1275A48FF3D61DA /* OcrSecurityMode.swift */,
+				02A94F187A0F80742931A7FA /* DocumentSecurityPolicy.swift */,
+				2FC3BB78E741E4C45688EAE0 /* OcrSecurityPosture.swift */,
+				6E6A2AB7861E40A7C6E0BB4F /* VaultKeychainService.swift */,
+				1A68A72FB4337039D200ECF2 /* DocumentScanNormalizer.swift */,
+				0E929B242F264D126884BA14 /* DocumentTypeMlClassifier.swift */,
+				DA93725FB742B80D23707678 /* OcrVisionService.swift */,
+				FD2F605015DCF2FF24952D47 /* DocumentScannerView.swift */,
+				13454D7A16E9B61E9E9F42D2 /* PhotoLibraryPicker.swift */,
+				E37F4677EDCB7C08F5015AEB /* FileImportPicker.swift */,
+				35B8741E047FDF298C2C2E95 /* OcrSessionController.swift */,
+				3C85DA4856D47E1B4D5D127F /* PostureRowView.swift */,
+				72D59C1FB1159CBAD46F1940 /* SecurityPostureCardView.swift */,
+				3545E6A1F1D938DBE0AF872C /* SanitizedPreviewPanelView.swift */,
+				C8F5D278B79D6068DC8FE5BF /* ScanPageView.swift */,
+				51109CBC1AE487E550261F42 /* ImportPageView.swift */,
+				888668FC10C641F9CEE4F306 /* OcrResultPageView.swift */,
+				FF9544026E3F3957FED3755D /* OcrSheetView.swift */,
+				F873A8A0B3188F4E26EECFD5 /* MedicalDocumentDetailView.swift */,
+				B46720B211E11960BFFE6EDA /* OcrDocumentRootView.swift */,
+				E1A000000000000000000001 /* OcrResultCard.swift */,
+				E1A000000000000000000002 /* OcrDocumentCard.swift */,
+				E1A000000000000000000003 /* EmptyDocumentsView.swift */,
+			);
+			path = MedicalDocuments;
+			sourceTree = "<group>";
+		};
+
 		FE1000000000000000000001 /* OCR */ = {
 			isa = PBXGroup;
 			children = (
@@ -621,6 +689,7 @@
 			children = (
 				F00000000000000000000112 /* AddMedicationInput.swift */,
 				CA0000000000000000000011 /* AssignedDoctorInfo.swift */,
+				DA0000000000000000000012 /* ClassificationResultInfo.swift */,
 				F80000000000000000000011 /* DashboardSnapshot.swift */,
 				F10000000000000000000017 /* AuthenticationResult.swift */,
 				F00000000000000000000119 /* ChatMessageInfo.swift */,
@@ -638,16 +707,23 @@
 				F0000000000000000000011E /* MedicalHistoryEntryInfo.swift */,
 				F00000000000000000000111 /* MedicationInfo.swift */,
 				F00000000000000000000115 /* MedicationInteractionInfo.swift */,
+				DA0000000000000000000013 /* MlAuditSummaryInfo.swift */,
 				F0000000000000000000011D /* OcrDocumentInfo.swift */,
+				DA0000000000000000000017 /* OcrPipelineStep.swift */,
 				F00000000000000000000124 /* OcrProcessingResult.swift */,
 				F10000000000000000000018 /* OperationResult.swift */,
 				F10000000000000000000012 /* PatientInfo.swift */,
 				F10000000000000000000013 /* PatientUpdateInfo.swift */,
 				F00000000000000000000114 /* DrugSearchResult.swift */,
 				F00000000000000000000125 /* SaveOcrDocumentInput.swift */,
+				F00000000000000000000126 /* BuildStructuredDocumentInput.swift */,
 				F0000000000000000000011C /* SleepSessionInput.swift */,
 				F0000000000000000000011B /* SleepSessionInfo.swift */,
+				DA0000000000000000000016 /* StructuredMedicalDocumentInfo.swift */,
 				F10000000000000000000011 /* UserInfo.swift */,
+				DA0000000000000000000014 /* VaultInitInput.swift */,
+				DA0000000000000000000011 /* VaultResultInfo.swift */,
+				DA0000000000000000000015 /* VaultStoreDocumentInput.swift */,
 				F10000000000000000000014 /* VitalSignInput.swift */,
 				F10000000000000000000015 /* VitalSignInfo.swift */,
 				F10000000000000000000016 /* VitalSignType.swift */,
@@ -728,6 +804,22 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		F00000000000000000000133 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				F00000000000000000000134 /* MLModels */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		F00000000000000000000134 /* MLModels */ = {
+			isa = PBXGroup;
+			children = (
+				F00000000000000000000135 /* doc_type_classifier_v1.mlmodelc */,
+			);
+			path = MLModels;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -795,6 +887,7 @@
 			files = (
 				AA000000000000000000000B /* Assets.xcassets in Resources */,
 				AA000000000000000000000C /* Preview Assets.xcassets in Resources */,
+				EF0000000000000000000019 /* doc_type_classifier_v1.mlmodelc in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -823,11 +916,7 @@
 				BB0000000000000000000015 /* MedicalAssistantView.swift in Sources */,
 				BB0000000000000000000016 /* MedicalHistoryView.swift in Sources */,
 				BB0000000000000000000017 /* MedicationsView.swift in Sources */,
-				BB0000000000000000000018 /* OcrDocumentView.swift in Sources */,
 				BB0000000000000000000019 /* SleepView.swift in Sources */,
-				BB000000000000000000001A /* DocumentScannerView.swift in Sources */,
-				BB000000000000000000001B /* OcrSessionCoordinator.swift in Sources */,
-				BB000000000000000000001C /* OcrVisionService.swift in Sources */,
 				DD0000000000000000000003 /* GoogleSignInService.swift in Sources */,
 				EE0000000000000000000002 /* View+LiquidGlassStyles.swift in Sources */,
 				EE0000000000000000000003 /* SyncGateView.swift in Sources */,
@@ -860,6 +949,7 @@
 				EF0000000000000000000013 /* ExtractedHistoryItemInfo.swift in Sources */,
 				EF0000000000000000000014 /* OcrProcessingResult.swift in Sources */,
 				EF0000000000000000000015 /* SaveOcrDocumentInput.swift in Sources */,
+				EF0000000000000000000016 /* BuildStructuredDocumentInput.swift in Sources */,
 				F20000000000000000000001 /* UserInfo.swift in Sources */,
 				F20000000000000000000002 /* PatientInfo.swift in Sources */,
 				F20000000000000000000003 /* PatientUpdateInfo.swift in Sources */,
@@ -926,9 +1016,6 @@
 				FE0000000000000000000001 /* OcrRepository.swift in Sources */,
 				FE0000000000000000000002 /* EngineOcrRepository.swift in Sources */,
 				FE0000000000000000000003 /* OcrDocumentsViewModel.swift in Sources */,
-				FE0000000000000000000004 /* OcrResultCard.swift in Sources */,
-				FE0000000000000000000005 /* OcrDocumentCard.swift in Sources */,
-				FE0000000000000000000006 /* EmptyDocumentsView.swift in Sources */,
 				FF0000000000000000000001 /* EcgRepository.swift in Sources */,
 				FF0000000000000000000002 /* EngineEcgRepository.swift in Sources */,
 				FF0000000000000000000003 /* EvaluateEcgFrameUseCase.swift in Sources */,
@@ -955,6 +1042,36 @@
 				CC0000000000000000000002 /* GeocodingService.swift in Sources */,
 				CC0000000000000000000003 /* EnvironmentAnalyticsView.swift in Sources */,
 				CD0000000000000000000001 /* PatientView.swift in Sources */,
+				DA0000000000000000000001 /* VaultResultInfo.swift in Sources */,
+				DA0000000000000000000002 /* ClassificationResultInfo.swift in Sources */,
+				DA0000000000000000000003 /* MlAuditSummaryInfo.swift in Sources */,
+				DA0000000000000000000004 /* VaultInitInput.swift in Sources */,
+				DA0000000000000000000005 /* VaultStoreDocumentInput.swift in Sources */,
+				DA0000000000000000000006 /* StructuredMedicalDocumentInfo.swift in Sources */,
+				DA0000000000000000000007 /* OcrPipelineStep.swift in Sources */,
+				FA952670ECC1B67B621F6CEF /* OcrSecurityMode.swift in Sources */,
+				D48121990DFC9343C6976265 /* DocumentSecurityPolicy.swift in Sources */,
+				6DF31F0CF81F1E83F46159CD /* OcrSecurityPosture.swift in Sources */,
+				F8F9292F47F8E2FEE8CC6DA4 /* VaultKeychainService.swift in Sources */,
+				E60C9C49C487B616F177E612 /* DocumentScanNormalizer.swift in Sources */,
+				03646D66F5CD83E87F892BEF /* DocumentTypeMlClassifier.swift in Sources */,
+				220C2540FBB4DEB0733F06B7 /* OcrVisionService.swift in Sources */,
+				65765D1927EAE629802C6CDF /* DocumentScannerView.swift in Sources */,
+				5A64237EEA35C6DF2A3B71A9 /* PhotoLibraryPicker.swift in Sources */,
+				D200710710081CBA475780A4 /* FileImportPicker.swift in Sources */,
+				B8461890F29EF04EF9F1097D /* OcrSessionController.swift in Sources */,
+				A224298888DC1BE019C83E80 /* PostureRowView.swift in Sources */,
+				74C1621DAE4304A21244C359 /* SecurityPostureCardView.swift in Sources */,
+				662DCAB0BD5F0817642C077C /* SanitizedPreviewPanelView.swift in Sources */,
+				BF8A7E7300BBC87FC06D0E19 /* ScanPageView.swift in Sources */,
+				58A5CFC5185D39DC8D3F0EAC /* ImportPageView.swift in Sources */,
+				E153F1CB5F40E03C218EF360 /* OcrResultPageView.swift in Sources */,
+				1531A3119B52A649A21F700D /* OcrSheetView.swift in Sources */,
+				9AFE1AE9F3520D5A87F005B8 /* MedicalDocumentDetailView.swift in Sources */,
+				CFAAE2265E7C3EBDF2173875 /* OcrDocumentRootView.swift in Sources */,
+				E1B000000000000000000001 /* OcrResultCard.swift in Sources */,
+				E1B000000000000000000002 /* OcrDocumentCard.swift in Sources */,
+				E1B000000000000000000003 /* EmptyDocumentsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

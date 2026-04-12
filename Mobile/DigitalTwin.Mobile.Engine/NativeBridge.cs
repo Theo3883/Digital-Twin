@@ -644,6 +644,141 @@ public static class NativeBridge
     public static IntPtr SaveOcrDocument(IntPtr inputJsonPtr) => SaveOcrDocument_Impl(inputJsonPtr);
 
     // ═══════════════════════════════════════════════════════════════════════════
+    //  Advanced OCR — Vault, Encryption, Structured Extraction
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    internal static IntPtr VaultInitialize_Impl(IntPtr inputJsonPtr)
+    {
+        if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+        var json = Marshal.PtrToStringUTF8(inputJsonPtr) ?? "";
+        return AllocateString(_engine.VaultInitialize(json));
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_vault_initialize")]
+    public static IntPtr VaultInitialize(IntPtr inputJsonPtr) => VaultInitialize_Impl(inputJsonPtr);
+
+    internal static IntPtr VaultUnlock_Impl(IntPtr masterKeyB64Ptr)
+    {
+        if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+        var key = Marshal.PtrToStringUTF8(masterKeyB64Ptr) ?? "";
+        return AllocateString(_engine.VaultUnlock(key));
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_vault_unlock")]
+    public static IntPtr VaultUnlock(IntPtr masterKeyB64Ptr) => VaultUnlock_Impl(masterKeyB64Ptr);
+
+    internal static IntPtr VaultLock_Impl()
+    {
+        if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+        return AllocateString(_engine.VaultLock());
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_vault_lock")]
+    public static IntPtr VaultLock() => VaultLock_Impl();
+
+    internal static IntPtr VaultStoreDocument_Impl(IntPtr inputJsonPtr)
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var json = Marshal.PtrToStringUTF8(inputJsonPtr) ?? "";
+            return await _engine.VaultStoreDocumentAsync(json);
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_vault_store_document")]
+    public static IntPtr VaultStoreDocument(IntPtr inputJsonPtr) => VaultStoreDocument_Impl(inputJsonPtr);
+
+    internal static IntPtr VaultRetrieveDocument_Impl(IntPtr docIdPtr)
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var docId = Marshal.PtrToStringUTF8(docIdPtr) ?? "";
+            return await _engine.VaultRetrieveDocumentAsync(docId);
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_vault_retrieve_document")]
+    public static IntPtr VaultRetrieveDocument(IntPtr docIdPtr) => VaultRetrieveDocument_Impl(docIdPtr);
+
+    internal static IntPtr VaultDeleteDocument_Impl(IntPtr docIdPtr)
+    {
+        if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+        var docId = Marshal.PtrToStringUTF8(docIdPtr) ?? "";
+        return AllocateString(_engine.VaultDeleteDocument(docId));
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_vault_delete_document")]
+    public static IntPtr VaultDeleteDocument(IntPtr docIdPtr) => VaultDeleteDocument_Impl(docIdPtr);
+
+    internal static IntPtr VaultWipe_Impl()
+    {
+        if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+        return AllocateString(_engine.VaultWipe());
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_vault_wipe")]
+    public static IntPtr VaultWipe() => VaultWipe_Impl();
+
+    internal static IntPtr ClassifyWithOrchestrator_Impl(IntPtr ocrTextPtr, IntPtr mlTypePtr, float mlConfidence)
+    {
+        if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+        var ocrText = Marshal.PtrToStringUTF8(ocrTextPtr) ?? "";
+        var mlType = Marshal.PtrToStringUTF8(mlTypePtr);
+        return AllocateString(_engine.ClassifyWithOrchestrator(ocrText, mlType, mlConfidence));
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_classify_with_orchestrator")]
+    public static IntPtr ClassifyWithOrchestrator(IntPtr ocrTextPtr, IntPtr mlTypePtr, float mlConfidence)
+        => ClassifyWithOrchestrator_Impl(ocrTextPtr, mlTypePtr, mlConfidence);
+
+    internal static IntPtr BuildStructuredDocument_Impl(IntPtr ocrTextPtr, IntPtr docTypePtr, float classConfidence, IntPtr classMethodPtr)
+    {
+        if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+        var ocrText = Marshal.PtrToStringUTF8(ocrTextPtr) ?? "";
+        var docType = Marshal.PtrToStringUTF8(docTypePtr) ?? "Unknown";
+        var classMethod = Marshal.PtrToStringUTF8(classMethodPtr) ?? "";
+        return AllocateString(_engine.BuildStructuredDocument(ocrText, docType, classConfidence, classMethod));
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_build_structured_document")]
+    public static IntPtr BuildStructuredDocument(IntPtr ocrTextPtr, IntPtr docTypePtr, float classConfidence, IntPtr classMethodPtr)
+        => BuildStructuredDocument_Impl(ocrTextPtr, docTypePtr, classConfidence, classMethodPtr);
+
+    internal static IntPtr BuildStructuredDocumentFromJson_Impl(IntPtr inputJsonPtr)
+    {
+        if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+        var json = Marshal.PtrToStringUTF8(inputJsonPtr) ?? "";
+        return AllocateString(_engine.BuildStructuredDocumentFromJson(json));
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_build_structured_document_json")]
+    public static IntPtr BuildStructuredDocumentFromJson(IntPtr inputJsonPtr)
+        => BuildStructuredDocumentFromJson_Impl(inputJsonPtr);
+
+    internal static IntPtr GetMlAuditSummary_Impl()
+    {
+        if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+        return AllocateString(_engine.GetMlAuditSummary());
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_ml_audit_summary")]
+    public static IntPtr GetMlAuditSummary() => GetMlAuditSummary_Impl();
+
+    internal static IntPtr ValidateDocument_Impl(IntPtr headerB64Ptr, IntPtr extensionPtr, long fileSizeBytes)
+    {
+        if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+        var headerB64 = Marshal.PtrToStringUTF8(headerB64Ptr) ?? "";
+        var extension = Marshal.PtrToStringUTF8(extensionPtr) ?? "";
+        return AllocateString(_engine.ValidateDocument(headerB64, extension, fileSizeBytes));
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_validate_document")]
+    public static IntPtr ValidateDocument(IntPtr headerB64Ptr, IntPtr extensionPtr, long fileSizeBytes)
+        => ValidateDocument_Impl(headerB64Ptr, extensionPtr, fileSizeBytes);
+
+    // ═══════════════════════════════════════════════════════════════════════════
     //  Doctor Assignments
     // ═══════════════════════════════════════════════════════════════════════════
 

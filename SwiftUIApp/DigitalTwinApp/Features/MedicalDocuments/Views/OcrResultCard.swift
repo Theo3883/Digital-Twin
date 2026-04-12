@@ -55,4 +55,3 @@ struct OcrResultCard: View {
         .glassCard()
     }
 }
-

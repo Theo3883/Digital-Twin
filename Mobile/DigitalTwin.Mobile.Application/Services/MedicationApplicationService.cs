@@ -101,6 +101,40 @@ public class MedicationApplicationService
         }
     }
 
+    /// <summary>OCR pipeline: add medication without blocking on interaction checks (MAUI parity).</summary>
+    public async Task<(bool Success, string? Error)> AddMedicationFromOcrAsync(AddMedicationInput input)
+    {
+        try
+        {
+            var patient = await _patientRepo.GetCurrentPatientAsync();
+            if (patient == null)
+                return (false, "No patient profile found");
+
+            var request = new CreateMedicationRequest(
+                PatientId: patient.Id,
+                Name: input.Name,
+                Dosage: input.Dosage,
+                Frequency: input.Frequency,
+                Route: input.Route,
+                RxCui: input.RxCui,
+                Instructions: input.Instructions,
+                Reason: input.Reason,
+                PrescribedByUserId: null,
+                StartDate: input.StartDate,
+                AddedByRole: AddedByRole.OcrScan);
+
+            var medication = _medicationService.CreateMedication(request);
+            await _medicationRepo.SaveAsync(medication);
+            _logger.LogInformation("[MedicationApp] OCR-added medication: {Name}", medication.Name);
+            return (true, null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[MedicationApp] OCR auto-add failed for {Name}", input.Name);
+            return (false, ex.Message);
+        }
+    }
+
     public async Task<(bool Success, string? Error)> DiscontinueMedicationAsync(DiscontinueMedicationInput input)
     {
         try

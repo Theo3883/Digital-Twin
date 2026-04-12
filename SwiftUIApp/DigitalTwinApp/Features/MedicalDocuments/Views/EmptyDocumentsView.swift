@@ -19,4 +19,3 @@ struct EmptyDocumentsView: View {
         .padding(.vertical, 60)
     }
 }
-

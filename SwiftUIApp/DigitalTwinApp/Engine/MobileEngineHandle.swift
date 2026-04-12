@@ -176,17 +176,68 @@ actor MobileEngineHandle {
         try bridge.processFullOcr(ocrText)
     }
 
-    func saveOcrDocument(opaqueInternalName: String, mimeType: String, pageCount: Int, pageTexts: [String]) async throws -> OcrDocumentInfo {
-        try bridge.saveOcrDocument(
-            opaqueInternalName: opaqueInternalName,
-            mimeType: mimeType,
-            pageCount: pageCount,
-            pageTexts: pageTexts
-        )
+    func processFullOcrRawJson(_ ocrText: String) async throws -> String {
+        try bridge.processFullOcrRawJson(ocrText)
+    }
+
+    func saveOcrDocument(_ input: SaveOcrDocumentInput) async throws -> OcrDocumentInfo {
+        try bridge.saveOcrDocument(input)
     }
 
     func sanitizeText(_ text: String) async -> String {
         bridge.sanitizeText(text)
+    }
+
+    // MARK: - Advanced OCR — Vault
+
+    func vaultInitialize(_ input: VaultInitInput) async throws -> VaultResultInfo {
+        try bridge.vaultInitialize(input)
+    }
+
+    func vaultUnlock(masterKeyBase64: String) async throws -> VaultResultInfo {
+        try bridge.vaultUnlock(masterKeyBase64: masterKeyBase64)
+    }
+
+    func vaultLock() async throws -> VaultResultInfo {
+        try bridge.vaultLock()
+    }
+
+    func vaultStoreDocument(_ input: VaultStoreDocumentInput) async throws -> VaultResultInfo {
+        try bridge.vaultStoreDocument(input)
+    }
+
+    func vaultRetrieveDocument(documentId: String) async throws -> String {
+        try bridge.vaultRetrieveDocument(documentId: documentId)
+    }
+
+    func vaultDeleteDocument(documentId: String) async throws -> VaultResultInfo {
+        try bridge.vaultDeleteDocument(documentId: documentId)
+    }
+
+    func vaultWipe() async throws -> VaultResultInfo {
+        try bridge.vaultWipe()
+    }
+
+    // MARK: - Advanced OCR — Classification & Structured
+
+    func classifyWithOrchestrator(ocrText: String, mlType: String?, mlConfidence: Float) async throws -> ClassificationResultInfo {
+        try bridge.classifyWithOrchestrator(ocrText: ocrText, mlType: mlType, mlConfidence: mlConfidence)
+    }
+
+    func buildStructuredDocument(ocrText: String, docType: String, classConfidence: Float, classMethod: String) async throws -> StructuredMedicalDocumentInfo {
+        try bridge.buildStructuredDocument(ocrText: ocrText, docType: docType, classConfidence: classConfidence, classMethod: classMethod)
+    }
+
+    func buildStructuredDocumentFromJson(_ input: BuildStructuredDocumentInput) async throws -> StructuredMedicalDocumentInfo {
+        try bridge.buildStructuredDocumentFromJson(input)
+    }
+
+    func getMlAuditSummary() async throws -> MlAuditSummaryInfo {
+        try bridge.getMlAuditSummary()
+    }
+
+    func validateDocument(headerBase64: String, fileExtension: String, fileSizeBytes: Int64) async throws -> VaultResultInfo {
+        try bridge.validateDocument(headerBase64: headerBase64, fileExtension: fileExtension, fileSizeBytes: fileSizeBytes)
     }
 }
 

@@ -70,14 +70,24 @@ actor DotNetMobileEngineClient: MobileEngineClient {
 
     func classifyDocument(_ ocrText: String) async -> String { await handle.classifyDocument(ocrText) }
     func processFullOcr(_ ocrText: String) async throws -> OcrProcessingResult { try await handle.processFullOcr(ocrText) }
-    func saveOcrDocument(opaqueInternalName: String, mimeType: String, pageCount: Int, pageTexts: [String]) async throws -> OcrDocumentInfo {
-        try await handle.saveOcrDocument(
-            opaqueInternalName: opaqueInternalName,
-            mimeType: mimeType,
-            pageCount: pageCount,
-            pageTexts: pageTexts
-        )
-    }
+    func processFullOcrRawJson(_ ocrText: String) async throws -> String { try await handle.processFullOcrRawJson(ocrText) }
+    func saveOcrDocument(_ input: SaveOcrDocumentInput) async throws -> OcrDocumentInfo { try await handle.saveOcrDocument(input) }
     func sanitizeText(_ text: String) async -> String { await handle.sanitizeText(text) }
+
+    // MARK: - Advanced OCR — Vault
+    func vaultInitialize(_ input: VaultInitInput) async throws -> VaultResultInfo { try await handle.vaultInitialize(input) }
+    func vaultUnlock(masterKeyBase64: String) async throws -> VaultResultInfo { try await handle.vaultUnlock(masterKeyBase64: masterKeyBase64) }
+    func vaultLock() async throws -> VaultResultInfo { try await handle.vaultLock() }
+    func vaultStoreDocument(_ input: VaultStoreDocumentInput) async throws -> VaultResultInfo { try await handle.vaultStoreDocument(input) }
+    func vaultRetrieveDocument(documentId: String) async throws -> String { try await handle.vaultRetrieveDocument(documentId: documentId) }
+    func vaultDeleteDocument(documentId: String) async throws -> VaultResultInfo { try await handle.vaultDeleteDocument(documentId: documentId) }
+    func vaultWipe() async throws -> VaultResultInfo { try await handle.vaultWipe() }
+
+    // MARK: - Advanced OCR — Classification & Structured
+    func classifyWithOrchestrator(ocrText: String, mlType: String?, mlConfidence: Float) async throws -> ClassificationResultInfo { try await handle.classifyWithOrchestrator(ocrText: ocrText, mlType: mlType, mlConfidence: mlConfidence) }
+    func buildStructuredDocument(ocrText: String, docType: String, classConfidence: Float, classMethod: String) async throws -> StructuredMedicalDocumentInfo { try await handle.buildStructuredDocument(ocrText: ocrText, docType: docType, classConfidence: classConfidence, classMethod: classMethod) }
+    func buildStructuredDocumentFromJson(_ input: BuildStructuredDocumentInput) async throws -> StructuredMedicalDocumentInfo { try await handle.buildStructuredDocumentFromJson(input) }
+    func getMlAuditSummary() async throws -> MlAuditSummaryInfo { try await handle.getMlAuditSummary() }
+    func validateDocument(headerBase64: String, fileExtension: String, fileSizeBytes: Int64) async throws -> VaultResultInfo { try await handle.validateDocument(headerBase64: headerBase64, fileExtension: fileExtension, fileSizeBytes: fileSizeBytes) }
 }
 

@@ -189,6 +189,7 @@ public sealed record CloudOcrDocumentDto
     public Guid Id { get; init; }
     public string OpaqueInternalName { get; init; } = string.Empty;
     public string MimeType { get; init; } = string.Empty;
+    public string DocumentType { get; init; } = "Unknown";
     public int PageCount { get; init; }
     public string SanitizedOcrPreview { get; init; } = string.Empty;
     public DateTime ScannedAt { get; init; }
@@ -270,6 +271,7 @@ public sealed record OcrDocumentSyncItem
     public Guid Id { get; init; }
     public string OpaqueInternalName { get; init; } = string.Empty;
     public string MimeType { get; init; } = string.Empty;
+    public string DocumentType { get; init; } = "Unknown";
     public int PageCount { get; init; }
     public string SanitizedOcrPreview { get; init; } = string.Empty;
     public DateTime ScannedAt { get; init; }

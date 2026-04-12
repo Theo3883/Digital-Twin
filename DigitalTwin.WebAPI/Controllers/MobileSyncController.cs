@@ -165,7 +165,7 @@ public class MobileSyncController : ControllerBase
 
     private async Task<MobileBootstrap> BuildBootstrapAsync(User user)
     {
-        var userDto = new UserProfileDto(user.Id, user.Email, user.FirstName, user.LastName, user.PhotoUrl, user.Phone, user.DateOfBirth);
+        var userDto = new UserProfileDto(user.Id, user.Email, (int)user.Role, user.FirstName, user.LastName, user.PhotoUrl, user.Phone, user.Address, user.City, user.Country, user.DateOfBirth);
 
         var patient = await _patientRepo.GetByUserIdAsync(user.Id);
         if (patient is null)
@@ -342,8 +342,8 @@ public class MobileSyncController : ControllerBase
         }
     }
 
-    public record UserProfileDto(Guid Id, string Email, string? FirstName, string? LastName,
-        string? PhotoUrl, string? Phone, DateTime? DateOfBirth);
+    public record UserProfileDto(Guid Id, string Email, int Role, string? FirstName, string? LastName,
+        string? PhotoUrl, string? Phone, string? Address, string? City, string? Country, DateTime? DateOfBirth);
 
     /// <summary>GET /api/mobile/auth/me — get current user profile.</summary>
     [Authorize]
@@ -352,8 +352,8 @@ public class MobileSyncController : ControllerBase
     {
         var user = await _userRepo.GetByEmailAsync(UserEmail);
         if (user is null) return NotFound();
-        return Ok(new { User = new UserProfileDto(user.Id, user.Email, user.FirstName, user.LastName,
-            user.PhotoUrl, user.Phone, user.DateOfBirth) });
+        return Ok(new { User = new UserProfileDto(user.Id, user.Email, (int)user.Role, user.FirstName, user.LastName,
+            user.PhotoUrl, user.Phone, user.Address, user.City, user.Country, user.DateOfBirth) });
     }
 
     /// <summary>
@@ -388,6 +388,9 @@ public class MobileSyncController : ControllerBase
             user.LastName = u.LastName ?? user.LastName;
             user.PhotoUrl = u.PhotoUrl ?? user.PhotoUrl;
             user.Phone = u.Phone ?? user.Phone;
+            user.Address = u.Address ?? user.Address;
+            user.City = u.City ?? user.City;
+            user.Country = u.Country ?? user.Country;
             user.DateOfBirth = u.DateOfBirth ?? user.DateOfBirth;
             await _userRepo.UpdateAsync(user);
         }

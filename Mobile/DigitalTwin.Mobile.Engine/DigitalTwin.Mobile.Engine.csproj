@@ -60,6 +60,7 @@ namespace DigitalTwin.Mobile.Engine
     <ProjectReference Include="..\DigitalTwin.Mobile.Domain\DigitalTwin.Mobile.Domain.csproj" />
     <ProjectReference Include="..\DigitalTwin.Mobile.Application\DigitalTwin.Mobile.Application.csproj" />
     <ProjectReference Include="..\DigitalTwin.Mobile.Infrastructure\DigitalTwin.Mobile.Infrastructure.csproj" />
+    <ProjectReference Include="..\DigitalTwin.Mobile.OCR\DigitalTwin.Mobile.OCR.csproj" />
   </ItemGroup>
 
   <ItemGroup>

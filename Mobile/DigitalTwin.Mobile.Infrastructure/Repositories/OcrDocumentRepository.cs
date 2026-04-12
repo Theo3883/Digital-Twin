@@ -42,10 +42,10 @@ public class OcrDocumentRepository : IOcrDocumentRepository
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = """
             INSERT OR REPLACE INTO OcrDocuments
-                (Id, PatientId, OpaqueInternalName, MimeType, PageCount, Sha256OfNormalized,
+                (Id, PatientId, OpaqueInternalName, MimeType, DocumentType, PageCount, Sha256OfNormalized,
                  SanitizedOcrPreview, EncryptedVaultPath, ScannedAt, CreatedAt, UpdatedAt, IsDirty, SyncedAt)
             VALUES
-                (@Id, @PatientId, @OpaqueInternalName, @MimeType, @PageCount, @Sha256OfNormalized,
+                (@Id, @PatientId, @OpaqueInternalName, @MimeType, @DocumentType, @PageCount, @Sha256OfNormalized,
                  @SanitizedOcrPreview, @EncryptedVaultPath, @ScannedAt, @CreatedAt, @UpdatedAt, @IsDirty, @SyncedAt)
             """;
         AddParams(cmd, document);
@@ -86,6 +86,7 @@ public class OcrDocumentRepository : IOcrDocumentRepository
         cmd.Parameters.AddWithValue("@PatientId", d.PatientId.ToString());
         cmd.Parameters.AddWithValue("@OpaqueInternalName", d.OpaqueInternalName);
         cmd.Parameters.AddWithValue("@MimeType", (object?)d.MimeType ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@DocumentType", string.IsNullOrWhiteSpace(d.DocumentType) ? "Unknown" : d.DocumentType);
         cmd.Parameters.AddWithValue("@PageCount", d.PageCount);
         cmd.Parameters.AddWithValue("@Sha256OfNormalized", (object?)d.Sha256OfNormalized ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@SanitizedOcrPreview", (object?)d.SanitizedOcrPreview ?? DBNull.Value);
@@ -103,6 +104,7 @@ public class OcrDocumentRepository : IOcrDocumentRepository
         PatientId = Guid.Parse(r.GetString(r.GetOrdinal("PatientId"))),
         OpaqueInternalName = r.GetString(r.GetOrdinal("OpaqueInternalName")),
         MimeType = r.IsDBNull(r.GetOrdinal("MimeType")) ? string.Empty : r.GetString(r.GetOrdinal("MimeType")),
+        DocumentType = r.IsDBNull(r.GetOrdinal("DocumentType")) ? "Unknown" : r.GetString(r.GetOrdinal("DocumentType")),
         PageCount = r.GetInt32(r.GetOrdinal("PageCount")),
         Sha256OfNormalized = r.IsDBNull(r.GetOrdinal("Sha256OfNormalized")) ? string.Empty : r.GetString(r.GetOrdinal("Sha256OfNormalized")),
         SanitizedOcrPreview = r.IsDBNull(r.GetOrdinal("SanitizedOcrPreview")) ? string.Empty : r.GetString(r.GetOrdinal("SanitizedOcrPreview")),

@@ -77,4 +77,3 @@ struct OcrDocumentCard: View {
         .glassCard()
     }
 }
-

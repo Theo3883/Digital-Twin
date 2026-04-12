@@ -21,6 +21,9 @@ if [[ -f "$ROOT_DIR/.env" ]]; then
   set +a
 fi
 
+# ── 0c. Sync OCR model assets into the Mobile OCR project ──────────────────
+"$ROOT_DIR/scripts/sync_mobile_ocr_models.sh"
+
 # ── 1. Publish NativeAOT for device (ios-arm64) ───────────────────────────
 echo "==> Publishing NativeAOT for ios-arm64 ($CONFIG)..."
 dotnet publish "$PROJ" \

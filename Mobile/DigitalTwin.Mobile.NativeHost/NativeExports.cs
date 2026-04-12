@@ -179,6 +179,56 @@ public static class NativeExports
     public static IntPtr SaveOcrDocument(IntPtr inputJsonPtr)
         => NativeBridge.SaveOcrDocument_Impl(inputJsonPtr);
 
+    // ── Advanced OCR / Vault ────────────────────────────────────────────────
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_vault_initialize")]
+    public static IntPtr VaultInitialize(IntPtr inputJsonPtr)
+        => NativeBridge.VaultInitialize_Impl(inputJsonPtr);
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_vault_unlock")]
+    public static IntPtr VaultUnlock(IntPtr masterKeyB64Ptr)
+        => NativeBridge.VaultUnlock_Impl(masterKeyB64Ptr);
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_vault_lock")]
+    public static IntPtr VaultLock()
+        => NativeBridge.VaultLock_Impl();
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_vault_store_document")]
+    public static IntPtr VaultStoreDocument(IntPtr inputJsonPtr)
+        => NativeBridge.VaultStoreDocument_Impl(inputJsonPtr);
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_vault_retrieve_document")]
+    public static IntPtr VaultRetrieveDocument(IntPtr docIdPtr)
+        => NativeBridge.VaultRetrieveDocument_Impl(docIdPtr);
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_vault_delete_document")]
+    public static IntPtr VaultDeleteDocument(IntPtr docIdPtr)
+        => NativeBridge.VaultDeleteDocument_Impl(docIdPtr);
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_vault_wipe")]
+    public static IntPtr VaultWipe()
+        => NativeBridge.VaultWipe_Impl();
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_classify_with_orchestrator")]
+    public static IntPtr ClassifyWithOrchestrator(IntPtr ocrTextPtr, IntPtr mlTypePtr, float mlConfidence)
+        => NativeBridge.ClassifyWithOrchestrator_Impl(ocrTextPtr, mlTypePtr, mlConfidence);
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_build_structured_document")]
+    public static IntPtr BuildStructuredDocument(IntPtr ocrTextPtr, IntPtr docTypePtr, float classConfidence, IntPtr classMethodPtr)
+        => NativeBridge.BuildStructuredDocument_Impl(ocrTextPtr, docTypePtr, classConfidence, classMethodPtr);
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_build_structured_document_json")]
+    public static IntPtr BuildStructuredDocumentFromJson(IntPtr inputJsonPtr)
+        => NativeBridge.BuildStructuredDocumentFromJson_Impl(inputJsonPtr);
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_ml_audit_summary")]
+    public static IntPtr GetMlAuditSummary()
+        => NativeBridge.GetMlAuditSummary_Impl();
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_validate_document")]
+    public static IntPtr ValidateDocument(IntPtr headerB64Ptr, IntPtr extensionPtr, long fileSizeBytes)
+        => NativeBridge.ValidateDocument_Impl(headerB64Ptr, extensionPtr, fileSizeBytes);
+
     // ── Memory Management ─────────────────────────────────────────────────────
 
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_free_string")]

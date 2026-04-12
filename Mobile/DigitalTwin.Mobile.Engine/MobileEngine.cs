@@ -800,12 +800,19 @@ public class MobileEngine : IDisposable
             var dtos = docs.Select(d => new OcrDocumentDto
             {
                 Id = d.Id,
+                PatientId = patient.Id,
                 OpaqueInternalName = d.OpaqueInternalName,
-                MimeType = d.MimeType,
+                MimeType = d.MimeType ?? string.Empty,
+                DocumentType = d.DocumentType ?? "Unknown",
                 PageCount = d.PageCount,
-                SanitizedOcrPreview = d.SanitizedOcrPreview,
+                Sha256OfNormalized = d.Sha256OfNormalized ?? string.Empty,
+                EncryptedVaultPath = d.EncryptedVaultPath ?? string.Empty,
+                SanitizedOcrPreview = d.SanitizedOcrPreview ?? string.Empty,
                 ScannedAt = d.ScannedAt,
-                IsDirty = d.IsDirty
+                CreatedAt = d.CreatedAt,
+                UpdatedAt = d.UpdatedAt,
+                IsDirty = d.IsDirty,
+                SyncedAt = d.SyncedAt
             }).ToArray();
 
             return JsonSerializer.Serialize(dtos, MobileJsonContext.Default.OcrDocumentDtoArray);
@@ -919,9 +926,16 @@ public class MobileEngine : IDisposable
         {
             var input = JsonSerializer.Deserialize(inputJson, MobileJsonContext.Default.SaveOcrDocumentInput)
                         ?? throw new ArgumentException("Invalid input JSON");
+            if (!string.IsNullOrWhiteSpace(input.CachedProcessingResultJson))
+            {
+                var parsed = JsonSerializer.Deserialize(
+                    input.CachedProcessingResultJson,
+                    MobileJsonContext.Default.OcrTextProcessingResult);
+                input = input with { CachedProcessingResult = parsed };
+            }
+
             var svc = _scope.ServiceProvider.GetRequiredService<Application.Services.OcrTextProcessingApplicationService>();
-            var dto = await svc.SaveDocumentAndExtractHistoryAsync(
-                input.OpaqueInternalName, input.MimeType, input.PageCount, input.PageTexts);
+            var dto = await svc.SaveDocumentFromCaptureAsync(input);
             return JsonSerializer.Serialize(dto, MobileJsonContext.Default.OcrDocumentDto);
         }
         catch (Exception ex)
@@ -930,6 +944,291 @@ public class MobileEngine : IDisposable
             return JsonSerializer.Serialize(
                 new NativeBridge.OperationResultDto { Success = false, Error = ex.Message },
                 MobileJsonContext.Default.OperationResultDto);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Advanced OCR — Vault, Encryption, Structured Extraction
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public string VaultInitialize(string inputJson)
+    {
+        try
+        {
+            var input = JsonSerializer.Deserialize(inputJson, MobileJsonContext.Default.VaultInitInput)
+                        ?? throw new ArgumentException("Invalid input JSON");
+            var vault = _scope.ServiceProvider.GetRequiredService<OCR.Services.VaultService>();
+            var posture = new OCR.Models.SecurityPosture(
+                input.IsPasscodeSet, input.IsBiometryAvailable, input.BiometryType,
+                input.IsVaultInitialized, input.IsVaultUnlocked,
+                Enum.TryParse<OCR.Models.Enums.SecurityMode>(input.ActiveMode, out var mode)
+                    ? mode : OCR.Models.Enums.SecurityMode.Strict);
+            var result = vault.Initialize(posture);
+            return JsonSerializer.Serialize(
+                new VaultResultDto { Success = result.IsSuccess, Error = result.Error },
+                MobileJsonContext.Default.VaultResultDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] VaultInitialize failed");
+            return JsonSerializer.Serialize(
+                new VaultResultDto { Success = false, Error = ex.Message },
+                MobileJsonContext.Default.VaultResultDto);
+        }
+    }
+
+    public string VaultUnlock(string masterKeyBase64)
+    {
+        try
+        {
+            var vault = _scope.ServiceProvider.GetRequiredService<OCR.Services.VaultService>();
+            var masterKey = Convert.FromBase64String(masterKeyBase64);
+            var result = vault.Unlock(masterKey);
+            return JsonSerializer.Serialize(
+                new VaultResultDto { Success = result.IsSuccess, Error = result.Error },
+                MobileJsonContext.Default.VaultResultDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] VaultUnlock failed");
+            return JsonSerializer.Serialize(
+                new VaultResultDto { Success = false, Error = ex.Message },
+                MobileJsonContext.Default.VaultResultDto);
+        }
+    }
+
+    public string VaultLock()
+    {
+        try
+        {
+            var vault = _scope.ServiceProvider.GetRequiredService<OCR.Services.VaultService>();
+            vault.Lock();
+            return JsonSerializer.Serialize(
+                new VaultResultDto { Success = true },
+                MobileJsonContext.Default.VaultResultDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] VaultLock failed");
+            return JsonSerializer.Serialize(
+                new VaultResultDto { Success = false, Error = ex.Message },
+                MobileJsonContext.Default.VaultResultDto);
+        }
+    }
+
+    public async Task<string> VaultStoreDocumentAsync(string inputJson)
+    {
+        try
+        {
+            var input = JsonSerializer.Deserialize(inputJson, MobileJsonContext.Default.VaultStoreInput)
+                        ?? throw new ArgumentException("Invalid input JSON");
+            var vault = _scope.ServiceProvider.GetRequiredService<OCR.Services.VaultService>();
+            var docBytes = Convert.FromBase64String(input.DocumentBase64);
+            var docId = Guid.Parse(input.DocumentId);
+            var result = await vault.StoreDocumentAsync(docBytes, input.MimeType, input.PageCount, docId);
+            if (!result.IsSuccess)
+                return JsonSerializer.Serialize(
+                    new VaultResultDto { Success = false, Error = result.Error },
+                    MobileJsonContext.Default.VaultResultDto);
+            return JsonSerializer.Serialize(
+                new VaultResultDto
+                {
+                    Success = true,
+                    DocumentId = result.Value!.DocumentId.ToString(),
+                    VaultPath = result.Value.VaultPath,
+                    Sha256 = result.Value.Sha256OfNormalized,
+                    OpaqueInternalName = result.Value.OpaqueInternalName
+                },
+                MobileJsonContext.Default.VaultResultDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] VaultStoreDocument failed");
+            return JsonSerializer.Serialize(
+                new VaultResultDto { Success = false, Error = ex.Message },
+                MobileJsonContext.Default.VaultResultDto);
+        }
+    }
+
+    public async Task<string> VaultRetrieveDocumentAsync(string documentId)
+    {
+        try
+        {
+            var vault = _scope.ServiceProvider.GetRequiredService<OCR.Services.VaultService>();
+            var result = await vault.RetrieveDocumentAsync(Guid.Parse(documentId));
+            if (!result.IsSuccess)
+                return JsonSerializer.Serialize(
+                    new VaultResultDto { Success = false, Error = result.Error },
+                    MobileJsonContext.Default.VaultResultDto);
+            return Convert.ToBase64String(result.Value!);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] VaultRetrieveDocument failed");
+            return JsonSerializer.Serialize(
+                new VaultResultDto { Success = false, Error = ex.Message },
+                MobileJsonContext.Default.VaultResultDto);
+        }
+    }
+
+    public string VaultDeleteDocument(string documentId)
+    {
+        try
+        {
+            var vault = _scope.ServiceProvider.GetRequiredService<OCR.Services.VaultService>();
+            var result = vault.DeleteDocument(Guid.Parse(documentId));
+            return JsonSerializer.Serialize(
+                new VaultResultDto { Success = result.IsSuccess, Error = result.Error },
+                MobileJsonContext.Default.VaultResultDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] VaultDeleteDocument failed");
+            return JsonSerializer.Serialize(
+                new VaultResultDto { Success = false, Error = ex.Message },
+                MobileJsonContext.Default.VaultResultDto);
+        }
+    }
+
+    public string VaultWipe()
+    {
+        try
+        {
+            var vault = _scope.ServiceProvider.GetRequiredService<OCR.Services.VaultService>();
+            vault.Wipe();
+            return JsonSerializer.Serialize(
+                new VaultResultDto { Success = true },
+                MobileJsonContext.Default.VaultResultDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] VaultWipe failed");
+            return JsonSerializer.Serialize(
+                new VaultResultDto { Success = false, Error = ex.Message },
+                MobileJsonContext.Default.VaultResultDto);
+        }
+    }
+
+    public string ClassifyWithOrchestrator(string ocrText, string? mlType, float mlConfidence)
+    {
+        try
+        {
+            var orchestrator = _scope.ServiceProvider.GetRequiredService<OCR.Services.ML.ClassificationOrchestrator>();
+            var result = orchestrator.Classify(ocrText, mlType, mlConfidence);
+            return JsonSerializer.Serialize(
+                new ClassifyResultDto { Type = result.Type, Confidence = result.Confidence, Method = result.Method },
+                MobileJsonContext.Default.ClassifyResultDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] ClassifyWithOrchestrator failed");
+            return JsonSerializer.Serialize(
+                new ClassifyResultDto { Type = "Unknown", Confidence = 0f, Method = "error" },
+                MobileJsonContext.Default.ClassifyResultDto);
+        }
+    }
+
+    public string BuildStructuredDocument(string ocrText, string docType, float classConfidence, string classMethod)
+    {
+        try
+        {
+            var builder = _scope.ServiceProvider.GetRequiredService<OCR.Services.StructuredDocumentBuilder>();
+            var doc = builder.Build(
+                Guid.NewGuid(), ocrText, docType, classConfidence, classMethod,
+                graph: null, ocrDuration: TimeSpan.Zero, classificationDuration: TimeSpan.Zero, useMlExtraction: false);
+            return JsonSerializer.Serialize(doc, MobileJsonContext.Default.StructuredMedicalDocument);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] BuildStructuredDocument failed");
+            return JsonSerializer.Serialize(
+                new NativeBridge.OperationResultDto { Success = false, Error = ex.Message },
+                MobileJsonContext.Default.OperationResultDto);
+        }
+    }
+
+    /// <summary>Structured document with stable document id, optional ML extraction, and audit record (MAUI parity).</summary>
+    public string BuildStructuredDocumentFromJson(string inputJson)
+    {
+        try
+        {
+            var input = JsonSerializer.Deserialize(inputJson, MobileJsonContext.Default.BuildStructuredDocumentInput)
+                        ?? throw new ArgumentException("Invalid JSON");
+            var docId = Guid.TryParse(input.DocumentId, out var parsed) ? parsed : Guid.NewGuid();
+            var builder = _scope.ServiceProvider.GetRequiredService<OCR.Services.StructuredDocumentBuilder>();
+            var ocrDuration = TimeSpan.FromMilliseconds(Math.Max(0, input.OcrDurationMs));
+            var classDuration = TimeSpan.FromMilliseconds(Math.Max(0, input.ClassificationDurationMs));
+            var doc = builder.Build(
+                docId, input.OcrText, input.DocType, input.ClassConfidence, input.ClassMethod,
+                graph: null, ocrDuration, classDuration, useMlExtraction: input.UseMlExtraction);
+
+            var audit = _scope.ServiceProvider.GetRequiredService<OCR.Services.ML.MlPipelineAuditService>();
+            audit.Record(new OCR.Models.ML.MlAuditRecord(
+                DocumentId: docId,
+                PredictedType: doc.DocumentType,
+                ClassificationConfidence: input.ClassConfidence,
+                ClassificationMethod: input.ClassMethod,
+                ModelVersion: "v1",
+                TokenCount: doc.Metrics?.TotalTokens ?? 0,
+                BertUsed: doc.PrimaryExtractionMethod == OCR.Models.Structured.ExtractionMethod.MlBertTokenClassifier,
+                OcrDuration: ocrDuration,
+                ClassificationDuration: classDuration,
+                ExtractionDuration: doc.Metrics?.ExtractionDuration ?? TimeSpan.Zero,
+                ReviewFlagCount: doc.ReviewFlags?.Count ?? 0,
+                RecordedAt: DateTime.UtcNow));
+
+            return JsonSerializer.Serialize(doc, MobileJsonContext.Default.StructuredMedicalDocument);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] BuildStructuredDocumentFromJson failed");
+            return JsonSerializer.Serialize(
+                new NativeBridge.OperationResultDto { Success = false, Error = ex.Message },
+                MobileJsonContext.Default.OperationResultDto);
+        }
+    }
+
+    public string GetMlAuditSummary()
+    {
+        try
+        {
+            var audit = _scope.ServiceProvider.GetRequiredService<OCR.Services.ML.MlPipelineAuditService>();
+            var summary = audit.GetSummary();
+            return JsonSerializer.Serialize(
+                new MlAuditSummaryDto
+                {
+                    TotalDocuments = summary.TotalDocuments,
+                    AverageOcrMs = summary.AverageOcrMs,
+                    AverageClassifyMs = summary.AverageClassifyMs,
+                    AverageExtractMs = summary.AverageExtractMs,
+                    AverageConfidence = summary.AverageConfidence,
+                    BertUsagePercent = summary.BertUsagePercent
+                },
+                MobileJsonContext.Default.MlAuditSummaryDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] GetMlAuditSummary failed");
+            return JsonSerializer.Serialize(new MlAuditSummaryDto(), MobileJsonContext.Default.MlAuditSummaryDto);
+        }
+    }
+
+    public string ValidateDocument(string headerBase64, string fileExtension, long fileSizeBytes)
+    {
+        try
+        {
+            var header = Convert.FromBase64String(headerBase64);
+            var (isValid, reason) = OCR.Policies.DocumentValidationPolicy.Validate(header, fileExtension, fileSizeBytes);
+            return JsonSerializer.Serialize(
+                new VaultResultDto { Success = isValid, Error = reason },
+                MobileJsonContext.Default.VaultResultDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] ValidateDocument failed");
+            return JsonSerializer.Serialize(
+                new VaultResultDto { Success = false, Error = ex.Message },
+                MobileJsonContext.Default.VaultResultDto);
         }
     }
 }

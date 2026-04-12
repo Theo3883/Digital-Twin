@@ -406,7 +406,8 @@ public sealed partial class DocumentIdentityExtractor
 }
 
 /// <summary>
-/// Validates extracted identity against the logged-in patient.
+/// Validates extracted identity against the logged-in patient (MAUI parity: name and CNP required on document,
+/// CNP exact match, name fuzzy match).
 /// </summary>
 public sealed class DocumentIdentityValidator
 {
@@ -417,21 +418,26 @@ public sealed class DocumentIdentityValidator
         string? patientName,
         string? patientCnp)
     {
-        if (identity.ExtractedCnp is null && identity.ExtractedName is null)
-            return new Models.IdentityValidationResult(false, false, false, "No identity found in document");
+        if (string.IsNullOrWhiteSpace(identity.ExtractedName))
+            return new Models.IdentityValidationResult(false, false, false, "No patient name found in document.");
+
+        if (string.IsNullOrWhiteSpace(identity.ExtractedCnp))
+            return new Models.IdentityValidationResult(false, false, false, "No CNP found in document.");
 
         var cnpMatched = !string.IsNullOrEmpty(patientCnp)
-            && !string.IsNullOrEmpty(identity.ExtractedCnp)
-            && identity.ExtractedCnp == patientCnp;
+                         && string.Equals(identity.ExtractedCnp.Trim(), patientCnp.Trim(), StringComparison.Ordinal);
+
+        if (!cnpMatched)
+            return new Models.IdentityValidationResult(false, false, false, "CNP on the document does not match your profile.");
 
         var nameMatched = false;
         if (!string.IsNullOrEmpty(patientName) && !string.IsNullOrEmpty(identity.ExtractedName))
             nameMatched = _nameMatcher.Match(patientName, identity.ExtractedName).IsMatch;
 
-        var isValid = cnpMatched || nameMatched;
-        var reason = isValid ? null : "Document identity does not match patient";
+        if (!nameMatched)
+            return new Models.IdentityValidationResult(false, false, true, "Name on the document does not match your profile.");
 
-        return new Models.IdentityValidationResult(isValid, nameMatched, cnpMatched, reason);
+        return new Models.IdentityValidationResult(true, true, true, null);
     }
 }
 

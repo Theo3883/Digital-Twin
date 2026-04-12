@@ -342,31 +342,36 @@ struct PatientView: View {
                     .padding(.horizontal, 4)
 
                 ForEach(Array(profileVM.ocrDocuments.prefix(10))) { doc in
-                    HStack(spacing: 12) {
-                        Image(systemName: doc.typeIcon)
-                            .font(.system(size: 20))
-                            .foregroundColor(LiquidGlass.tealPrimary)
-                            .frame(width: 36, height: 36)
+                    NavigationLink {
+                        MedicalDocumentDetailView(document: doc, repository: ocrRepository)
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: doc.typeIcon)
+                                .font(.system(size: 20))
+                                .foregroundColor(LiquidGlass.tealPrimary)
+                                .frame(width: 36, height: 36)
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(doc.opaqueInternalName)
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.white)
-                                .lineLimit(1)
-                            if let date = doc.createdAt {
-                                Text(date.formatted(date: .abbreviated, time: .shortened))
-                                    .font(.caption2)
-                                    .foregroundColor(.white.opacity(0.4))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(doc.opaqueInternalName)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .lineLimit(1)
+                                if let date = doc.createdAt {
+                                    Text(date.formatted(date: .abbreviated, time: .shortened))
+                                        .font(.caption2)
+                                        .foregroundColor(.white.opacity(0.4))
+                                }
                             }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.2))
                         }
-
-                        Spacer()
-
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.2))
+                        .glassCard()
                     }
-                    .glassCard()
+                    .buttonStyle(.plain)
                 }
             }
         } else {
@@ -529,7 +534,7 @@ struct PatientView: View {
 
             HStack(spacing: 12) {
                 NavigationLink(
-                    destination: OcrDocumentView(
+                    destination: OcrDocumentRootView(
                         viewModel: OcrDocumentsViewModel(repository: ocrRepository),
                         repository: ocrRepository
                     )
@@ -546,7 +551,7 @@ struct PatientView: View {
                 }
 
                 NavigationLink(
-                    destination: OcrDocumentView(
+                    destination: OcrDocumentRootView(
                         viewModel: OcrDocumentsViewModel(repository: ocrRepository),
                         repository: ocrRepository
                     )
