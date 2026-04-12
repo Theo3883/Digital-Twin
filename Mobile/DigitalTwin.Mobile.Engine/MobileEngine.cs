@@ -121,6 +121,29 @@ public class MobileEngine : IDisposable
         }
     }
 
+    /// <summary>
+    /// Updates current authenticated user profile
+    /// </summary>
+    public async Task<string> UpdateCurrentUserAsync(string updateJson)
+    {
+        try
+        {
+            var update = JsonSerializer.Deserialize(updateJson, MobileJsonContext.Default.UserUpdateInput);
+            if (update == null)
+                throw new ArgumentException("Invalid update data");
+
+            var authService = _scope.ServiceProvider.GetRequiredService<AuthService>();
+            var success = await authService.UpdateCurrentUserAsync(update);
+
+            return JsonSerializer.Serialize(new NativeBridge.OperationResultDto { Success = success }, MobileJsonContext.Default.OperationResultDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to update current user profile");
+            return JsonSerializer.Serialize(new NativeBridge.OperationResultDto { Success = false, Error = ex.Message }, MobileJsonContext.Default.OperationResultDto);
+        }
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     //  Patient Profile
     // ═══════════════════════════════════════════════════════════════════════════

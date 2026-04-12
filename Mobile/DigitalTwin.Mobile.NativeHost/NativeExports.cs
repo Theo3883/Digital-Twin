@@ -33,6 +33,10 @@ public static class NativeExports
     public static IntPtr GetCurrentUser()
         => NativeBridge.GetCurrentUser_Impl();
 
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_update_current_user")]
+    public static IntPtr UpdateCurrentUser(IntPtr updateJsonPtr)
+        => NativeBridge.UpdateCurrentUser_Impl(updateJsonPtr);
+
     // ── Patient Profile ───────────────────────────────────────────────────────
 
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_patient_profile")]

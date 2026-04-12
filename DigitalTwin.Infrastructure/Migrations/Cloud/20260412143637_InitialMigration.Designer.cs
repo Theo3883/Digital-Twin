@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DigitalTwin.Infrastructure.Migrations.Cloud
 {
     [DbContext(typeof(CloudDbContext))]
-    [Migration("20260412085327_AddDocumentTypeToOcrDocuments")]
-    partial class AddDocumentTypeToOcrDocuments
+    [Migration("20260412143637_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

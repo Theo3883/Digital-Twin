@@ -6,6 +6,7 @@ protocol MobileEngineClient: Sendable {
     func initializeDatabase() async throws -> OperationResult
     func authenticate(googleIdToken: String) async throws -> AuthenticationResult
     func getCurrentUser() async throws -> UserInfo?
+    func updateCurrentUser(_ update: UserUpdateInfo) async throws -> OperationResult
     func getPatientProfile() async throws -> PatientInfo?
     func updatePatientProfile(_ update: PatientUpdateInfo) async throws -> OperationResult
 

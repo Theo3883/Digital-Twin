@@ -21,6 +21,9 @@ class DotNetBridge {
     
     @_silgen_name("mobile_engine_get_current_user")
     private static func mobile_engine_get_current_user() -> UnsafePointer<CChar>?
+
+    @_silgen_name("mobile_engine_update_current_user")
+    private static func mobile_engine_update_current_user(_ updateJson: UnsafePointer<CChar>) -> UnsafePointer<CChar>?
     
     // Patient Profile
     @_silgen_name("mobile_engine_get_patient_profile")
@@ -249,6 +252,18 @@ class DotNetBridge {
     func getCurrentUser() throws -> UserInfo? {
         let result = Self.mobile_engine_get_current_user()
         return try parseOptionalResult(result, as: UserInfo.self)
+    }
+
+    /// Update current user profile
+    func updateCurrentUser(_ update: UserUpdateInfo) throws -> OperationResult {
+        let updateJson = try jsonEncoder.encode(update)
+        let updateString = String(data: updateJson, encoding: .utf8)!
+
+        let result = updateString.withCString { updatePtr in
+            Self.mobile_engine_update_current_user(updatePtr)
+        }
+
+        return try parseResult(result, as: OperationResult.self)
     }
     
     // MARK: - Patient Profile

@@ -130,6 +130,24 @@ public static class NativeBridge
     public static IntPtr GetCurrentUser()
         => GetCurrentUser_Impl();
 
+    /// <summary>
+    /// Update current authenticated user profile
+    /// </summary>
+    internal static IntPtr UpdateCurrentUser_Impl(IntPtr updateJsonPtr)
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+
+            var updateJson = Marshal.PtrToStringUTF8(updateJsonPtr) ?? throw new ArgumentNullException(nameof(updateJsonPtr));
+            return await _engine.UpdateCurrentUserAsync(updateJson);
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_update_current_user")]
+    public static IntPtr UpdateCurrentUser(IntPtr updateJsonPtr)
+        => UpdateCurrentUser_Impl(updateJsonPtr);
+
     // ═══════════════════════════════════════════════════════════════════════════
     //  Patient Profile
     // ═══════════════════════════════════════════════════════════════════════════

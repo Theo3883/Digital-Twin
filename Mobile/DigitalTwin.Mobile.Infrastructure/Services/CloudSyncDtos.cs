@@ -34,7 +34,9 @@ public sealed record UpsertPatientRequest
     public string? BloodType { get; init; }
     public string? Allergies { get; init; }
     public string? MedicalHistoryNotes { get; init; }
+    // Weight in kilograms (kg)
     public double? Weight { get; init; }
+    // Height in centimetres (cm)
     public double? Height { get; init; }
     public int? BloodPressureSystolic { get; init; }
     public int? BloodPressureDiastolic { get; init; }
@@ -109,7 +111,9 @@ public sealed record CloudPatientDto
     public string? BloodType { get; init; }
     public string? Allergies { get; init; }
     public string? MedicalHistoryNotes { get; init; }
+    // Weight in kilograms (kg)
     public double? Weight { get; init; }
+    // Height in centimetres (cm)
     public double? Height { get; init; }
     public int? BloodPressureSystolic { get; init; }
     public int? BloodPressureDiastolic { get; init; }

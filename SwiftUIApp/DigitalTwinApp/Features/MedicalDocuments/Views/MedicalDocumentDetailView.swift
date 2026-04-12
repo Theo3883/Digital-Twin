@@ -1,5 +1,6 @@
 import PDFKit
 import SwiftUI
+import UIKit
 
 private struct DocumentPdfPreview: UIViewRepresentable {
     let data: Data
@@ -17,6 +18,96 @@ private struct DocumentPdfPreview: UIViewRepresentable {
     }
 }
 
+private struct ZoomableImagePreview: UIViewRepresentable {
+    let image: UIImage
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    func makeUIView(context: Context) -> UIScrollView {
+        let scrollView = UIScrollView()
+        scrollView.backgroundColor = .black
+        scrollView.minimumZoomScale = 1
+        scrollView.maximumZoomScale = 8
+        scrollView.bouncesZoom = true
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.delegate = context.coordinator
+
+        let imageView = UIImageView(image: image)
+        imageView.contentMode = .scaleAspectFit
+        imageView.frame = scrollView.bounds
+        imageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        scrollView.addSubview(imageView)
+
+        context.coordinator.imageView = imageView
+        return scrollView
+    }
+
+    func updateUIView(_ scrollView: UIScrollView, context: Context) {
+        context.coordinator.imageView?.image = image
+    }
+
+    final class Coordinator: NSObject, UIScrollViewDelegate {
+        weak var imageView: UIImageView?
+
+        func viewForZooming(in scrollView: UIScrollView) -> UIView? {
+            imageView
+        }
+    }
+}
+
+private struct FullScreenDocumentViewer: View {
+    let data: Data
+    let mimeType: String
+    let onClose: () -> Void
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Color.black.ignoresSafeArea()
+
+            Group {
+                if mimeType.lowercased() == "application/pdf" {
+                    DocumentPdfPreview(data: data)
+                } else if let image = UIImage(data: data) {
+                    ZoomableImagePreview(image: image)
+                } else {
+                    Text("Preview not available for this file type.")
+                        .font(.subheadline)
+                        .foregroundColor(.white.opacity(0.8))
+                }
+            }
+            .ignoresSafeArea(edges: .bottom)
+
+            VStack {
+                HStack {
+                    Spacer()
+                    Button(action: onClose) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 30, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.95))
+                            .shadow(radius: 8)
+                    }
+                }
+                .padding(.top, 12)
+                .padding(.horizontal, 16)
+
+                Spacer()
+
+                Text("Pinch to zoom")
+                    .font(.caption.weight(.medium))
+                    .foregroundColor(.white.opacity(0.75))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(.black.opacity(0.45))
+                    .clipShape(Capsule())
+                    .padding(.bottom, 18)
+            }
+        }
+    }
+}
+
 struct MedicalDocumentDetailView: View {
     let document: OcrDocumentInfo
     let repository: OcrRepository
@@ -26,6 +117,7 @@ struct MedicalDocumentDetailView: View {
     @State private var isLoadingPreview = false
     @State private var isDeleting = false
     @State private var deleteError: String?
+    @State private var isFullScreenPreviewPresented = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -56,6 +148,15 @@ struct MedicalDocumentDetailView: View {
         .pageEnterAnimation()
         .navigationTitle(document.displayType)
         .navigationBarTitleDisplayMode(.inline)
+        .fullScreenCover(isPresented: $isFullScreenPreviewPresented) {
+            if let data = decryptedData {
+                FullScreenDocumentViewer(data: data, mimeType: document.mimeType) {
+                    isFullScreenPreviewPresented = false
+                }
+            } else {
+                Color.black.ignoresSafeArea()
+            }
+        }
     }
 
     private var metadataCard: some View {
@@ -122,42 +223,34 @@ struct MedicalDocumentDetailView: View {
                 .font(.subheadline.weight(.medium))
                 .foregroundColor(.white.opacity(0.65))
 
-            if let data = decryptedData {
-                if document.mimeType.lowercased() == "application/pdf" {
-                    DocumentPdfPreview(data: data)
-                        .frame(minHeight: 360)
-                        .clipShape(RoundedRectangle(cornerRadius: LiquidGlass.radiusChip))
-                } else if let ui = UIImage(data: data) {
-                    Image(uiImage: ui)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxHeight: 400)
-                        .clipShape(RoundedRectangle(cornerRadius: LiquidGlass.radiusChip))
+            Button {
+                if decryptedData == nil {
+                    Task { await loadDecryptedPreview(openInFullScreen: true) }
                 } else {
-                    Text("Preview not available for this file type.")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.5))
+                    isFullScreenPreviewPresented = true
                 }
-            } else {
-                Button {
-                    Task { await loadDecryptedPreview() }
-                } label: {
-                    HStack {
-                        if isLoadingPreview {
-                            ProgressView()
-                                .tint(.white)
-                        } else {
-                            Image(systemName: "lock.open.fill")
-                            Text("Unlock & open")
-                                .font(.subheadline.weight(.medium))
-                        }
+            } label: {
+                HStack {
+                    if isLoadingPreview {
+                        ProgressView()
+                            .tint(.white)
+                    } else {
+                        Image(systemName: "arrow.up.left.and.arrow.down.right")
+                        Text(decryptedData == nil ? "Unlock & Open" : "Open")
+                            .font(.subheadline.weight(.medium))
                     }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
                 }
-                .disabled(isLoadingPreview)
-                .glassPill(tint: LiquidGlass.tealPrimary.opacity(0.2))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+            }
+            .disabled(isLoadingPreview)
+            .glassPill(tint: LiquidGlass.tealPrimary.opacity(0.2))
+
+            if decryptedData != nil {
+                Text("Opens full screen. Use pinch gestures to zoom in and out.")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.55))
             }
 
             if let previewError {
@@ -169,7 +262,7 @@ struct MedicalDocumentDetailView: View {
         .glassCard()
     }
 
-    private func loadDecryptedPreview() async {
+    private func loadDecryptedPreview(openInFullScreen: Bool) async {
         isLoadingPreview = true
         previewError = nil
         print("[OCR Vault][Detail] Unlock & open requested for docId=\(document.id.uuidString)")
@@ -198,6 +291,11 @@ struct MedicalDocumentDetailView: View {
 
         decryptedData = data
         print("[OCR Vault][Detail] document preview decrypted, bytes=\(data.count)")
+
+        if openInFullScreen {
+            isFullScreenPreviewPresented = true
+            print("[OCR Vault][Detail] presenting full-screen viewer")
+        }
     }
 
     private var actionsSection: some View {

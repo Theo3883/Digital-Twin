@@ -156,4 +156,5 @@ public sealed class OcrDocumentRepository : IOcrDocumentRepository
         SyncedAt = d.SyncedAt,
         DeletedAt = d.DeletedAt
     };
+
 }

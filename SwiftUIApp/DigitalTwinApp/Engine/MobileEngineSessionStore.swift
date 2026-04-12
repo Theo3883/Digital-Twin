@@ -185,7 +185,10 @@ class MobileEngineSessionStore: ObservableObject {
                 await loadPatientProfile()
                 isHydratingAfterAuth = false
 
-                let _ = await performSync()
+                // Don't push on first-login/no-profile state; user may cancel profile setup.
+                if hasCloudProfile {
+                    let _ = await performSync()
+                }
                 return true
             } else {
                 errorMessage = result.errorMessage ?? "Authentication failed"
@@ -206,6 +209,33 @@ class MobileEngineSessionStore: ObservableObject {
             isAuthenticated = currentUser != nil
         } catch {
             // non-fatal
+        }
+    }
+
+    func updateUserProfile(_ update: UserUpdateInfo) async -> Bool {
+        guard let engine else { return false }
+
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            let result = try await engine.updateCurrentUser(update)
+            if result.success {
+                await getCurrentUser()
+
+                if isCloudAuthenticated {
+                    let _ = await performSync()
+                }
+
+                return true
+            } else {
+                errorMessage = result.error ?? "Update failed"
+                return false
+            }
+        } catch {
+            errorMessage = "Update failed: \(error.localizedDescription)"
+            return false
         }
     }
 

@@ -73,6 +73,7 @@ public sealed record MlAuditSummaryDto
 // Auth & Profile
 [JsonSerializable(typeof(AuthenticationResult))]
 [JsonSerializable(typeof(UserDto))]
+[JsonSerializable(typeof(UserUpdateInput))]
 [JsonSerializable(typeof(PatientDto))]
 [JsonSerializable(typeof(PatientUpdateInput))]
 // Vital Signs

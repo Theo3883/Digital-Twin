@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using DigitalTwin.Mobile.Domain.Interfaces;
 using DigitalTwin.Mobile.Domain.Models;
 
@@ -18,16 +20,26 @@ public sealed class NameMatchingService : INameMatchingService
         var ne = Normalize(expected);
         var na = Normalize(actual);
 
+        if (ne.Length == 0 || na.Length == 0)
+            return new NameMatchResult(false, int.MaxValue, ne, na);
+
         if (ne == na) return new NameMatchResult(true, 0, ne, na);
 
         var et = Tokenize(ne);
         var at = Tokenize(na);
 
+        if (et.Length == 0 || at.Length == 0)
+            return new NameMatchResult(false, int.MaxValue, ne, na);
+
         var sorted = CompareTokensSorted(et, at);
         if (sorted.IsMatch) return sorted with { NormalizedExpected = ne, NormalizedActual = na };
 
-        var subset = CompareTokensSubset(et, at);
-        return subset with { NormalizedExpected = ne, NormalizedActual = na };
+        var subsetForward = CompareTokensSubset(et, at);
+        if (subsetForward.IsMatch)
+            return subsetForward with { NormalizedExpected = ne, NormalizedActual = na };
+
+        var subsetReverse = CompareTokensSubset(at, et);
+        return subsetReverse with { NormalizedExpected = ne, NormalizedActual = na };
     }
 
     private static NameMatchResult CompareTokensSorted(string[] expected, string[] actual)
@@ -69,15 +81,36 @@ public sealed class NameMatchingService : INameMatchingService
     internal static string Normalize(string name)
     {
         if (string.IsNullOrWhiteSpace(name)) return "";
-        var lower = name.ToLowerInvariant();
-        return StripDiacritics(lower).Trim();
+        var lower = StripDiacritics(name.ToLowerInvariant());
+
+        // Keep only letters and normalize any separator/punctuation to a single space.
+        var sb = new StringBuilder(lower.Length);
+        var lastWasSpace = true;
+        foreach (var c in lower)
+        {
+            if (char.IsLetter(c))
+            {
+                sb.Append(c);
+                lastWasSpace = false;
+                continue;
+            }
+
+            if (!lastWasSpace)
+            {
+                sb.Append(' ');
+                lastWasSpace = true;
+            }
+        }
+
+        return sb.ToString().Trim();
     }
 
     private static string[] Tokenize(string n) =>
-        n.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        n.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     private static string StripDiacritics(string text)
     {
+        // Fast path for common Romanian diacritics and frequent accented OCR variants.
         var chars = text.ToCharArray();
         for (var i = 0; i < chars.Length; i++)
         {
@@ -90,7 +123,20 @@ public sealed class NameMatchingService : INameMatchingService
                 _ => chars[i]
             };
         }
-        return new string(chars);
+
+        // Fallback for any remaining combining marks.
+        var result = new string(chars);
+        var normalized = result.Normalize(NormalizationForm.FormD);
+        var stripped = new char[normalized.Length];
+        var idx = 0;
+
+        foreach (var c in normalized)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
+                stripped[idx++] = c;
+        }
+
+        return new string(stripped, 0, idx);
     }
 
     internal static int LevenshteinDistance(string s, string t)

@@ -38,6 +38,10 @@ actor MobileEngineHandle {
         try bridge.getCurrentUser()
     }
 
+    func updateCurrentUser(_ update: UserUpdateInfo) async throws -> OperationResult {
+        try bridge.updateCurrentUser(update)
+    }
+
     func getPatientProfile() async throws -> PatientInfo? {
         try bridge.getPatientProfile()
     }

@@ -126,8 +126,8 @@ public class AuthService
             }
             else
             {
-                // Ensure at least a local patient shell exists
-                await EnsurePatientProfileAsync(localUser.Id);
+                // Keep patient profile absent so UI can route to mandatory completion.
+                _logger.LogInformation("[AuthService] No cloud profile bootstrap available; profile completion is required for {Email}", localUser.Email);
             }
 
             _logger.LogInformation("[AuthService] Authentication successful for user {Email}", localUser.Email);
@@ -162,6 +162,42 @@ public class AuthService
         return MapUserDto(user);
     }
 
+    /// <summary>
+    /// Updates the currently authenticated user profile.
+    /// </summary>
+    public async Task<bool> UpdateCurrentUserAsync(UserUpdateInput input)
+    {
+        try
+        {
+            var user = await _userRepository.GetCurrentUserAsync();
+            if (user == null)
+            {
+                _logger.LogWarning("[AuthService] No current user found while updating user profile");
+                return false;
+            }
+
+            user.FirstName = NormalizeOptionalString(input.FirstName);
+            user.LastName = NormalizeOptionalString(input.LastName);
+            user.Phone = NormalizeOptionalString(input.Phone);
+            user.Address = NormalizeOptionalString(input.Address);
+            user.City = NormalizeOptionalString(input.City);
+            user.Country = NormalizeOptionalString(input.Country);
+            user.DateOfBirth = input.DateOfBirth;
+            user.UpdatedAt = DateTime.UtcNow;
+            user.IsSynced = false;
+
+            await _userRepository.SaveAsync(user);
+            _logger.LogInformation("[AuthService] Updated current user profile for {Email}", user.Email);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[AuthService] Failed to update current user profile");
+            return false;
+        }
+    }
+
     private static UserDto MapUserDto(User user) => new()
     {
         Id = user.Id,
@@ -179,20 +215,10 @@ public class AuthService
         UpdatedAt = user.UpdatedAt
     };
 
-    private async Task EnsurePatientProfileAsync(Guid userId)
+    private static string? NormalizeOptionalString(string? value)
     {
-        var patient = await _patientRepository.GetByUserIdAsync(userId);
-        if (patient == null)
-        {
-            // Create new patient profile
-            patient = new Patient
-            {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                IsSynced = false // Will be synced later
-            };
-            await _patientRepository.SaveAsync(patient);
-        }
+        var trimmed = value?.Trim();
+        return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
     }
 
     private async Task ApplyBootstrapAsync(Guid localUserId, CloudBootstrap bootstrap)

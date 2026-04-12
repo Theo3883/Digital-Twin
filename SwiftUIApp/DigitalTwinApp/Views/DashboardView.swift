@@ -56,7 +56,7 @@ struct DashboardView: View {
                     } else {
                         NoPatientProfileHomeView {
                             selectedTab = 4
-                            container.shouldPresentProfileEdit = true
+                            container.shouldPresentPatientProfileEdit = true
                         }
                         .padding(.bottom, 32)
                     }

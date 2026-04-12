@@ -286,6 +286,10 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("DocumentType")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("EncryptedVaultPath")
                         .IsRequired()
                         .HasColumnType("TEXT");

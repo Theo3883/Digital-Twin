@@ -309,29 +309,22 @@ public class MobileSyncController : ControllerBase
             var user = await _userRepo.GetByEmailAsync(payload.Email);
             if (user is null)
             {
-                // Auto-create patient user on first login
-                user = new User
+                var transientUser = new User
                 {
-                    Id = Guid.NewGuid(),
+                    Id = StableGuid("mobile-auth", payload.Email),
                     Email = payload.Email,
-                    FirstName = payload.GivenName,
-                    LastName = payload.FamilyName,
                     Role = UserRole.Patient,
+                    FirstName = payload.GivenName ?? string.Empty,
+                    LastName = payload.FamilyName ?? string.Empty
                 };
-                await _userRepo.AddAsync(user);
 
-                var patient = new Patient
-                {
-                    Id = Guid.NewGuid(),
-                    UserId = user.Id,
-                };
-                await _patientRepo.AddAsync(patient);
-
-                _logger.LogInformation("[MobileSync] Created new patient user: {Email}", payload.Email);
+                _logger.LogInformation("[MobileSync] First login for {Email}: no cloud entities are auto-created.", payload.Email);
+                var jwtForNewUser = GenerateJwt(transientUser);
+                return Ok(new MobileAuthResponse(true, jwtForNewUser, Bootstrap: null));
             }
 
             var jwt = GenerateJwt(user);
-            // Bootstrap cloud state so the app can skip onboarding/profile completion.
+            // Bootstrap cloud state for mobile hydration; patient may be null for first-time users.
             var bootstrap = await BuildBootstrapAsync(user);
             return Ok(new MobileAuthResponse(true, jwt, bootstrap));
         }
@@ -380,7 +373,18 @@ public class MobileSyncController : ControllerBase
     public async Task<ActionResult<SyncResult>> UpsertUser([FromBody] UpsertUserBody body)
     {
         var user = await _userRepo.GetByEmailAsync(UserEmail);
-        if (user is null) return NotFound(new SyncResult(false, "User not found"));
+        var isNewUser = user is null;
+        if (user is null)
+        {
+            user = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = UserEmail,
+                Role = UserRole.Patient,
+                FirstName = body.User?.FirstName ?? string.Empty,
+                LastName = body.User?.LastName ?? string.Empty,
+            };
+        }
 
         if (body.User is { } u)
         {
@@ -392,7 +396,18 @@ public class MobileSyncController : ControllerBase
             user.City = u.City ?? user.City;
             user.Country = u.Country ?? user.Country;
             user.DateOfBirth = u.DateOfBirth ?? user.DateOfBirth;
-            await _userRepo.UpdateAsync(user);
+            if (isNewUser)
+            {
+                await _userRepo.AddAsync(user);
+            }
+            else
+            {
+                await _userRepo.UpdateAsync(user);
+            }
+        }
+        else if (isNewUser)
+        {
+            await _userRepo.AddAsync(user);
         }
 
         return Ok(new SyncResult(true));
@@ -689,7 +704,7 @@ public class MobileSyncController : ControllerBase
             MimeType = d.MimeType,
             DocumentType = d.DocumentType,
             PageCount = d.PageCount,
-            Sha256OfNormalized = d.Sha256OfNormalized,
+            Sha256OfNormalized = d.Sha256OfNormalized ?? string.Empty,
             SanitizedOcrPreview = d.SanitizedOcrPreview,
             ScannedAt = d.ScannedAt,
             IsDirty = false

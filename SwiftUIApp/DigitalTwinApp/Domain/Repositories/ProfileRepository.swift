@@ -6,7 +6,8 @@ protocol ProfileRepository: Sendable {
     func loadMedicalHistory() async -> [MedicalHistoryEntryInfo]
     func loadOcrDocuments() async -> [OcrDocumentInfo]
     func latestHeartRate() async -> Int?
-    func updatePatientProfile(_ input: PatientUpdateInfo) async
+    func updateUserProfile(_ input: UserUpdateInfo) async -> Bool
+    func updatePatientProfile(_ input: PatientUpdateInfo) async -> Bool
     func signOut() async
 }
 

@@ -25,3 +25,14 @@ public record UserDto
     public DateTime? CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
 }
+
+public record UserUpdateInput
+{
+    public string? FirstName { get; init; }
+    public string? LastName { get; init; }
+    public string? Phone { get; init; }
+    public string? Address { get; init; }
+    public string? City { get; init; }
+    public string? Country { get; init; }
+    public DateTime? DateOfBirth { get; init; }
+}

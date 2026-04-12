@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DigitalTwin.Infrastructure.Migrations.Local
 {
     [DbContext(typeof(LocalDbContext))]
-    [Migration("20260329154422_InitialMigration")]
+    [Migration("20260412143642_InitialMigration")]
     partial class InitialMigration
     {
         /// <inheritdoc />
@@ -287,6 +287,10 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DocumentType")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("EncryptedVaultPath")

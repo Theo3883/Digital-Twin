@@ -93,6 +93,7 @@ namespace DigitalTwin.Infrastructure.Migrations.Local
                     PatientId = table.Column<Guid>(type: "TEXT", nullable: false),
                     OpaqueInternalName = table.Column<string>(type: "TEXT", nullable: false),
                     MimeType = table.Column<string>(type: "TEXT", nullable: false),
+                    DocumentType = table.Column<string>(type: "TEXT", nullable: false),
                     PageCount = table.Column<int>(type: "INTEGER", nullable: false),
                     Sha256OfNormalized = table.Column<string>(type: "TEXT", nullable: false),
                     SanitizedOcrPreview = table.Column<string>(type: "TEXT", nullable: false),

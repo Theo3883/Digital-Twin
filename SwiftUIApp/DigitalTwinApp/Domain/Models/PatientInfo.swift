@@ -1,5 +1,6 @@
 import Foundation
 
+/// Patient profile values. Weight is in kilograms (kg) and Height is in centimetres (cm).
 struct PatientInfo: Codable, Identifiable {
     let id: UUID
     let userId: UUID

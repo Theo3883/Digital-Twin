@@ -26,3 +26,13 @@ struct UserInfo: Codable, Identifiable {
     }
 }
 
+struct UserUpdateInfo: Codable {
+    let firstName: String?
+    let lastName: String?
+    let phone: String?
+    let address: String?
+    let city: String?
+    let country: String?
+    let dateOfBirth: Date?
+}
+

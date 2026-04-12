@@ -2,7 +2,6 @@ using DigitalTwin.Mobile.Application.DTOs;
 using DigitalTwin.Mobile.Domain.Enums;
 using DigitalTwin.Mobile.Domain.Interfaces;
 using DigitalTwin.Mobile.Domain.Models;
-using DigitalTwin.Mobile.Domain.Services;
 using Microsoft.Extensions.Logging;
 
 namespace DigitalTwin.Mobile.Application.Services;
@@ -13,10 +12,11 @@ namespace DigitalTwin.Mobile.Application.Services;
 /// </summary>
 public class OcrTextProcessingApplicationService
 {
-    private readonly DocumentIdentityExtractor _identityExtractor = new();
-    private readonly DocumentIdentityValidator _identityValidator = new();
-    private readonly SensitiveDataSanitizer _sanitizer = new();
-    private readonly HeuristicFieldExtractor _fieldExtractor = new();
+    private readonly IDocumentIdentityExtractor _identityExtractor;
+    private readonly IDocumentIdentityValidator _identityValidator;
+    private readonly ISensitiveDataSanitizer _sanitizer;
+    private readonly IHeuristicFieldExtractor _fieldExtractor;
+    private readonly IDocumentTypeClassifier _docTypeClassifier;
     private readonly IMedicalHistoryExtractor _historyExtractor;
     private readonly IOcrDocumentRepository _ocrRepo;
     private readonly IMedicalHistoryEntryRepository _historyRepo;
@@ -30,10 +30,20 @@ public class OcrTextProcessingApplicationService
         IMedicalHistoryEntryRepository historyRepo,
         IPatientRepository patientRepo,
         IUserRepository userRepo,
+        IDocumentTypeClassifier docTypeClassifier,
+        IDocumentIdentityExtractor identityExtractor,
+        IDocumentIdentityValidator identityValidator,
+        ISensitiveDataSanitizer sanitizer,
+        IHeuristicFieldExtractor fieldExtractor,
         IMedicalHistoryExtractor historyExtractor,
         MedicationApplicationService medicationApp,
         ILogger<OcrTextProcessingApplicationService> logger)
     {
+        _identityExtractor = identityExtractor;
+        _identityValidator = identityValidator;
+        _sanitizer = sanitizer;
+        _fieldExtractor = fieldExtractor;
+        _docTypeClassifier = docTypeClassifier;
         _ocrRepo = ocrRepo;
         _historyRepo = historyRepo;
         _patientRepo = patientRepo;
@@ -45,7 +55,7 @@ public class OcrTextProcessingApplicationService
 
     /// <summary>Classify document type from raw OCR text.</summary>
     public string ClassifyDocument(string ocrText)
-        => DocumentTypeClassifier.Classify(ocrText);
+        => _docTypeClassifier.Classify(ocrText);
 
     /// <summary>Extract identity (name + CNP) from raw OCR text.</summary>
     public DocumentIdentity ExtractIdentity(string ocrText)
@@ -86,7 +96,7 @@ public class OcrTextProcessingApplicationService
             _logger.LogInformation("[OCR] ═══ ProcessFullAsync START ═══  text length={Len}", ocrText.Length);
 
             // 1. Classify
-            var docType = DocumentTypeClassifier.Classify(ocrText);
+            var docType = _docTypeClassifier.Classify(ocrText);
             _logger.LogInformation("[OCR] Step 1 — Classification: docType={DocType}", docType);
 
             // 2. Extract identity

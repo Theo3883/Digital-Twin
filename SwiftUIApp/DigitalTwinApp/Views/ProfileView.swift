@@ -36,7 +36,7 @@ struct ProfileView: View {
                 // "Create Medical Profile" CTA when no profile exists
                 if viewModel.patient == nil {
                     NoPatientProfileProfileCard {
-                        container.shouldPresentProfileEdit = true
+                        container.shouldPresentPatientProfileEdit = true
                     }
                 }
 
@@ -75,12 +75,22 @@ struct ProfileView: View {
             }
             Button("Cancel", role: .cancel) {}
         }
-        .sheet(isPresented: $container.shouldPresentProfileEdit) {
+        .sheet(isPresented: $container.shouldPresentUserProfileEdit) {
             ProfileEditSheet(
-                viewModel: ProfileEditSheetViewModel(repository: repository, patient: viewModel.patient)
+                viewModel: ProfileEditSheetViewModel(repository: repository, user: viewModel.currentUser)
             )
         }
-        .onChange(of: container.shouldPresentProfileEdit) { _, newValue in
+        .onChange(of: container.shouldPresentUserProfileEdit) { _, newValue in
+            if newValue == false {
+                Task { await viewModel.load() }
+            }
+        }
+        .sheet(isPresented: $container.shouldPresentPatientProfileEdit) {
+            PatientProfileEditSheet(
+                viewModel: PatientProfileEditSheetViewModel(repository: repository, patient: viewModel.patient)
+            )
+        }
+        .onChange(of: container.shouldPresentPatientProfileEdit) { _, newValue in
             if newValue == false {
                 Task { await viewModel.load() }
             }
@@ -152,8 +162,11 @@ struct ProfileView: View {
 
             // 3-dot menu
             Menu {
-                Button { container.shouldPresentProfileEdit = true } label: {
-                    Label("Edit Profile", systemImage: "pencil")
+                Button { container.shouldPresentUserProfileEdit = true } label: {
+                    Label("Edit User Profile", systemImage: "person")
+                }
+                Button { container.shouldPresentPatientProfileEdit = true } label: {
+                    Label(viewModel.patient == nil ? "Create Patient Profile" : "Edit Patient Profile", systemImage: "cross.case")
                 }
                 Button(role: .destructive) { showSignOutAlert = true } label: {
                     Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
@@ -204,8 +217,8 @@ struct ProfileView: View {
 
     private func vitalStatsGrid(patient: PatientInfo) -> some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            VitalStatTile(label: "Weight", value: patient.weight.map { String(format: "%.0f", $0) } ?? "--", unit: "lbs", icon: "scalemass.fill", color: .brown)
-            VitalStatTile(label: "Height", value: patient.height.map { String(format: "%.0f", $0) } ?? "--", unit: "in", icon: "ruler.fill", color: .gray)
+            VitalStatTile(label: "Weight", value: patient.weight.map { String(format: "%.0f", $0) } ?? "--", unit: "kg", icon: "scalemass.fill", color: .brown)
+            VitalStatTile(label: "Height", value: patient.height.map { String(format: "%.0f", $0) } ?? "--", unit: "cm", icon: "ruler.fill", color: .gray)
             VitalStatTile(label: "BMI", value: bmi(patient: patient), unit: bmiCategory(patient: patient), icon: "figure.stand", color: bmiColor(patient: patient))
             VitalStatTile(label: "Resting HR", value: viewModel.latestHeartRate.map { "\($0)" } ?? "--", unit: "bpm", icon: "heart.fill", color: LiquidGlass.redCritical)
             VitalStatTile(label: "Blood Pressure", value: {
@@ -220,13 +233,15 @@ struct ProfileView: View {
 
     private func bmi(patient: PatientInfo) -> String {
         guard let w = patient.weight, let h = patient.height, h > 0 else { return "--" }
-        let bmiVal = (w / (h * h)) * 703 // lbs/in² → BMI
+        let hMeters = h / 100.0
+        let bmiVal = w / (hMeters * hMeters)
         return String(format: "%.1f", bmiVal)
     }
 
     private func bmiValue(patient: PatientInfo) -> Double? {
         guard let w = patient.weight, let h = patient.height, h > 0 else { return nil }
-        return (w / (h * h)) * 703
+        let hMeters = h / 100.0
+        return w / (hMeters * hMeters)
     }
 
     private func bmiCategory(patient: PatientInfo) -> String {

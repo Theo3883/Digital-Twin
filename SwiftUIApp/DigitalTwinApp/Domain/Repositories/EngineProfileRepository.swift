@@ -32,9 +32,12 @@ final class EngineProfileRepository: ProfileRepository {
         engine.latestVitals?.heartRate
     }
 
-    func updatePatientProfile(_ input: PatientUpdateInfo) async {
-        _ = await engine.updatePatientProfile(input)
-        await engine.loadPatientProfile()
+    func updateUserProfile(_ input: UserUpdateInfo) async -> Bool {
+        await engine.updateUserProfile(input)
+    }
+
+    func updatePatientProfile(_ input: PatientUpdateInfo) async -> Bool {
+        await engine.updatePatientProfile(input)
     }
 
     func signOut() async {

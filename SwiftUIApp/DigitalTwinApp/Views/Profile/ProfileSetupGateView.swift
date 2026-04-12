@@ -29,7 +29,7 @@ struct ProfileSetupGateView: View {
                 }
 
                 Button {
-                    container.shouldPresentProfileEdit = true
+                    container.shouldPresentPatientProfileEdit = true
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "plus.circle.fill")

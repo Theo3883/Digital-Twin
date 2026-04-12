@@ -30,6 +30,7 @@ actor DotNetMobileEngineClient: MobileEngineClient {
     func initializeDatabase() async throws -> OperationResult { try await handle.initializeDatabase() }
     func authenticate(googleIdToken: String) async throws -> AuthenticationResult { try await handle.authenticate(googleIdToken: googleIdToken) }
     func getCurrentUser() async throws -> UserInfo? { try await handle.getCurrentUser() }
+    func updateCurrentUser(_ update: UserUpdateInfo) async throws -> OperationResult { try await handle.updateCurrentUser(update) }
     func getPatientProfile() async throws -> PatientInfo? { try await handle.getPatientProfile() }
     func updatePatientProfile(_ update: PatientUpdateInfo) async throws -> OperationResult { try await handle.updatePatientProfile(update) }
 

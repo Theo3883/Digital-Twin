@@ -10,11 +10,16 @@ namespace DigitalTwin.Mobile.Application.Services;
 public class PatientService
 {
     private readonly IPatientRepository _patientRepository;
+    private readonly IUserRepository _userRepository;
     private readonly ILogger<PatientService> _logger;
 
-    public PatientService(IPatientRepository patientRepository, ILogger<PatientService> logger)
+    public PatientService(
+        IPatientRepository patientRepository,
+        IUserRepository userRepository,
+        ILogger<PatientService> logger)
     {
         _patientRepository = patientRepository;
+        _userRepository = userRepository;
         _logger = logger;
     }
 
@@ -53,8 +58,23 @@ public class PatientService
             var patient = await _patientRepository.GetCurrentPatientAsync();
             if (patient == null)
             {
-                _logger.LogWarning("[PatientService] No current patient found");
-                return false;
+                var user = await _userRepository.GetCurrentUserAsync();
+                if (user == null)
+                {
+                    _logger.LogWarning("[PatientService] No current user found while creating patient profile");
+                    return false;
+                }
+
+                patient = new Domain.Models.Patient
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = user.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    IsSynced = false
+                };
+
+                _logger.LogInformation("[PatientService] Creating initial patient profile for user {UserId}", user.Id);
             }
 
             // Update fields
