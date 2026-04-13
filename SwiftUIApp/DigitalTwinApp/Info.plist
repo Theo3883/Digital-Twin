@@ -79,5 +79,7 @@
 			<string>Editor</string>
 		</dict>
 	</array>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>This app connects to your DigitalTwin ESP32 to receive ECG, heart rate, and SpO2 data.</string>
 </dict>
 </plist>

@@ -3,6 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject private var container: AppContainer
     @EnvironmentObject var engineWrapper: MobileEngineWrapper
+    @EnvironmentObject private var ble: BLEManager
     @State private var selectedTab = 0
     @State private var showSyncGate = true
     @State private var didAutoPresentProfileSetup = false
@@ -121,6 +122,12 @@ struct ContentView: View {
                 shouldOpenPatientSetupAfterUserSave = false
                 container.shouldPresentUserProfileEdit = false
                 container.shouldPresentPatientProfileEdit = false
+            }
+        }
+        .onChange(of: showSyncGate) { _, isShowing in
+            // The loading/sync page is fully dropped, the home page is now active.
+            if !isShowing && engineWrapper.isAuthenticated && engineWrapper.patientProfile != nil {
+                ble.startScanning()
             }
         }
     }

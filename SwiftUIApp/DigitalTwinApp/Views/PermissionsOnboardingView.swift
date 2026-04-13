@@ -11,6 +11,7 @@ struct PermissionsOnboardingView: View {
         ("heart.fill",          Color(hue: 0.97, saturation: 0.7, brightness: 0.9),   "HealthKit",      "Sync heart rate, steps, SpO₂ and sleep data automatically."),
         ("bell.badge.fill",     Color(hue: 0.55, saturation: 0.7, brightness: 0.95),  "Notifications",  "Get alerts for background health data sync and important events."),
         ("location.fill",       Color(hue: 0.35, saturation: 0.7, brightness: 0.85),  "Location",       "Fetch real-time air quality and environment data for your city."),
+        ("waveform.path.ecg",   Color(hue: 0.58, saturation: 0.8, brightness: 0.9),   "Bluetooth",      "Connect to the DigitalTwin ESP32 to receive real-time ECG and vitals."),
     ]
 
     var body: some View {
@@ -155,6 +156,9 @@ struct PermissionsOnboardingView: View {
             //    a standalone CLLocationManager request here so the prompt appears upfront.
             await requestLocationPermission()
 
+            // 4. Bluetooth
+            await requestBluetoothPermission()
+
             isRequesting = false
             onDone()
         }
@@ -168,11 +172,18 @@ struct PermissionsOnboardingView: View {
         // Give the OS a moment to register the request before we discard the object
         try? await Task.sleep(for: .milliseconds(600))
     }
+
+    @MainActor
+    private func requestBluetoothPermission() async {
+        let _ = OneTimeBluetoothPermissionRequester()
+        try? await Task.sleep(for: .milliseconds(600))
+    }
 }
 
-// MARK: - One-time location helper
+// MARK: - One-time location & bluetooth helpers
 
 import CoreLocation
+import CoreBluetooth
 
 private final class OneTimeLocationPermissionRequester: NSObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
@@ -182,5 +193,18 @@ private final class OneTimeLocationPermissionRequester: NSObject, CLLocationMana
         if manager.authorizationStatus == .notDetermined {
             manager.requestWhenInUseAuthorization()
         }
+    }
+}
+
+private final class OneTimeBluetoothPermissionRequester: NSObject, CBCentralManagerDelegate {
+    private var manager: CBCentralManager!
+    override init() {
+        super.init()
+        // This initialization triggers the iOS Bluetooth dialog automatically
+        manager = CBCentralManager(delegate: self, queue: nil)
+    }
+
+    func centralManagerDidUpdateState(_ central: CBCentralManager) {
+        // No-op, we strictly want the startup prompt
     }
 }

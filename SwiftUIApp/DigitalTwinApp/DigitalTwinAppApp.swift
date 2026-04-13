@@ -4,6 +4,7 @@ import GoogleSignIn
 @main
 struct DigitalTwinAppApp: App {
     @StateObject private var container = AppContainer()
+    @StateObject private var ble = BLEManager()
 
     init() {
         UIScrollView.appearance().showsVerticalScrollIndicator = false
@@ -19,6 +20,7 @@ struct DigitalTwinAppApp: App {
             ContentView()
                 .environmentObject(container)
                 .environmentObject(container.engine)
+                .environmentObject(ble)
                 .preferredColorScheme(.dark)
                 .task {
                     await container.engine.initialize()

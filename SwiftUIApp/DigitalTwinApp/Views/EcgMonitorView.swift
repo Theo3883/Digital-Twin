@@ -2,17 +2,11 @@ import SwiftUI
 import Charts
 
 struct EcgMonitorView: View {
+    @EnvironmentObject private var ble: BLEManager
     @StateObject private var viewModel: EcgMonitorViewModel
-    @State private var ecgSamples: [Double] = []
-    @State private var heartRate: Double = 0
-    @State private var spO2: Double = 0
-    @State private var isConnected = false
-    @State private var isConnecting = false
     @State private var showSettings = false
-    @State private var wsUrl = "ws://192.168.1.42:8080"
     @State private var frameCount = 0
-    @State private var demoPhase: Double = 0
-    @State private var simTimer: Timer?
+    @State private var mlTimer: Timer?
 
     init(viewModel: EcgMonitorViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -53,7 +47,9 @@ struct EcgMonitorView: View {
             }
         }
         .pageEnterAnimation()
-        .onAppear { startDemoAnimation() }
+        .onAppear {
+            startMlEvaluationTimer()
+        }
         .task { await viewModel.load() }
     }
 
@@ -98,11 +94,11 @@ struct EcgMonitorView: View {
             // Connection status pill
             HStack(spacing: 8) {
                 Circle()
-                    .fill(isConnected ? LiquidGlass.greenPositive :
+                    .fill(ble.isConnected ? LiquidGlass.greenPositive :
                           (viewModel.latestResult?.isCritical == true ? LiquidGlass.redCritical : .gray))
                     .frame(width: 8, height: 8)
                 
-                Text(isConnected ? "Recording · ESP32" : "Not Connected")
+                Text(ble.isConnected ? "Recording · ESP32" : "Not Connected")
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.65))
                 
@@ -123,15 +119,20 @@ struct EcgMonitorView: View {
     private var connectionPanel: some View {
         VStack(spacing: 12) {
             HStack {
-                TextField("WebSocket URL", text: $wsUrl)
-                    .font(.system(size: 14, design: .monospaced))
+                Text(ble.isConnected ? "Connected to ESP32" : (ble.isScanning ? "Scanning for ESP32..." : "Bluetooth Ready"))
+                    .font(.system(size: 14))
                     .foregroundColor(.white)
-                    .padding(10)
-                    .glassEffect(.regular.tint(.primary.opacity(0.05)), in: RoundedRectangle(cornerRadius: LiquidGlass.radiusInput))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.leading, 10)
                 
-                Button(isConnected ? "Disconnect" : "Connect") {
-                    isConnected.toggle()
-                    if isConnected { startSimulatedEcg() }
+                Button(ble.isConnected ? "Disconnect" : (ble.isScanning ? "Stop Scan" : "Connect ESP32")) {
+                    if ble.isConnected {
+                        ble.disconnect()
+                    } else if ble.isScanning {
+                        ble.stopScanning()
+                    } else {
+                        ble.startScanning()
+                    }
                 }
                 .buttonStyle(.glass)
             }
@@ -180,16 +181,11 @@ struct EcgMonitorView: View {
             }
             .frame(height: 280)
             
-            // ECG Waveform
-            if !ecgSamples.isEmpty {
-                EcgWaveformPath(samples: ecgSamples)
+            // Render only real BLE waveform when device is connected and samples exist.
+            if ble.isConnected, !ble.ecgBuffer.isEmpty {
+                let scaledSamples = ble.ecgBuffer.map { Double($0) / 1000.0 }
+                EcgWaveformPath(samples: scaledSamples)
                     .stroke(Color(red: 0, green: 1, blue: 136/255), lineWidth: 1.5)
-                    .frame(height: 240)
-                    .padding(.horizontal, 40)
-            } else {
-                // Demo waveform animation
-                EcgDemoWave(phase: demoPhase)
-                    .stroke(Color(red: 0, green: 1, blue: 136/255).opacity(0.6), lineWidth: 1.5)
                     .frame(height: 240)
                     .padding(.horizontal, 40)
             }
@@ -225,8 +221,8 @@ struct EcgMonitorView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "heart.fill")
                         .font(.system(size: 16))
-                        .foregroundColor(heartRate > 0 ? LiquidGlass.redCritical : LiquidGlass.tealPrimary)
-                    Text(heartRate > 0 ? "\(String(format: "%.0f", heartRate)) BPM" : "-- BPM")
+                        .foregroundColor(ble.heartRate > 0 ? LiquidGlass.redCritical : LiquidGlass.tealPrimary)
+                    Text(ble.heartRate > 0 ? "\(String(format: "%.0f", ble.heartRate)) BPM" : "-- BPM")
                         .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                 }
@@ -237,7 +233,7 @@ struct EcgMonitorView: View {
                     Text("O₂")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(LiquidGlass.bluePrimary)
-                    Text(spO2 > 0 ? "\(String(format: "%.1f", spO2))%" : "--%")
+                    Text(ble.spO2 > 0 ? "\(String(format: "%.1f", ble.spO2))%" : "--%")
                         .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                 }
@@ -314,9 +310,9 @@ struct EcgMonitorView: View {
             VStack(spacing: 0) {
                 triageRuleRow(name: "Signal Quality Rule", status: "✓ Pass", color: LiquidGlass.greenPositive)
                 Divider().background(.white.opacity(0.1))
-                triageRuleRow(name: "Heart Rate Activity", status: heartRate > 0 ? "✓ \(String(format: "%.0f", heartRate)) bpm" : "—", color: LiquidGlass.greenPositive)
+                triageRuleRow(name: "Heart Rate Activity", status: ble.heartRate > 0 ? "✓ \(String(format: "%.0f", ble.heartRate)) bpm" : "—", color: LiquidGlass.greenPositive)
                 Divider().background(.white.opacity(0.1))
-                triageRuleRow(name: "SpO₂ Rule", status: spO2 > 0 ? "✓ \(String(format: "%.1f", spO2))%" : "—", color: LiquidGlass.greenPositive)
+                triageRuleRow(name: "SpO₂ Rule", status: ble.spO2 > 0 ? "✓ \(String(format: "%.1f", ble.spO2))%" : "—", color: LiquidGlass.greenPositive)
             }
             
             // Footer
@@ -342,38 +338,28 @@ struct EcgMonitorView: View {
         .padding(.vertical, 8)
     }
 
-    // MARK: - Simulation
+    // MARK: - ML Evaluation
 
-    private func startDemoAnimation() {
-        Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { _ in
-            Task { @MainActor in
-                demoPhase += 0.02
-            }
-        }
-    }
-
-    private func startSimulatedEcg() {
-        simTimer?.invalidate()
-        simTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+    private func startMlEvaluationTimer() {
+        mlTimer?.invalidate()
+        mlTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             MainActor.assumeIsolated {
-                guard isConnected else { simTimer?.invalidate(); simTimer = nil; return }
+                guard ble.isConnected else { return }
 
-                var samples: [Double] = []
-                for i in 0..<100 {
-                    let t = Double(i) / 100.0
-                    let pWave = 0.15 * sin(2 * .pi * t * 5)
-                    let qrsComplex = (t > 0.4 && t < 0.5) ? 1.2 * sin(2 * .pi * (t - 0.4) * 20) : 0
-                    let tWave = 0.3 * sin(2 * .pi * (t - 0.6) * 3)
-                    samples.append(pWave + qrsComplex + tWave + Double.random(in: -0.05...0.05))
-                }
+                // Grab up to the last 100 samples from the buffer (1 sec of data at 250sps / whatever native rate)
+                let bufferLen = ble.ecgBuffer.count
+                let chunkSize = min(100, bufferLen)
+                guard chunkSize > 0 else { return }
+                
+                let recentInts = Array(ble.ecgBuffer[(bufferLen - chunkSize)...])
+                // Scale native -2048 to +2048 down to visual ~ -1.5 to +1.5
+                let samples = recentInts.map { Double($0) / 1000.0 }
+                
+                let hr = Double(ble.heartRate)
+                let sp = Double(ble.spO2)
 
-                let hr = Double.random(in: 60...100)
-                let sp = Double.random(in: 95...99)
-
-                ecgSamples = samples
-                heartRate = hr
-                spO2 = sp
-                frameCount += 100
+                frameCount += chunkSize
+                
                 Task { @MainActor in
                     await viewModel.evaluateFrame(samples: samples, spO2: sp, heartRate: hr)
                 }

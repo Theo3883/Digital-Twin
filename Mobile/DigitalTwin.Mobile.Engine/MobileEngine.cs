@@ -57,11 +57,11 @@ public class MobileEngine : IDisposable
     private static string ResolveEffectiveApiBaseUrl(string apiBaseUrlFromSwift)
     {
         var compiledDefault = EngineBuildConfig.DefaultApiBaseUrl;
-        if (IsValidAbsoluteHttpUrl(compiledDefault))
-            return compiledDefault;
-
         if (IsValidAbsoluteHttpUrl(apiBaseUrlFromSwift))
             return apiBaseUrlFromSwift;
+
+        if (IsValidAbsoluteHttpUrl(compiledDefault))
+            return compiledDefault;
 
         return "";
     }
@@ -507,7 +507,7 @@ public class MobileEngine : IDisposable
             {
                 Samples = frame.Samples,
                 SpO2 = frame.SpO2,
-                HeartRate = frame.HeartRate,
+                HeartRate = NormalizeHeartRate(frame.HeartRate),
                 Timestamp = frame.Timestamp
             };
 
@@ -522,6 +522,15 @@ public class MobileEngine : IDisposable
             _logger.LogError(ex, "[MobileEngine] ECG evaluation failed");
             return JsonSerializer.Serialize(new NativeBridge.OperationResultDto { Success = false, Error = ex.Message }, MobileJsonContext.Default.OperationResultDto);
         }
+    }
+
+    private static int NormalizeHeartRate(double heartRate)
+    {
+        if (double.IsNaN(heartRate) || double.IsInfinity(heartRate))
+            return 0;
+
+        var rounded = Math.Round(heartRate, MidpointRounding.AwayFromZero);
+        return (int)Math.Clamp(rounded, 0d, int.MaxValue);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

@@ -8,8 +8,10 @@ namespace DigitalTwin.Mobile.Engine;
 public sealed record EcgFrameInput
 {
     public double[] Samples { get; init; } = [];
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
     public double SpO2 { get; init; }
-    public int HeartRate { get; init; }
+    [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
+    public double HeartRate { get; init; }
     public DateTime Timestamp { get; init; }
 }
 

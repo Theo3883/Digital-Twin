@@ -6,7 +6,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 NAME="DigitalTwin.Mobile.NativeHost"
 PROJ="$ROOT_DIR/Mobile/DigitalTwin.Mobile.NativeHost/DigitalTwin.Mobile.NativeHost.csproj"
 FRAMEWORKS_DIR="$ROOT_DIR/build/frameworks"
-XCFRAMEWORK_OUT="$ROOT_DIR/SwiftUIApp/DigitalTwinApp/Interop/DigitalTwin.Mobile.Engine.xcframework"
+XCFRAMEWORK_OUT="$ROOT_DIR/SwiftUIApp/DigitalTwinApp/Interop/DigitalTwin.Mobile.NativeHost.xcframework"
 
 CONFIG="${1:-Debug}"
 
