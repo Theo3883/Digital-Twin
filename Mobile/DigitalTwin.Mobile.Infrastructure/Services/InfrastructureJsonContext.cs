@@ -67,6 +67,7 @@ public partial class InfrastructureJsonContext : JsonSerializerContext;
 // RxNav
 [JsonSerializable(typeof(RxNavDrugsResponse))]
 [JsonSerializable(typeof(RxNavPropertiesResponse))]
+[JsonSerializable(typeof(RxNavRelatedResponse))]
 // openFDA
 [JsonSerializable(typeof(OpenFdaResponse))]
 // Gemini

@@ -50,6 +50,6 @@ public record MedicationInteractionDto
 {
     public string DrugARxCui { get; init; } = string.Empty;
     public string DrugBRxCui { get; init; } = string.Empty;
-    public string Severity { get; init; } = string.Empty;
+    public int Severity { get; init; }
     public string Description { get; init; } = string.Empty;
 }

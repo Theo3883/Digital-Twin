@@ -54,7 +54,7 @@ struct MedicationsView: View {
             AddMedicationSheet(viewModel: addSheetViewModel)
         }
         .sheet(isPresented: $viewModel.isInteractionsSheetPresented) {
-            InteractionsSheet(interactions: viewModel.interactions)
+            InteractionsSheet(interactions: viewModel.interactions, medications: viewModel.medications)
         }
         .alert("End Medication", isPresented: $viewModel.isEndReasonDialogPresented) {
             TextField("Reason (optional)", text: $viewModel.endReason)
@@ -80,9 +80,9 @@ struct MedicationsView: View {
                 .frame(maxWidth: .infinity)
                 .glassBanner(tint: LiquidGlass.greenPositive.opacity(0.15))
             } else if !viewModel.interactions.isEmpty {
-                let highCount = viewModel.interactions.filter { $0.severity == 2 }.count
-                let medCount = viewModel.interactions.filter { $0.severity == 1 }.count
-                let lowCount = viewModel.interactions.filter { $0.severity == 0 }.count
+                let highCount = viewModel.interactions.filter { $0.severity == 3 }.count
+                let medCount = viewModel.interactions.filter { $0.severity == 2 }.count
+                let lowCount = viewModel.interactions.filter { $0.severity == 1 }.count
                 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {
@@ -133,12 +133,12 @@ struct MedicationsView: View {
             ForEach(viewModel.interactions) { interaction in
                 HStack(alignment: .top, spacing: 12) {
                     Image(systemName: "shield.fill")
-                        .foregroundColor(interaction.severity == 2 ? LiquidGlass.redCritical : LiquidGlass.amberWarning)
+                        .foregroundColor(interaction.severity == 3 ? LiquidGlass.redCritical : (interaction.severity == 2 ? LiquidGlass.amberWarning : LiquidGlass.greenPositive))
                         .font(.title3)
                     
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
-                            Text("\(interaction.drugARxCui) + \(interaction.drugBRxCui)")
+                            Text(interaction.displayPair(using: viewModel.medications))
                                 .font(.subheadline.weight(.medium))
                                 .foregroundColor(.white)
                             Spacer()
@@ -153,7 +153,7 @@ struct MedicationsView: View {
                 .padding()
                 .overlay(alignment: .leading) {
                     Rectangle()
-                        .fill(interaction.severity == 2 ? LiquidGlass.redCritical : LiquidGlass.amberWarning)
+                        .fill(interaction.severity == 3 ? LiquidGlass.redCritical : (interaction.severity == 2 ? LiquidGlass.amberWarning : LiquidGlass.greenPositive))
                         .frame(width: 4)
                 }
                 .glassEffect(.regular, in: RoundedRectangle(cornerRadius: LiquidGlass.radiusCard))

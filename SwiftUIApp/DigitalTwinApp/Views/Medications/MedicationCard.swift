@@ -15,7 +15,7 @@ struct MedicationCard: View {
         switch medication.addedByRole {
         case 1: return Color(red: 168/255, green: 85/255, blue: 247/255)
         case 2: return Color(red: 245/255, green: 158/255, blue: 11/255)
-        default: return LiquidGlass.tealPrimary
+        default: return .teal
         }
     }
 
@@ -37,29 +37,29 @@ struct MedicationCard: View {
                 HStack(spacing: 6) {
                     Text(medication.name)
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundStyle(.primary)
                     Text(medication.dosage)
                         .font(.caption)
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundStyle(.secondary)
                 }
 
                 if let frequency = medication.frequency {
                     Text(frequency)
                         .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundStyle(.secondary)
                 }
 
                 if let reason = medication.reason {
                     Text(reason)
                         .font(.system(size: 11))
-                        .foregroundColor(.white.opacity(0.35))
+                        .foregroundStyle(.tertiary)
                         .lineLimit(1)
                 }
 
                 if !medication.isActive, let endDate = medication.endDate {
                     Text("Ended \(endDate.formatted(date: .abbreviated, time: .omitted))")
                         .font(.caption2)
-                        .foregroundColor(.white.opacity(0.35))
+                        .foregroundStyle(.tertiary)
                 }
             }
 
@@ -69,16 +69,12 @@ struct MedicationCard: View {
                 if let routeLabel = routeDisplay {
                     Text(routeLabel)
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(LiquidGlass.tealPrimary)
+                        .foregroundStyle(.teal)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .background {
-                            RoundedRectangle(cornerRadius: LiquidGlass.radiusChip)
-                                .stroke(LiquidGlass.tealPrimary.opacity(0.4), lineWidth: 1)
-                                .background(
-                                    RoundedRectangle(cornerRadius: LiquidGlass.radiusChip)
-                                        .fill(LiquidGlass.tealPrimary.opacity(0.1))
-                                )
+                            Capsule(style: .continuous)
+                                .fill(.teal.opacity(0.14))
                         }
                 }
 
@@ -88,20 +84,21 @@ struct MedicationCard: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
                     .background {
-                        RoundedRectangle(cornerRadius: LiquidGlass.radiusChip)
-                            .stroke(addedByColor.opacity(0.4), lineWidth: 1)
-                            .background(
-                                RoundedRectangle(cornerRadius: LiquidGlass.radiusChip)
-                                    .fill(addedByColor.opacity(0.1))
-                            )
+                        Capsule(style: .continuous)
+                            .fill(addedByColor.opacity(0.14))
                     }
             }
 
             Image(systemName: "chevron.right")
                 .font(.caption)
-                .foregroundColor(.white.opacity(0.3))
+                .foregroundStyle(.tertiary)
         }
-        .glassCard()
+        .padding()
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .strokeBorder(.white.opacity(0.15), lineWidth: 1)
+        }
     }
 }
 

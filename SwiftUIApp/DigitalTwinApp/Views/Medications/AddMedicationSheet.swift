@@ -10,13 +10,14 @@ struct AddMedicationSheet: View {
     @State private var instructions = ""
     @State private var selectedRxCui: String?
     @State private var isSaving = false
+    @State private var saveErrorMessage: String?
 
     init(viewModel: AddMedicationSheetViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section("Drug Name") {
                     TextField("Medication name", text: $name)
@@ -54,9 +55,24 @@ struct AddMedicationSheet: View {
                         Task { await save() }
                     }
                     .disabled(name.isEmpty || isSaving)
-                    .liquidGlassButtonStyle()
+                    .buttonStyle(.borderedProminent)
+                    .buttonBorderShape(.capsule)
+                    .tint(.teal)
                 }
             }
+        }
+        .alert(
+            "Unable to Add Medication",
+            isPresented: Binding(
+                get: { saveErrorMessage != nil },
+                set: { if !$0 { saveErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                saveErrorMessage = nil
+            }
+        } message: {
+            Text(saveErrorMessage ?? "")
         }
     }
 
@@ -74,8 +90,15 @@ struct AddMedicationSheet: View {
             startDate: nil,
             addedByRole: 0
         )
-        let _ = await viewModel.add(input: input)
-        dismiss()
+        let result = await viewModel.add(input: input)
+        isSaving = false
+
+        if result.success {
+            dismiss()
+            return
+        }
+
+        saveErrorMessage = result.error ?? "Medication could not be added."
     }
 }
 

@@ -17,7 +17,7 @@ final class EngineMedicationRepository: MedicationRepository {
         await engine.searchDrugs(query: query)
     }
 
-    func addMedication(_ input: AddMedicationInput) async -> Bool {
+    func addMedication(_ input: AddMedicationInput) async -> OperationResult {
         await engine.addMedication(input)
     }
 

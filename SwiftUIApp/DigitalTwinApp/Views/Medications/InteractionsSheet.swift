@@ -2,6 +2,7 @@ import SwiftUI
 
 struct InteractionsSheet: View {
     let interactions: [MedicationInteractionInfo]
+    let medications: [MedicationInfo]
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -9,7 +10,7 @@ struct InteractionsSheet: View {
             List(interactions) { interaction in
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text("\(interaction.drugARxCui) + \(interaction.drugBRxCui)")
+                        Text(interaction.displayPair(using: medications))
                             .font(.headline)
                         Spacer()
                         MedicationSafetyBadge(severity: interaction.severity)

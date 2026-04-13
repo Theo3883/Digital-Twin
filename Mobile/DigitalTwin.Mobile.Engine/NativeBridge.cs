@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 using DigitalTwin.Mobile.Application.DTOs;
 
@@ -13,6 +14,12 @@ public static class NativeBridge
 {
     private static MobileEngine? _engine;
     private static ILogger? _logger;
+    private static int _globalExceptionHandlersInstalled;
+
+    static NativeBridge()
+    {
+        EnsureGlobalExceptionHandlers();
+    }
 
     // ═══════════════════════════════════════════════════════════════════════════
     //  Lifecycle Management
@@ -26,6 +33,8 @@ public static class NativeBridge
     {
         try
         {
+            EnsureGlobalExceptionHandlers();
+
             var databasePath = Marshal.PtrToStringUTF8(databasePathPtr) ?? throw new ArgumentNullException(nameof(databasePathPtr));
             var apiBaseUrl = Marshal.PtrToStringUTF8(apiBaseUrlPtr) ?? "";
             var geminiApiKey = Marshal.PtrToStringUTF8(geminiApiKeyPtr);
@@ -667,9 +676,12 @@ public static class NativeBridge
 
     internal static IntPtr VaultInitialize_Impl(IntPtr inputJsonPtr)
     {
-        if (_engine == null) throw new InvalidOperationException("Engine not initialized");
-        var json = Marshal.PtrToStringUTF8(inputJsonPtr) ?? "";
-        return AllocateString(_engine.VaultInitialize(json));
+        return ExecuteSync(() =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var json = Marshal.PtrToStringUTF8(inputJsonPtr) ?? "";
+            return _engine.VaultInitialize(json);
+        });
     }
 
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_vault_initialize")]
@@ -677,9 +689,12 @@ public static class NativeBridge
 
     internal static IntPtr VaultUnlock_Impl(IntPtr masterKeyB64Ptr)
     {
-        if (_engine == null) throw new InvalidOperationException("Engine not initialized");
-        var key = Marshal.PtrToStringUTF8(masterKeyB64Ptr) ?? "";
-        return AllocateString(_engine.VaultUnlock(key));
+        return ExecuteSync(() =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var key = Marshal.PtrToStringUTF8(masterKeyB64Ptr) ?? "";
+            return _engine.VaultUnlock(key);
+        });
     }
 
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_vault_unlock")]
@@ -687,8 +702,11 @@ public static class NativeBridge
 
     internal static IntPtr VaultLock_Impl()
     {
-        if (_engine == null) throw new InvalidOperationException("Engine not initialized");
-        return AllocateString(_engine.VaultLock());
+        return ExecuteSync(() =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            return _engine.VaultLock();
+        });
     }
 
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_vault_lock")]
@@ -722,9 +740,12 @@ public static class NativeBridge
 
     internal static IntPtr VaultDeleteDocument_Impl(IntPtr docIdPtr)
     {
-        if (_engine == null) throw new InvalidOperationException("Engine not initialized");
-        var docId = Marshal.PtrToStringUTF8(docIdPtr) ?? "";
-        return AllocateString(_engine.VaultDeleteDocument(docId));
+        return ExecuteSync(() =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var docId = Marshal.PtrToStringUTF8(docIdPtr) ?? "";
+            return _engine.VaultDeleteDocument(docId);
+        });
     }
 
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_vault_delete_document")]
@@ -732,8 +753,11 @@ public static class NativeBridge
 
     internal static IntPtr VaultWipe_Impl()
     {
-        if (_engine == null) throw new InvalidOperationException("Engine not initialized");
-        return AllocateString(_engine.VaultWipe());
+        return ExecuteSync(() =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            return _engine.VaultWipe();
+        });
     }
 
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_vault_wipe")]
@@ -741,10 +765,13 @@ public static class NativeBridge
 
     internal static IntPtr ClassifyWithOrchestrator_Impl(IntPtr ocrTextPtr, IntPtr mlTypePtr, float mlConfidence)
     {
-        if (_engine == null) throw new InvalidOperationException("Engine not initialized");
-        var ocrText = Marshal.PtrToStringUTF8(ocrTextPtr) ?? "";
-        var mlType = Marshal.PtrToStringUTF8(mlTypePtr);
-        return AllocateString(_engine.ClassifyWithOrchestrator(ocrText, mlType, mlConfidence));
+        return ExecuteSync(() =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var ocrText = Marshal.PtrToStringUTF8(ocrTextPtr) ?? "";
+            var mlType = Marshal.PtrToStringUTF8(mlTypePtr);
+            return _engine.ClassifyWithOrchestrator(ocrText, mlType, mlConfidence);
+        });
     }
 
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_classify_with_orchestrator")]
@@ -753,11 +780,14 @@ public static class NativeBridge
 
     internal static IntPtr BuildStructuredDocument_Impl(IntPtr ocrTextPtr, IntPtr docTypePtr, float classConfidence, IntPtr classMethodPtr)
     {
-        if (_engine == null) throw new InvalidOperationException("Engine not initialized");
-        var ocrText = Marshal.PtrToStringUTF8(ocrTextPtr) ?? "";
-        var docType = Marshal.PtrToStringUTF8(docTypePtr) ?? "Unknown";
-        var classMethod = Marshal.PtrToStringUTF8(classMethodPtr) ?? "";
-        return AllocateString(_engine.BuildStructuredDocument(ocrText, docType, classConfidence, classMethod));
+        return ExecuteSync(() =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var ocrText = Marshal.PtrToStringUTF8(ocrTextPtr) ?? "";
+            var docType = Marshal.PtrToStringUTF8(docTypePtr) ?? "Unknown";
+            var classMethod = Marshal.PtrToStringUTF8(classMethodPtr) ?? "";
+            return _engine.BuildStructuredDocument(ocrText, docType, classConfidence, classMethod);
+        });
     }
 
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_build_structured_document")]
@@ -766,9 +796,12 @@ public static class NativeBridge
 
     internal static IntPtr BuildStructuredDocumentFromJson_Impl(IntPtr inputJsonPtr)
     {
-        if (_engine == null) throw new InvalidOperationException("Engine not initialized");
-        var json = Marshal.PtrToStringUTF8(inputJsonPtr) ?? "";
-        return AllocateString(_engine.BuildStructuredDocumentFromJson(json));
+        return ExecuteSync(() =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var json = Marshal.PtrToStringUTF8(inputJsonPtr) ?? "";
+            return _engine.BuildStructuredDocumentFromJson(json);
+        });
     }
 
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_build_structured_document_json")]
@@ -777,8 +810,11 @@ public static class NativeBridge
 
     internal static IntPtr GetMlAuditSummary_Impl()
     {
-        if (_engine == null) throw new InvalidOperationException("Engine not initialized");
-        return AllocateString(_engine.GetMlAuditSummary());
+        return ExecuteSync(() =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            return _engine.GetMlAuditSummary();
+        });
     }
 
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_ml_audit_summary")]
@@ -786,10 +822,13 @@ public static class NativeBridge
 
     internal static IntPtr ValidateDocument_Impl(IntPtr headerB64Ptr, IntPtr extensionPtr, long fileSizeBytes)
     {
-        if (_engine == null) throw new InvalidOperationException("Engine not initialized");
-        var headerB64 = Marshal.PtrToStringUTF8(headerB64Ptr) ?? "";
-        var extension = Marshal.PtrToStringUTF8(extensionPtr) ?? "";
-        return AllocateString(_engine.ValidateDocument(headerB64, extension, fileSizeBytes));
+        return ExecuteSync(() =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var headerB64 = Marshal.PtrToStringUTF8(headerB64Ptr) ?? "";
+            var extension = Marshal.PtrToStringUTF8(extensionPtr) ?? "";
+            return _engine.ValidateDocument(headerB64, extension, fileSizeBytes);
+        });
     }
 
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_validate_document")]
@@ -897,8 +936,70 @@ public static class NativeBridge
         catch (Exception ex)
         {
             _logger?.LogError(ex, "[NativeBridge] Operation failed");
-            return AllocateString(JsonSerializer.Serialize(new OperationResultDto { Success = false, Error = $"Operation failed: {ex.Message}" }, MobileJsonContext.Default.OperationResultDto));
+            return AllocateString(JsonSerializer.Serialize(new OperationResultDto { Success = false, Error = $"Operation failed: {ExtractErrorMessage(ex)}" }, MobileJsonContext.Default.OperationResultDto));
         }
+    }
+
+    private static IntPtr ExecuteSync(Func<string> operation)
+    {
+        try
+        {
+            return AllocateString(operation());
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "[NativeBridge] Sync operation failed");
+            return AllocateString(JsonSerializer.Serialize(
+                new OperationResultDto { Success = false, Error = $"Operation failed: {ExtractErrorMessage(ex)}" },
+                MobileJsonContext.Default.OperationResultDto));
+        }
+    }
+
+    private static string ExtractErrorMessage(Exception ex)
+    {
+        if (ex is AggregateException aggregate)
+        {
+            var flattened = aggregate.Flatten();
+            if (flattened.InnerExceptions.Count == 1)
+                return flattened.InnerExceptions[0].Message;
+        }
+
+        return ex.Message;
+    }
+
+    private static void EnsureGlobalExceptionHandlers()
+    {
+        if (Interlocked.Exchange(ref _globalExceptionHandlersInstalled, 1) == 1)
+            return;
+
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            try
+            {
+                var ex = args.ExceptionObject as Exception;
+                _logger?.LogCritical(ex, "[NativeBridge] Unhandled exception (IsTerminating={IsTerminating})", args.IsTerminating);
+                Console.Error.WriteLine($"[NativeBridge] Unhandled exception (IsTerminating={args.IsTerminating}): {ex?.ToString() ?? args.ExceptionObject?.ToString() ?? "unknown"}");
+            }
+            catch
+            {
+                // Never throw from global exception handlers.
+            }
+        };
+
+        TaskScheduler.UnobservedTaskException += (_, args) =>
+        {
+            try
+            {
+                _logger?.LogError(args.Exception, "[NativeBridge] Unobserved task exception captured");
+                Console.Error.WriteLine($"[NativeBridge] Unobserved task exception: {args.Exception}");
+            }
+            catch
+            {
+                // Never throw from global exception handlers.
+            }
+
+            args.SetObserved();
+        };
     }
 
     public sealed record OperationResultDto

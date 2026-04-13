@@ -10,6 +10,7 @@ struct PatientView: View {
     private let profileRepository: ProfileRepository
     private let ocrRepository: OcrRepository
     private let addSheetViewModel: AddMedicationSheetViewModel
+    private let checkSheetViewModel: CheckInteractionsSheetViewModel
 
     enum PatientSection: String, CaseIterable {
         case overview = "Overview"
@@ -21,12 +22,14 @@ struct PatientView: View {
         profileVM: ProfileViewModel,
         medsVM: MedicationsViewModel,
         addSheetViewModel: AddMedicationSheetViewModel,
+        checkSheetViewModel: CheckInteractionsSheetViewModel,
         profileRepository: ProfileRepository,
         ocrRepository: OcrRepository
     ) {
         _profileVM = StateObject(wrappedValue: profileVM)
         _medsVM = StateObject(wrappedValue: medsVM)
         self.addSheetViewModel = addSheetViewModel
+        self.checkSheetViewModel = checkSheetViewModel
         self.profileRepository = profileRepository
         self.ocrRepository = ocrRepository
     }
@@ -139,8 +142,12 @@ struct PatientView: View {
             .sheet(isPresented: $medsVM.isAddSheetPresented) {
                 AddMedicationSheet(viewModel: addSheetViewModel)
             }
-            .sheet(isPresented: $medsVM.isInteractionsSheetPresented) {
-                InteractionsSheet(interactions: medsVM.interactions)
+            .sheet(isPresented: $medsVM.isCheckSheetPresented) {
+                CheckInteractionsSheet(
+                    viewModel: checkSheetViewModel,
+                    activeMedications: medsVM.activeMedications,
+                    onResultsApplied: medsVM.applyManualCheckResults
+                )
             }
             .alert("End Medication", isPresented: $medsVM.isEndReasonDialogPresented) {
                 TextField("Reason (optional)", text: $medsVM.endReason)
@@ -573,56 +580,80 @@ struct PatientView: View {
             if medsVM.interactions.isEmpty && !medsVM.activeMedications.isEmpty {
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark.shield.fill")
-                        .foregroundColor(LiquidGlass.greenPositive)
+                        .foregroundStyle(.green)
                     Text("✓ No Interactions Found")
                         .font(.subheadline.weight(.medium))
-                        .foregroundColor(.white)
+                        .foregroundStyle(.primary)
                 }
                 .frame(maxWidth: .infinity)
-                .glassBanner(tint: LiquidGlass.greenPositive.opacity(0.15))
+                .padding(12)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(.green.opacity(0.35), lineWidth: 1)
+                }
             } else if !medsVM.interactions.isEmpty {
-                let highCount = medsVM.interactions.filter { $0.severity == 2 }.count
-                let medCount = medsVM.interactions.filter { $0.severity == 1 }.count
-                let lowCount = medsVM.interactions.filter { $0.severity == 0 }.count
+                let highCount = medsVM.interactions.filter { $0.severity == 3 }.count
+                let medCount = medsVM.interactions.filter { $0.severity == 2 }.count
+                let lowCount = medsVM.interactions.filter { $0.severity == 1 }.count
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.white)
+                            .foregroundStyle(highCount > 0 ? .red : .orange)
                         Text("⚠ \(medsVM.interactions.count) Interaction\(medsVM.interactions.count == 1 ? "" : "s") Detected")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundColor(.white)
+                            .foregroundStyle(.primary)
                     }
                     HStack(spacing: 8) {
                         if highCount > 0 {
                             Text("\(highCount) High")
                                 .font(.caption2.weight(.medium))
-                                .glassChip(tint: LiquidGlass.redCritical)
+                                .foregroundStyle(.red)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(.red.opacity(0.16), in: Capsule(style: .continuous))
                         }
                         if medCount > 0 {
                             Text("\(medCount) Medium")
                                 .font(.caption2.weight(.medium))
-                                .glassChip(tint: LiquidGlass.amberWarning)
+                                .foregroundStyle(.orange)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(.orange.opacity(0.16), in: Capsule(style: .continuous))
                         }
                         if lowCount > 0 {
                             Text("\(lowCount) Low")
                                 .font(.caption2.weight(.medium))
-                                .glassChip(tint: LiquidGlass.greenPositive)
+                                .foregroundStyle(.green)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(.green.opacity(0.16), in: Capsule(style: .continuous))
                         }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .glassBanner(tint: highCount > 0 ? LiquidGlass.redCritical.opacity(0.3) : LiquidGlass.amberWarning.opacity(0.3))
+                .padding(12)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder((highCount > 0 ? Color.red : Color.orange).opacity(0.35), lineWidth: 1)
+                }
             } else if medsVM.medications.isEmpty {
                 HStack(spacing: 8) {
                     Image(systemName: "pills.fill")
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundStyle(.secondary)
                     Text("No Medications")
                         .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.65))
+                        .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity)
-                .glassBanner(tint: LiquidGlass.greenPositive.opacity(0.1))
+                .padding(12)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(.white.opacity(0.15), lineWidth: 1)
+                }
             }
         }
     }
@@ -634,30 +665,34 @@ struct PatientView: View {
             ForEach(medsVM.interactions) { interaction in
                 HStack(alignment: .top, spacing: 12) {
                     Image(systemName: "shield.fill")
-                        .foregroundColor(interaction.severity == 2 ? LiquidGlass.redCritical : LiquidGlass.amberWarning)
+                        .foregroundStyle(interaction.severity == 3 ? .red : (interaction.severity == 2 ? .orange : .green))
                         .font(.title3)
 
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
-                            Text("\(interaction.drugARxCui) + \(interaction.drugBRxCui)")
+                            Text(interaction.displayPair(using: medsVM.medications))
                                 .font(.subheadline.weight(.medium))
-                                .foregroundColor(.white)
+                                .foregroundStyle(.primary)
                             Spacer()
                             MedicationSafetyBadge(severity: interaction.severity)
                         }
                         Text(interaction.description)
                             .font(.caption)
-                            .foregroundColor(.white.opacity(0.65))
+                            .foregroundStyle(.secondary)
                             .lineLimit(3)
                     }
                 }
                 .padding()
                 .overlay(alignment: .leading) {
                     Rectangle()
-                        .fill(interaction.severity == 2 ? LiquidGlass.redCritical : LiquidGlass.amberWarning)
+                        .fill(interaction.severity == 3 ? Color.red : (interaction.severity == 2 ? Color.orange : Color.green))
                         .frame(width: 4)
                 }
-                .glassEffect(.regular, in: RoundedRectangle(cornerRadius: LiquidGlass.radiusCard))
+                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .strokeBorder(.white.opacity(0.15), lineWidth: 1)
+                }
             }
         }
     }
@@ -709,17 +744,20 @@ struct PatientView: View {
 
     private var floatingActionButtons: some View {
         HStack(spacing: 12) {
-            Button(action: { medsVM.isInteractionsSheetPresented = true }) {
+            Button(action: {
+                checkSheetViewModel.resetForNewCheck()
+                medsVM.isCheckSheetPresented = true
+            }) {
                 HStack(spacing: 6) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 14))
                     Text("Check Interactions")
                         .font(.caption.weight(.medium))
                 }
-                .foregroundColor(.white)
             }
-            .glassPill(tint: LiquidGlass.tealPrimary.opacity(0.15))
-            .disabled(medsVM.interactions.isEmpty)
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.capsule)
+            .tint(.teal.opacity(0.8))
 
             Button(action: { medsVM.isAddSheetPresented = true }) {
                 HStack(spacing: 6) {
@@ -728,10 +766,135 @@ struct PatientView: View {
                     Text("Add Medication")
                         .font(.caption.weight(.medium))
                 }
-                .foregroundColor(.white)
             }
-            .glassPill(tint: LiquidGlass.tealPrimary.opacity(0.2))
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.capsule)
+            .tint(.teal)
         }
         .padding(.bottom, 16)
+    }
+}
+
+private struct CheckInteractionsSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var viewModel: CheckInteractionsSheetViewModel
+
+    private let activeMedications: [MedicationInfo]
+    private let onResultsApplied: ([MedicationInteractionInfo]) -> Void
+
+    @State private var isShowingError = false
+
+    init(
+        viewModel: CheckInteractionsSheetViewModel,
+        activeMedications: [MedicationInfo],
+        onResultsApplied: @escaping ([MedicationInteractionInfo]) -> Void = { _ in }
+    ) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+        self.activeMedications = activeMedications
+        self.onResultsApplied = onResultsApplied
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Medications") {
+                    TextField("Medication 1", text: $viewModel.medication1)
+                        .textInputAutocapitalization(.words)
+                        .autocorrectionDisabled()
+
+                    Toggle("Include my active medications", isOn: $viewModel.includeActiveMedications)
+
+                    TextField(
+                        viewModel.includeActiveMedications ? "Medication 2 (optional)" : "Medication 2",
+                        text: $viewModel.medication2
+                    )
+                    .textInputAutocapitalization(.words)
+                    .autocorrectionDisabled()
+                }
+
+                if viewModel.includeActiveMedications {
+                    Section("Active Medications") {
+                        if activeMedications.isEmpty {
+                            Label("No active medications available.", systemImage: "info.circle")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("\(activeMedications.count) active medication\(activeMedications.count == 1 ? "" : "s") will be included.")
+                                .foregroundStyle(.secondary)
+                            ForEach(activeMedications.prefix(3)) { medication in
+                                Text(medication.name)
+                            }
+                        }
+                    }
+                }
+
+                if viewModel.isChecking {
+                    Section {
+                        HStack(spacing: 10) {
+                            ProgressView()
+                            Text("Checking interactions...")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                if viewModel.hasChecked {
+                    resultsSection
+                }
+            }
+            .navigationTitle("Check Interactions")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(viewModel.isChecking ? "Checking..." : "Check") {
+                        Task {
+                            await viewModel.runCheck(activeMedications: activeMedications)
+                            if viewModel.errorMessage == nil {
+                                onResultsApplied(viewModel.interactions)
+                            }
+                        }
+                    }
+                    .disabled(!viewModel.canCheck || viewModel.isChecking)
+                }
+            }
+        }
+        .onChange(of: viewModel.errorMessage) { _, newValue in
+            isShowingError = !(newValue?.isEmpty ?? true)
+        }
+        .alert("Unable to Check Interactions", isPresented: $isShowingError) {
+            Button("OK", role: .cancel) {
+                viewModel.errorMessage = nil
+            }
+        } message: {
+            Text(viewModel.errorMessage ?? "")
+        }
+    }
+
+    @ViewBuilder
+    private var resultsSection: some View {
+        Section("Results") {
+            if viewModel.interactions.isEmpty {
+                Label("No interactions found.", systemImage: "checkmark.shield")
+                    .foregroundStyle(.green)
+            } else {
+                ForEach(viewModel.interactions) { interaction in
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text(interaction.displayPair(using: activeMedications))
+                                .font(.subheadline.weight(.semibold))
+                            Spacer()
+                            MedicationSafetyBadge(severity: interaction.severity)
+                        }
+
+                        Text(interaction.description)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        }
     }
 }

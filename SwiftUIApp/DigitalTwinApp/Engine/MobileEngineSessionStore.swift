@@ -345,15 +345,18 @@ class MobileEngineSessionStore: ObservableObject {
         medicationInteractions = await checkInteractions(rxCuis: rxCuis)
     }
 
-    func addMedication(_ input: AddMedicationInput) async -> Bool {
-        guard let engine else { return false }
+    func addMedication(_ input: AddMedicationInput) async -> OperationResult {
+        guard let engine else {
+            return OperationResult(success: false, error: "Engine is not initialized")
+        }
+
         do {
             let result = try await engine.addMedication(input)
             if result.success { await loadMedications() }
-            return result.success
+            return result
         } catch {
             errorMessage = "Failed to add medication: \(error.localizedDescription)"
-            return false
+            return OperationResult(success: false, error: error.localizedDescription)
         }
     }
 

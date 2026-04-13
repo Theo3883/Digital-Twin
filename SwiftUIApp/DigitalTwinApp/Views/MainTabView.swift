@@ -100,6 +100,10 @@ struct MainTabView: View {
                             searchDrugs: SearchDrugsUseCase(repository: medicationRepository),
                             addMedication: AddMedicationUseCase(repository: medicationRepository)
                         ),
+                        checkSheetViewModel: CheckInteractionsSheetViewModel(
+                            searchDrugs: SearchDrugsUseCase(repository: medicationRepository),
+                            checkInteractions: CheckMedicationInteractionsUseCase(repository: medicationRepository)
+                        ),
                         profileRepository: profileRepository,
                         ocrRepository: ocrRepository
                     )

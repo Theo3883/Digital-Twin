@@ -7,7 +7,7 @@ struct AddMedicationUseCase: Sendable {
         self.repository = repository
     }
 
-    func callAsFunction(_ input: AddMedicationInput) async -> Bool {
+    func callAsFunction(_ input: AddMedicationInput) async -> OperationResult {
         await repository.addMedication(input)
     }
 }

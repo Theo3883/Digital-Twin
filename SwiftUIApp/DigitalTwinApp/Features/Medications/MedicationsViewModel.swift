@@ -7,6 +7,7 @@ final class MedicationsViewModel: ObservableObject {
     @Published var drugSearchResults: [DrugSearchResult] = []
 
     @Published var isAddSheetPresented: Bool = false
+    @Published var isCheckSheetPresented: Bool = false
     @Published var isInteractionsSheetPresented: Bool = false
     @Published var endReason: String = ""
     @Published var isEndReasonDialogPresented: Bool = false
@@ -91,6 +92,24 @@ final class MedicationsViewModel: ObservableObject {
         Task {
             let _ = await discontinue(id: med.id, reason: "Removed by user")
             await refresh()
+        }
+    }
+
+    func applyManualCheckResults(_ results: [MedicationInteractionInfo]) {
+        let activeRxCuis = Set(
+            activeMedications
+                .compactMap { $0.rxCui?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
+                .filter { !$0.isEmpty }
+        )
+
+        guard activeRxCuis.count >= 2 else {
+            interactions = []
+            return
+        }
+
+        interactions = results.filter {
+            activeRxCuis.contains($0.drugARxCui.lowercased())
+                && activeRxCuis.contains($0.drugBRxCui.lowercased())
         }
     }
 }
