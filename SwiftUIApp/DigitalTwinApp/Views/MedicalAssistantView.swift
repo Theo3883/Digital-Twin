@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MedicalAssistantView: View {
     @EnvironmentObject var engineWrapper: MobileEngineWrapper
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @StateObject private var viewModel: MedicalAssistantViewModel
     @FocusState private var isInputFocused: Bool
 
@@ -204,7 +205,15 @@ struct MedicalAssistantView: View {
 
     // MARK: - Input Bar
 
-    private var chatInputBar: some View {
+    private var tabAlignedHorizontalInset: CGFloat {
+        horizontalSizeClass == .regular ? LiquidGlass.tabAlignedInsetRegular : LiquidGlass.tabAlignedInsetCompact
+    }
+
+    private var medAssistInputCornerRadius: CGFloat {
+        28
+    }
+
+    private var chatInputRow: some View {
         HStack(spacing: 12) {
             TextField("Ask your health assistant...", text: $viewModel.messageText, axis: .vertical)
                 .lineLimit(1...4)
@@ -228,8 +237,35 @@ struct MedicalAssistantView: View {
             .disabled(viewModel.messageText.trimmingCharacters(in: .whitespaces).isEmpty || viewModel.isSending)
             .opacity(viewModel.messageText.trimmingCharacters(in: .whitespaces).isEmpty ? 0.4 : 1)
         }
-        .glassInputBar()
-        .padding(.horizontal, 16)
-        .padding(.bottom, 8)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+    }
+
+    @ViewBuilder
+    private var chatInputShell: some View {
+        let shape = RoundedRectangle(cornerRadius: medAssistInputCornerRadius, style: .continuous)
+
+        if #available(iOS 26.0, *) {
+            chatInputRow
+                .glassEffect(.regular.tint(.primary.opacity(isInputFocused ? 0.12 : 0.06)).interactive(), in: shape)
+                .overlay {
+                    shape
+                        .strokeBorder((isInputFocused ? LiquidGlass.tealPrimary : .white).opacity(isInputFocused ? 0.55 : 0.18), lineWidth: 1)
+                }
+        } else {
+            chatInputRow
+                .background(.regularMaterial, in: shape)
+                .overlay {
+                    shape
+                        .strokeBorder((isInputFocused ? LiquidGlass.tealPrimary : .white).opacity(isInputFocused ? 0.55 : 0.16), lineWidth: 1)
+                }
+        }
+    }
+
+    private var chatInputBar: some View {
+        chatInputShell
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, tabAlignedHorizontalInset)
+            .padding(.bottom, 8)
     }
 }

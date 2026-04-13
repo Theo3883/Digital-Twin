@@ -25,6 +25,9 @@ enum LiquidGlass {
     static let radiusPill: CGFloat = 9999
     static let radiusButton: CGFloat = 20
     static let radiusInput: CGFloat = 18
+    // Insets tuned to visually align bottom bars with the native floating tab bar width.
+    static let tabAlignedInsetCompact: CGFloat = 20
+    static let tabAlignedInsetRegular: CGFloat = 28
 
     // Text hierarchy (from MAUI CSS)
     static let textMain = Color.white
@@ -161,10 +164,31 @@ struct GlassBanner: ViewModifier {
 // MARK: - Glass Input Bar
 
 struct GlassInputBar: ViewModifier {
+    var isFocused: Bool = false
+
+    @ViewBuilder
     func body(content: Content) -> some View {
-        content
-            .padding(12)
-            .glassEffect(.regular.tint(.primary.opacity(0.05)), in: RoundedRectangle(cornerRadius: LiquidGlass.radiusInput))
+        let shape = RoundedRectangle(cornerRadius: LiquidGlass.radiusInput, style: .continuous)
+
+        if #available(iOS 26.0, *) {
+            content
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .glassEffect(.regular.tint(.primary.opacity(isFocused ? 0.12 : 0.06)).interactive(), in: shape)
+                .overlay {
+                    shape
+                        .strokeBorder((isFocused ? LiquidGlass.tealPrimary : .white).opacity(isFocused ? 0.55 : 0.18), lineWidth: 1)
+                }
+        } else {
+            content
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(.regularMaterial, in: shape)
+                .overlay {
+                    shape
+                        .strokeBorder((isFocused ? LiquidGlass.tealPrimary : .white).opacity(isFocused ? 0.55 : 0.16), lineWidth: 1)
+                }
+        }
     }
 }
 
@@ -209,8 +233,8 @@ extension View {
         modifier(GlassBanner(tint: tint))
     }
 
-    func glassInputBar() -> some View {
-        modifier(GlassInputBar())
+    func glassInputBar(isFocused: Bool = false) -> some View {
+        modifier(GlassInputBar(isFocused: isFocused))
     }
 
     func pageEnterAnimation() -> some View {
