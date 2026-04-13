@@ -124,7 +124,7 @@ struct MedicalDocumentDetailView: View {
         ZStack {
             MeshGradientBackground()
 
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(spacing: 16) {
                     metadataCard
 

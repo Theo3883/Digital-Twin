@@ -11,7 +11,7 @@ struct MedicationsView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(spacing: 16) {
                     // Interaction Banner
                     interactionBanner

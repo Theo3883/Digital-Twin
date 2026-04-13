@@ -18,7 +18,7 @@ struct AuthenticationView: View {
     @State private var isCreatingAccount = false
 
     var body: some View {
-        ScrollView {
+        ScrollView(showsIndicators: false) {
             if !showRegistrationForm {
                 // Sign-In Screen
                 VStack(spacing: 40) {

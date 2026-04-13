@@ -142,7 +142,7 @@ struct MedicalAssistantView: View {
 
     private var chatMessagesList: some View {
         ScrollViewReader { proxy in
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 LazyVStack(spacing: 12) {
                     ForEach(viewModel.messages) { message in
                         ChatBubble(message: message)

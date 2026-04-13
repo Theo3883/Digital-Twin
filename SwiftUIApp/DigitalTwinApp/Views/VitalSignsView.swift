@@ -143,6 +143,7 @@ struct VitalSignsListView: View {
                 }
             }
         }
+        .scrollIndicators(.hidden)
         .listStyle(.insetGrouped)
     }
     

@@ -17,7 +17,7 @@ struct OcrDocumentRootView: View {
         ZStack {
             MeshGradientBackground()
 
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(spacing: 16) {
                     SecurityPostureCardView(
                         posture: posture,

@@ -4,7 +4,7 @@ struct ProfileSetupGateView: View {
     @EnvironmentObject private var container: AppContainer
 
     var body: some View {
-        ScrollView {
+        ScrollView(showsIndicators: false) {
             VStack(spacing: 24) {
                 Spacer(minLength: 60)
 

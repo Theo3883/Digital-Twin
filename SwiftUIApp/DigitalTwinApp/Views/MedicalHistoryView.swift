@@ -5,7 +5,7 @@ struct MedicalHistoryView: View {
 
     var body: some View {
         NavigationView {
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(spacing: 16) {
                     if engineWrapper.medicalHistory.isEmpty {
                         EmptyHistoryView()

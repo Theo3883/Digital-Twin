@@ -454,7 +454,7 @@ private struct InsightDetailsSheet: View {
                 .ignoresSafeArea()
 
                 ScrollViewReader { proxy in
-                    ScrollView {
+                    ScrollView(showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 18) {
                             Color.clear
                                 .frame(height: 0)

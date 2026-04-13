@@ -28,7 +28,7 @@ struct ProfileView: View {
 
     var body: some View {
         NavigationView {
-            ScrollView {
+            ScrollView(showsIndicators: false) {
             VStack(spacing: 16) {
                 // Profile Header with completion ring + menu
                 profileHeader
@@ -216,18 +216,18 @@ struct ProfileView: View {
     // MARK: - Vital Stats Grid 2×3
 
     private func vitalStatsGrid(patient: PatientInfo) -> some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
             VitalStatTile(label: "Weight", value: patient.weight.map { String(format: "%.0f", $0) } ?? "--", unit: "kg", icon: "scalemass.fill", color: .brown)
-            VitalStatTile(label: "Height", value: patient.height.map { String(format: "%.0f", $0) } ?? "--", unit: "cm", icon: "ruler.fill", color: .gray)
+            VitalStatTile(label: "Height", value: patient.height.map { String(format: "%.0f", $0) } ?? "--", unit: "cm", icon: "ruler", color: .gray)
             VitalStatTile(label: "BMI", value: bmi(patient: patient), unit: bmiCategory(patient: patient), icon: "figure.stand", color: bmiColor(patient: patient))
-            VitalStatTile(label: "Resting HR", value: viewModel.latestHeartRate.map { "\($0)" } ?? "--", unit: "bpm", icon: "heart.fill", color: LiquidGlass.redCritical)
+            VitalStatTile(label: "Resting HR", value: viewModel.latestHeartRate.map { "\($0)" } ?? "--", unit: "bpm", icon: "heart.circle.fill", color: LiquidGlass.redCritical)
             VitalStatTile(label: "Blood Pressure", value: {
                 if let s = patient.bloodPressureSystolic, let d = patient.bloodPressureDiastolic {
                     return "\(s)/\(d)"
                 }
                 return "--"
-            }(), unit: "mmHg", icon: "drop.fill", color: .blue)
-            VitalStatTile(label: "Cholesterol", value: patient.cholesterol.map { String(format: "%.0f", $0) } ?? "--", unit: "mg/dL", icon: "drop.triangle.fill", color: .purple)
+            }(), unit: "mmHg", icon: "waveform.path.ecg", color: .blue)
+            VitalStatTile(label: "Cholesterol", value: patient.cholesterol.map { String(format: "%.0f", $0) } ?? "--", unit: "mg/dL", icon: "drop.circle.fill", color: .purple)
         }
     }
 

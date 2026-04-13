@@ -8,7 +8,7 @@ struct OcrSheetView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(spacing: 16) {
                     switch controller.sheetPage {
                     case .scan:

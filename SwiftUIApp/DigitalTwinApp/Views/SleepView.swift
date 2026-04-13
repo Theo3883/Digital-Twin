@@ -22,7 +22,7 @@ struct SleepView: View {
 
     var body: some View {
         NavigationView {
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
                     // Sleep Summary Hero
                     if let latest = latestSession {

@@ -36,6 +36,7 @@ struct SettingsView: View {
                 // Account Actions Section
                 AccountActionsSection(showingSignOutAlert: $showingSignOutAlert)
             }
+            .scrollIndicators(.hidden)
             .listStyle(.insetGrouped)
             .navigationTitle("Settings")
             .liquidGlassNavigationStyle()
@@ -390,7 +391,7 @@ struct DataUsageView: View {
     @State private var isResetting = false
 
     var body: some View {
-        ScrollView {
+        ScrollView(showsIndicators: false) {
             VStack(spacing: 16) {
                 // Database size
                 HStack {
@@ -495,7 +496,7 @@ struct DataUsageView: View {
 
 struct PrivacyPolicyView: View {
     var body: some View {
-        ScrollView {
+        ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Privacy Policy")
                     .font(.title)
@@ -651,6 +652,7 @@ struct SupportView: View {
                 NavigationLink("Video Tutorials", destination: Text("Video Tutorials"))
             }
         }
+        .scrollIndicators(.hidden)
         .navigationTitle("Help & Support")
         .liquidGlassNavigationStyle()
     }
@@ -658,7 +660,7 @@ struct SupportView: View {
 
 struct TermsOfServiceView: View {
     var body: some View {
-        ScrollView {
+        ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 16) {
                 Text("Terms of Service")
                     .font(.title)

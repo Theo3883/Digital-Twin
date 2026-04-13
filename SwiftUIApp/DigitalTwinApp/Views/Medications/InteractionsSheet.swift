@@ -21,6 +21,7 @@ struct InteractionsSheet: View {
                 }
                 .padding(.vertical, 4)
             }
+            .scrollIndicators(.hidden)
             .navigationTitle("Interactions")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

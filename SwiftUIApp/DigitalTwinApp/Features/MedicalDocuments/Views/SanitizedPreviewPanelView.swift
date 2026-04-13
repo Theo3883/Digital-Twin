@@ -8,7 +8,7 @@ struct SanitizedPreviewPanelView: View {
             Text("Sanitized preview")
                 .font(.caption.weight(.semibold))
                 .foregroundColor(.white.opacity(0.55))
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 Text(sanitizedText)
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.85))

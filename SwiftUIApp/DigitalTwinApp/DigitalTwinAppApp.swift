@@ -4,6 +4,15 @@ import GoogleSignIn
 @main
 struct DigitalTwinAppApp: App {
     @StateObject private var container = AppContainer()
+
+    init() {
+        UIScrollView.appearance().showsVerticalScrollIndicator = false
+        UIScrollView.appearance().showsHorizontalScrollIndicator = false
+        UITableView.appearance().showsVerticalScrollIndicator = false
+        UITableView.appearance().showsHorizontalScrollIndicator = false
+        UICollectionView.appearance().showsVerticalScrollIndicator = false
+        UICollectionView.appearance().showsHorizontalScrollIndicator = false
+    }
     
     var body: some Scene {
         WindowGroup {

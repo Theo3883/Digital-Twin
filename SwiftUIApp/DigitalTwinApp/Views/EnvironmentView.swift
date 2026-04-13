@@ -14,7 +14,7 @@ struct EnvironmentView: View {
     }
 
     var body: some View {
-        ScrollView {
+        ScrollView(showsIndicators: false) {
             VStack(spacing: 16) {
                 if let reading = viewModel.reading {
                     // AQI Hero Card
@@ -37,7 +37,9 @@ struct EnvironmentView: View {
 
                 Spacer(minLength: 100)
             }
-            .padding(16)
+            .padding(.horizontal, 10)
+            .padding(.top, 12)
+            .padding(.bottom, 16)
         }
         .pageEnterAnimation()
         .task {

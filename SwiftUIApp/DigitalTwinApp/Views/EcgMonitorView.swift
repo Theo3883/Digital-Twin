@@ -19,7 +19,7 @@ struct EcgMonitorView: View {
     }
 
     var body: some View {
-        ScrollView {
+        ScrollView(showsIndicators: false) {
             VStack(spacing: 0) {
                 if !viewModel.hasProfile {
                     noProfileWarning

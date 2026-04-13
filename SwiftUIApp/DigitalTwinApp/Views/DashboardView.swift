@@ -35,7 +35,7 @@ struct DashboardView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
                     Spacer().frame(height: 80)
 
