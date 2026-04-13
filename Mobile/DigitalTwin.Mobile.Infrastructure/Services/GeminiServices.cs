@@ -252,7 +252,7 @@ public class GeminiChatService : IChatBotProvider
                 if (response.StatusCode == HttpStatusCode.TooManyRequests &&
                     GeminiRetryPolicy.IsHardQuotaExceeded(errorBody, _logger, requestId))
                 {
-                    _logger.LogWarning(
+                    _logger.LogInformation(
                         "[Gemini][{RequestId}] Chat request hit hard quota exhaustion. Skipping retries. Body: {ErrorBody}",
                         requestId,
                         GeminiRetryPolicy.TrimForLog(errorBody));
@@ -340,8 +340,7 @@ public class GeminiCoachingService : ICoachingProvider
             await GeminiRetryPolicy.RequestGate.WaitAsync(ct);
             gateHeld = true;
 
-            var systemPrompt = "You are a health coaching assistant. Provide personalized, " +
-                "actionable wellness advice based on the patient's context. Keep advice practical and encouraging.";
+            var systemPrompt = CoachingPromptContract.SystemPrompt;
 
             var request = new GeminiRequest
             {
@@ -354,15 +353,16 @@ public class GeminiCoachingService : ICoachingProvider
                     new GeminiContentEntry
                     {
                         Role = "user",
-                        Parts = [new GeminiPart { Text = $"Please provide health coaching advice for this patient:\n{patientContext}" }]
+                        Parts = [new GeminiPart { Text = CoachingPromptContract.BuildUserPrompt(patientContext) }]
                     }
                 ],
                 GenerationConfig = new GeminiGenerationConfig
                 {
-                    Temperature = 0.8f,
-                    TopP = 0.9f,
-                    TopK = 40,
-                    MaxOutputTokens = 1024
+                    Temperature = 0.2f,
+                    TopP = 0.2f,
+                    TopK = 16,
+                    MaxOutputTokens = 768,
+                    ResponseMimeType = "application/json"
                 }
             };
 
@@ -400,7 +400,7 @@ public class GeminiCoachingService : ICoachingProvider
                 if (response.StatusCode == HttpStatusCode.TooManyRequests &&
                     GeminiRetryPolicy.IsHardQuotaExceeded(errorBody, _logger, requestId))
                 {
-                    _logger.LogWarning(
+                    _logger.LogInformation(
                         "[Gemini][{RequestId}] Coaching request hit hard quota exhaustion. Skipping retries. Body: {ErrorBody}",
                         requestId,
                         GeminiRetryPolicy.TrimForLog(errorBody));
@@ -509,6 +509,9 @@ public sealed record GeminiGenerationConfig
 
     [JsonPropertyName("maxOutputTokens")]
     public int MaxOutputTokens { get; init; }
+
+    [JsonPropertyName("responseMimeType")]
+    public string? ResponseMimeType { get; init; }
 }
 
 public sealed record GeminiResponse

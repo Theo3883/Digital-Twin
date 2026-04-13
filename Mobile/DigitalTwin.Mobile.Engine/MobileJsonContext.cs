@@ -102,6 +102,10 @@ public sealed record MlAuditSummaryDto
 [JsonSerializable(typeof(ChatMessageDto[]), TypeInfoPropertyName = "ChatMessageDtoArray")]
 // Coaching
 [JsonSerializable(typeof(CoachingAdviceDto))]
+[JsonSerializable(typeof(CoachingSectionDto))]
+[JsonSerializable(typeof(CoachingSectionDto[]), TypeInfoPropertyName = "CoachingSectionDtoArray")]
+[JsonSerializable(typeof(CoachingActionDto))]
+[JsonSerializable(typeof(CoachingActionDto[]), TypeInfoPropertyName = "CoachingActionDtoArray")]
 // Sleep
 [JsonSerializable(typeof(SleepSessionInput))]
 [JsonSerializable(typeof(SleepSessionDto))]

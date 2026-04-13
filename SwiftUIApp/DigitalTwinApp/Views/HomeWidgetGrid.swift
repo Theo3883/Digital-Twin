@@ -8,13 +8,21 @@ struct HomeWidgetGrid: View {
     let envReading: EnvironmentReadingInfo?
     let sleepMinutes: Int
     let sleepQuality: Double
-    let insightText: String?
+    let coachingAdvice: CoachingAdviceInfo?
     let hasProfile: Bool
     @Binding var selectedTab: Int
     @State private var showInsightDetails = false
 
+    private var structuredInsightSections: [CoachingAdviceSectionInfo] {
+        coachingAdvice?.sections ?? []
+    }
+
     private var insightCategories: [String] {
-        extractInsightCategories(from: insightText)
+        if !structuredInsightSections.isEmpty {
+            return structuredInsightSections.map(\.title)
+        }
+
+        return extractInsightCategories(from: coachingAdvice?.advice)
     }
 
     private var insightCategoriesSubtitle: String {
@@ -42,7 +50,7 @@ struct HomeWidgetGrid: View {
     }
 
     private var insightDetailsText: String {
-        guard let text = insightText,
+        guard let text = coachingAdvice?.advice,
               !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return "No coaching insight available yet."
         }
@@ -358,7 +366,8 @@ struct HomeWidgetGrid: View {
         .sheet(isPresented: $showInsightDetails) {
             InsightDetailsSheet(
                 categories: insightCategories,
-                insightText: insightDetailsText
+                insightText: insightDetailsText,
+                coachingAdvice: coachingAdvice
             )
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
@@ -405,6 +414,7 @@ struct HomeWidgetGrid: View {
 private struct InsightDetailsSheet: View {
     let categories: [String]
     let insightText: String
+    let coachingAdvice: CoachingAdviceInfo?
 
     @Environment(\.dismiss) private var dismiss
     @State private var selectedCategory: String?
@@ -418,7 +428,11 @@ private struct InsightDetailsSheet: View {
     }
 
     private var sectionedInsight: [InsightSection] {
-        parseSections(from: insightText)
+        if let coachingAdvice, coachingAdvice.hasStructuredSections {
+            return parseStructuredSections(from: coachingAdvice)
+        }
+
+        return parseSections(from: insightText)
     }
 
     private var displayedCategories: [String] {
@@ -552,6 +566,74 @@ private struct InsightDetailsSheet: View {
         }
 
         return matchedSection.id
+    }
+
+    private func parseStructuredSections(from advice: CoachingAdviceInfo) -> [InsightSection] {
+        var sections: [InsightSection] = []
+
+        let summaryTitle = advice.headline.isEmpty ? "Summary" : advice.headline
+        if !advice.summary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            sections.append(
+                InsightSection(
+                    id: "insight-section-0-summary",
+                    title: summaryTitle,
+                    body: advice.summary
+                )
+            )
+        }
+
+        for section in advice.sections {
+            let title = compactWhitespace(section.title)
+            guard !title.isEmpty else { continue }
+
+            let body = section.items
+                .map { "• \($0)" }
+                .joined(separator: "\n")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            sections.append(
+                InsightSection(
+                    id: "insight-section-\(sections.count)-\(slug(from: title))",
+                    title: title,
+                    body: body
+                )
+            )
+        }
+
+        if !advice.actions.isEmpty {
+            let actionsBody = advice.actions
+                .map { "• \($0.label)" }
+                .joined(separator: "\n")
+            sections.append(
+                InsightSection(
+                    id: "insight-section-\(sections.count)-actions",
+                    title: "Actions",
+                    body: actionsBody
+                )
+            )
+        }
+
+        if !advice.motivation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            sections.append(
+                InsightSection(
+                    id: "insight-section-\(sections.count)-motivation",
+                    title: "Motivation",
+                    body: advice.motivation
+                )
+            )
+        }
+
+        if !advice.safetyNote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            sections.append(
+                InsightSection(
+                    id: "insight-section-\(sections.count)-safety",
+                    title: "Safety",
+                    body: advice.safetyNote
+                )
+            )
+        }
+
+        return sections
     }
 
     private func parseSections(from rawInsight: String) -> [InsightSection] {

@@ -15,13 +15,13 @@ struct ContentView: View {
             
             Group {
                 if !engineWrapper.isInitialized {
-                    LoadingView(message: "Initializing DigitalTwin...")
+                    LoadingView(stage: .connecting)
                 } else if !permissionsShown {
                     PermissionsOnboardingView(onDone: { permissionsShown = true })
                 } else if !engineWrapper.isAuthenticated {
                     AuthenticationView()
                 } else if engineWrapper.isHydratingAfterAuth {
-                    LoadingView(message: "Loading your profile...")
+                    LoadingView(stage: .pull)
                 } else if engineWrapper.patientProfile == nil {
                     ProfileSetupGateView()
                         .onAppear {
@@ -86,7 +86,12 @@ struct ContentView: View {
             }
             
             // Sync Gate overlay
-            if showSyncGate && engineWrapper.isAuthenticated {
+            if showSyncGate
+                && engineWrapper.isInitialized
+                && permissionsShown
+                && engineWrapper.isAuthenticated
+                && !engineWrapper.isHydratingAfterAuth
+                && engineWrapper.patientProfile != nil {
                 SyncGateView(isVisible: $showSyncGate)
             }
         }
@@ -98,7 +103,12 @@ struct ContentView: View {
             Text(engineWrapper.errorMessage ?? "")
         }
         .onChange(of: engineWrapper.isAuthenticated) { _, isAuthenticated in
+            if isAuthenticated {
+                showSyncGate = true
+            }
+
             if !isAuthenticated {
+                showSyncGate = true
                 didAutoPresentProfileSetup = false
                 shouldOpenPatientSetupAfterUserSave = false
                 container.shouldPresentUserProfileEdit = false

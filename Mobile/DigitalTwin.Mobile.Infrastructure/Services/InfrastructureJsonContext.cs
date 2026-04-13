@@ -73,6 +73,7 @@ public partial class InfrastructureJsonContext : JsonSerializerContext;
 [JsonSerializable(typeof(GeminiRequest))]
 [JsonSerializable(typeof(GeminiResponse))]
 [JsonSerializable(typeof(OpenRouterChatRequest))]
+[JsonSerializable(typeof(OpenRouterResponseFormat))]
 [JsonSerializable(typeof(OpenRouterChatResponse))]
 // OpenWeather
 [JsonSerializable(typeof(OpenWeatherResponse))]

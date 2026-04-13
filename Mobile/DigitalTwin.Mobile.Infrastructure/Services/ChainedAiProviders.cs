@@ -1,3 +1,4 @@
+using System.Text.Json;
 using DigitalTwin.Mobile.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
 
@@ -6,6 +7,16 @@ namespace DigitalTwin.Mobile.Infrastructure.Services;
 internal static class AiProviderResponseClassifier
 {
     private const string GenericCoachingFallback = "stay hydrated, get regular exercise, and maintain a balanced diet.";
+    private static readonly string[] RequiredCoachingKeys =
+    [
+        "schemaVersion",
+        "headline",
+        "summary",
+        "sections",
+        "actions",
+        "motivation",
+        "safetyNote"
+    ];
 
     private static readonly string[] DegradedMarkers =
     [
@@ -28,6 +39,93 @@ internal static class AiProviderResponseClassifier
             return true;
 
         return DegradedMarkers.Any(normalized.Contains);
+    }
+
+    internal static bool IsStructuredCoachingPayload(string? response)
+    {
+        if (string.IsNullOrWhiteSpace(response))
+            return false;
+
+        if (!TryExtractJsonObject(response, out var jsonCandidate))
+            return false;
+
+        try
+        {
+            using var document = JsonDocument.Parse(jsonCandidate);
+            if (document.RootElement.ValueKind != JsonValueKind.Object)
+                return false;
+
+            var root = document.RootElement;
+            foreach (var key in RequiredCoachingKeys)
+            {
+                if (!TryGetPropertyIgnoreCase(root, key, out _))
+                    return false;
+            }
+
+            if (!TryGetPropertyIgnoreCase(root, "sections", out var sections) ||
+                sections.ValueKind != JsonValueKind.Array)
+            {
+                return false;
+            }
+
+            if (!TryGetPropertyIgnoreCase(root, "actions", out var actions) ||
+                actions.ValueKind != JsonValueKind.Array)
+            {
+                return false;
+            }
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool TryGetPropertyIgnoreCase(JsonElement root, string propertyName, out JsonElement value)
+    {
+        foreach (var property in root.EnumerateObject())
+        {
+            if (property.Name.Equals(propertyName, StringComparison.OrdinalIgnoreCase))
+            {
+                value = property.Value;
+                return true;
+            }
+        }
+
+        value = default;
+        return false;
+    }
+
+    private static bool TryExtractJsonObject(string raw, out string json)
+    {
+        json = string.Empty;
+        if (string.IsNullOrWhiteSpace(raw))
+            return false;
+
+        var candidate = raw.Trim();
+        if (candidate.StartsWith("```", StringComparison.Ordinal))
+        {
+            candidate = candidate
+                .Replace("```json", string.Empty, StringComparison.OrdinalIgnoreCase)
+                .Replace("```", string.Empty, StringComparison.Ordinal)
+                .Trim();
+        }
+
+        if (candidate.StartsWith("{", StringComparison.Ordinal) &&
+            candidate.EndsWith("}", StringComparison.Ordinal))
+        {
+            json = candidate;
+            return true;
+        }
+
+        var start = candidate.IndexOf('{');
+        var end = candidate.LastIndexOf('}');
+        if (start < 0 || end <= start)
+            return false;
+
+        json = candidate[start..(end + 1)].Trim();
+        return !string.IsNullOrWhiteSpace(json);
     }
 }
 
@@ -119,16 +217,28 @@ public sealed class ChainedCoachingProvider : ICoachingProvider
     {
         var requestId = GeminiRetryPolicy.ResolveCorrelationId();
         string? primaryResponse = null;
+        var primaryStructured = false;
 
         try
         {
             primaryResponse = await _primary.GetAdviceAsync(patientContext, ct);
-            if (!AiProviderResponseClassifier.IsDegraded(primaryResponse))
+            primaryStructured = AiProviderResponseClassifier.IsStructuredCoachingPayload(primaryResponse);
+
+            if (!AiProviderResponseClassifier.IsDegraded(primaryResponse) && primaryStructured)
                 return primaryResponse;
 
-            _logger.LogWarning(
-                "[AI-Fallback][{RequestId}] Primary coaching provider returned degraded response. Trying OpenRouter fallback.",
-                requestId);
+            if (!AiProviderResponseClassifier.IsDegraded(primaryResponse) && !primaryStructured)
+            {
+                _logger.LogWarning(
+                    "[AI-Fallback][{RequestId}] Primary coaching provider returned unstructured payload. Trying OpenRouter fallback.",
+                    requestId);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "[AI-Fallback][{RequestId}] Primary coaching provider returned degraded response. Trying OpenRouter fallback.",
+                    requestId);
+            }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -145,15 +255,30 @@ public sealed class ChainedCoachingProvider : ICoachingProvider
         try
         {
             var fallbackResponse = await _fallback.GetAdviceAsync(patientContext, ct);
-            if (!AiProviderResponseClassifier.IsDegraded(fallbackResponse))
+            var fallbackStructured = AiProviderResponseClassifier.IsStructuredCoachingPayload(fallbackResponse);
+
+            if (!AiProviderResponseClassifier.IsDegraded(fallbackResponse) && fallbackStructured)
             {
                 _logger.LogInformation("[AI-Fallback][{RequestId}] OpenRouter coaching fallback succeeded.", requestId);
                 return fallbackResponse;
             }
 
-            _logger.LogWarning(
-                "[AI-Fallback][{RequestId}] OpenRouter coaching fallback also returned degraded response.",
-                requestId);
+            if (!AiProviderResponseClassifier.IsDegraded(fallbackResponse) && !fallbackStructured)
+            {
+                _logger.LogWarning(
+                    "[AI-Fallback][{RequestId}] OpenRouter coaching fallback returned unstructured payload. Passing through to application normalizer.",
+                    requestId);
+                return fallbackResponse;
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "[AI-Fallback][{RequestId}] OpenRouter coaching fallback also returned degraded response.",
+                    requestId);
+            }
+
+            if (primaryStructured && !string.IsNullOrWhiteSpace(primaryResponse))
+                return primaryResponse;
 
             return string.IsNullOrWhiteSpace(primaryResponse)
                 ? "Stay hydrated, get regular exercise, and maintain a balanced diet."

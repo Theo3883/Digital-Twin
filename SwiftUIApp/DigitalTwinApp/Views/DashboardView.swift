@@ -47,7 +47,7 @@ struct DashboardView: View {
                             envReading: viewModel.snapshot?.environmentReading,
                             sleepMinutes: sleepMinutes,
                             sleepQuality: sleepQuality,
-                            insightText: viewModel.snapshot?.coachingAdvice?.advice,
+                            coachingAdvice: viewModel.snapshot?.coachingAdvice,
                             hasProfile: hasProfile,
                             selectedTab: $selectedTab
                         )

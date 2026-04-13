@@ -77,7 +77,8 @@ public static class ServiceCollectionExtensions
 
         services.AddHttpClient("Gemini", client =>
         {
-            client.BaseAddress = new Uri("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent");
+            // Match MAUI Integrations default model endpoint that proved stable in production.
+            client.BaseAddress = new Uri("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent");
             client.Timeout = TimeSpan.FromSeconds(30);
         });
 

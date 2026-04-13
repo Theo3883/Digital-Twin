@@ -52,6 +52,94 @@ internal static class OpenRouterRetryPolicy
         => !callerToken.IsCancellationRequested;
 }
 
+internal static class OpenRouterResponseParser
+{
+    internal static string ExtractMessageText(string responseBody, OpenRouterChatResponse? parsedResponse)
+    {
+        var direct = parsedResponse?.Choices?.FirstOrDefault()?.Message?.Content;
+        if (!string.IsNullOrWhiteSpace(direct))
+            return direct;
+
+        return TryExtractFromRawJson(responseBody, out var extracted)
+            ? extracted
+            : string.Empty;
+    }
+
+    private static bool TryExtractFromRawJson(string responseBody, out string text)
+    {
+        text = string.Empty;
+        if (string.IsNullOrWhiteSpace(responseBody))
+            return false;
+
+        try
+        {
+            using var document = JsonDocument.Parse(responseBody);
+            var root = document.RootElement;
+            if (!root.TryGetProperty("choices", out var choices) ||
+                choices.ValueKind != JsonValueKind.Array ||
+                choices.GetArrayLength() == 0)
+            {
+                return false;
+            }
+
+            var firstChoice = choices[0];
+
+            if (firstChoice.TryGetProperty("message", out var message) &&
+                message.ValueKind == JsonValueKind.Object &&
+                message.TryGetProperty("content", out var content))
+            {
+                if (content.ValueKind == JsonValueKind.String)
+                {
+                    text = content.GetString() ?? string.Empty;
+                    return !string.IsNullOrWhiteSpace(text);
+                }
+
+                if (content.ValueKind == JsonValueKind.Array)
+                {
+                    var chunks = new List<string>();
+                    foreach (var item in content.EnumerateArray())
+                    {
+                        if (item.ValueKind == JsonValueKind.String)
+                        {
+                            var chunk = item.GetString();
+                            if (!string.IsNullOrWhiteSpace(chunk))
+                                chunks.Add(chunk);
+                            continue;
+                        }
+
+                        if (item.ValueKind == JsonValueKind.Object &&
+                            item.TryGetProperty("text", out var textProperty) &&
+                            textProperty.ValueKind == JsonValueKind.String)
+                        {
+                            var chunk = textProperty.GetString();
+                            if (!string.IsNullOrWhiteSpace(chunk))
+                                chunks.Add(chunk);
+                        }
+                    }
+
+                    if (chunks.Count > 0)
+                    {
+                        text = string.Join("\n", chunks);
+                        return true;
+                    }
+                }
+            }
+
+            if (firstChoice.TryGetProperty("text", out var flatText) && flatText.ValueKind == JsonValueKind.String)
+            {
+                text = flatText.GetString() ?? string.Empty;
+                return !string.IsNullOrWhiteSpace(text);
+            }
+        }
+        catch
+        {
+            return false;
+        }
+
+        return false;
+    }
+}
+
 public sealed class OpenRouterChatService : IChatBotProvider
 {
     internal const string DefaultModel = "openai/gpt-oss-20b";
@@ -129,7 +217,7 @@ public sealed class OpenRouterChatService : IChatBotProvider
                     {
                         var responseBody = await response.Content.ReadAsStringAsync(attemptToken);
                         var openRouterResponse = JsonSerializer.Deserialize(responseBody, IntegrationJsonContext.Default.OpenRouterChatResponse);
-                        var text = openRouterResponse?.Choices?.FirstOrDefault()?.Message?.Content;
+                        var text = OpenRouterResponseParser.ExtractMessageText(responseBody, openRouterResponse);
 
                         if (!string.IsNullOrWhiteSpace(text))
                         {
@@ -141,7 +229,10 @@ public sealed class OpenRouterChatService : IChatBotProvider
                             return text;
                         }
 
-                        _logger.LogWarning("[OpenRouter][{RequestId}] Chat response missing message content.", requestId);
+                        _logger.LogWarning(
+                            "[OpenRouter][{RequestId}] Chat response missing message content. Body: {Body}",
+                            requestId,
+                            OpenRouterRetryPolicy.TrimForLog(responseBody));
                         return "I wasn't able to generate a response. Please try again.";
                     }
 
@@ -255,16 +346,20 @@ public sealed class OpenRouterCoachingService : ICoachingProvider
                 new OpenRouterChatMessage
                 {
                     Role = "system",
-                    Content = "You are a health coaching assistant. Provide personalized, actionable wellness advice based on the patient's context. Keep advice practical and encouraging."
+                    Content = CoachingPromptContract.SystemPrompt
                 },
                 new OpenRouterChatMessage
                 {
                     Role = "user",
-                    Content = $"Please provide health coaching advice for this patient:\n{patientContext}"
+                    Content = CoachingPromptContract.BuildUserPrompt(patientContext)
                 }
             ],
-            Temperature = 0.8f,
-            MaxTokens = 1024
+            Temperature = 0.2f,
+            MaxTokens = 768,
+            ResponseFormat = new OpenRouterResponseFormat
+            {
+                Type = "json_object"
+            }
         };
 
         try
@@ -304,7 +399,7 @@ public sealed class OpenRouterCoachingService : ICoachingProvider
                     {
                         var responseBody = await response.Content.ReadAsStringAsync(attemptToken);
                         var openRouterResponse = JsonSerializer.Deserialize(responseBody, IntegrationJsonContext.Default.OpenRouterChatResponse);
-                        var text = openRouterResponse?.Choices?.FirstOrDefault()?.Message?.Content;
+                        var text = OpenRouterResponseParser.ExtractMessageText(responseBody, openRouterResponse);
 
                         _logger.LogInformation(
                             "[OpenRouter][{RequestId}] Coaching request completed in {ElapsedMs}ms (body {BodyLength} chars).",
@@ -312,9 +407,14 @@ public sealed class OpenRouterCoachingService : ICoachingProvider
                             stopwatch.ElapsedMilliseconds,
                             responseBody.Length);
 
-                        return !string.IsNullOrWhiteSpace(text)
-                            ? text
-                            : "Stay hydrated, get regular exercise, and maintain a balanced diet.";
+                        if (!string.IsNullOrWhiteSpace(text))
+                            return text;
+
+                        _logger.LogWarning(
+                            "[OpenRouter][{RequestId}] Coaching response missing message content. Body: {Body}",
+                            requestId,
+                            OpenRouterRetryPolicy.TrimForLog(responseBody));
+                        return "Stay hydrated, get regular exercise, and maintain a balanced diet.";
                     }
 
                     var errorBody = await response.Content.ReadAsStringAsync(attemptToken);
@@ -411,6 +511,15 @@ public sealed record OpenRouterChatRequest
 
     [JsonPropertyName("max_tokens")]
     public int MaxTokens { get; init; }
+
+    [JsonPropertyName("response_format")]
+    public OpenRouterResponseFormat? ResponseFormat { get; init; }
+}
+
+public sealed record OpenRouterResponseFormat
+{
+    [JsonPropertyName("type")]
+    public string Type { get; init; } = "json_object";
 }
 
 public sealed record OpenRouterChatMessage

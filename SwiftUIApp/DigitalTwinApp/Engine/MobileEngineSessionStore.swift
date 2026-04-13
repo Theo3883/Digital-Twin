@@ -674,6 +674,7 @@ class MobileEngineSessionStore: ObservableObject {
 
     private func isAdviceFresh(_ advice: CoachingAdviceInfo?, maxAgeSeconds: TimeInterval) -> Bool {
         guard let advice else { return false }
+        if advice.isDeterministicFallback { return false }
         return Date().timeIntervalSince(advice.timestamp) < maxAgeSeconds
     }
 
