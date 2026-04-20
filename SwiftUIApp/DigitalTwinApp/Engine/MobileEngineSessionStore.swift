@@ -396,10 +396,13 @@ class MobileEngineSessionStore: ObservableObject {
 
     // MARK: - ECG
 
-    func evaluateEcgFrame(samples: [Double], spO2: Double, heartRate: Double) async -> EcgEvaluationResult? {
+    func evaluateEcgFrame(samples: [Double], spO2: Double, heartRate: Double,
+                          mlScores: [String: Double]? = nil) async -> EcgEvaluationResult? {
         guard let engine else { return nil }
         do {
-            let frame = EcgFrameInput(samples: samples, spO2: spO2, heartRate: heartRate, timestamp: Date())
+            let leadCount = mlScores != nil ? 12 : 1
+            let frame = EcgFrameInput(samples: samples, spO2: spO2, heartRate: heartRate,
+                                      timestamp: Date(), mlScores: mlScores, numLeads: leadCount)
             return try await engine.evaluateEcgFrame(frame)
         } catch {
             return nil

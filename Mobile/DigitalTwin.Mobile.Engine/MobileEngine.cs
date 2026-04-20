@@ -506,9 +506,11 @@ public class MobileEngine : IDisposable
             var ecgFrame = new EcgFrame
             {
                 Samples = frame.Samples,
+                NumLeads = frame.NumLeads ?? 1,
                 SpO2 = frame.SpO2,
                 HeartRate = NormalizeHeartRate(frame.HeartRate),
-                Timestamp = frame.Timestamp
+                Timestamp = frame.Timestamp,
+                MlScores = frame.MlScores
             };
 
             var service = _scope.ServiceProvider.GetRequiredService<EcgApplicationService>();
@@ -523,6 +525,7 @@ public class MobileEngine : IDisposable
             return JsonSerializer.Serialize(new NativeBridge.OperationResultDto { Success = false, Error = ex.Message }, MobileJsonContext.Default.OperationResultDto);
         }
     }
+
 
     private static int NormalizeHeartRate(double heartRate)
     {

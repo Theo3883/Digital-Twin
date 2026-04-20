@@ -10,6 +10,7 @@
 		03646D66F5CD83E87F892BEF /* DocumentTypeMlClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E929B242F264D126884BA14 /* DocumentTypeMlClassifier.swift */; };
 		1531A3119B52A649A21F700D /* OcrSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF9544026E3F3957FED3755D /* OcrSheetView.swift */; };
 		220C2540FBB4DEB0733F06B7 /* OcrVisionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA93725FB742B80D23707678 /* OcrVisionService.swift */; };
+		41964FFDD5BD599341880B4A /* ECGClassifier.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = 81A26192327ABBFBC884DCDC /* ECGClassifier.mlpackage */; };
 		58A5CFC5185D39DC8D3F0EAC /* ImportPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51109CBC1AE487E550261F42 /* ImportPageView.swift */; };
 		5A64237EEA35C6DF2A3B71A9 /* PhotoLibraryPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13454D7A16E9B61E9E9F42D2 /* PhotoLibraryPicker.swift */; };
 		65765D1927EAE629802C6CDF /* DocumentScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD2F605015DCF2FF24952D47 /* DocumentScannerView.swift */; };
@@ -37,6 +38,7 @@
 		AB0000000000000000000003 /* ProfileSetupGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000013 /* ProfileSetupGateView.swift */; };
 		AB0000000000000000000004 /* DatabasePathRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB0000000000000000000014 /* DatabasePathRow.swift */; };
 		B8461890F29EF04EF9F1097D /* OcrSessionController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35B8741E047FDF298C2C2E95 /* OcrSessionController.swift */; };
+		BAA71FE35FF5622C85CEB390 /* PTBXLClassifier.mlmodelc in Resources */ = {isa = PBXBuildFile; fileRef = F950C30A45A4CC70AA5C1B2D /* PTBXLClassifier.mlmodelc */; };
 		BB0000000000000000000012 /* LiquidGlassTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000002 /* LiquidGlassTheme.swift */; };
 		BB0000000000000000000013 /* EcgMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000003 /* EcgMonitorView.swift */; };
 		BB0000000000000000000014 /* EnvironmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000004 /* EnvironmentView.swift */; };
@@ -218,6 +220,7 @@
 		51109CBC1AE487E550261F42 /* ImportPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/ImportPageView.swift; sourceTree = "<group>"; };
 		6E6A2AB7861E40A7C6E0BB4F /* VaultKeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Internal/VaultKeychainService.swift; sourceTree = "<group>"; };
 		72D59C1FB1159CBAD46F1940 /* SecurityPostureCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/SecurityPostureCardView.swift; sourceTree = "<group>"; };
+		81A26192327ABBFBC884DCDC /* ECGClassifier.mlpackage */ = {isa = PBXFileReference; includeInIndex = 1; path = ECGClassifier.mlpackage; sourceTree = "<group>"; };
 		888668FC10C641F9CEE4F306 /* OcrResultPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/OcrResultPageView.swift; sourceTree = "<group>"; };
 		9268C3715A6D853AA680697A /* BLEManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BLEManager.swift; sourceTree = "<group>"; };
 		AA0000000000000000000011 /* DigitalTwinAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DigitalTwinAppApp.swift; sourceTree = "<group>"; };
@@ -337,6 +340,7 @@
 		F80000000000000000000014 /* GetDashboardSnapshotUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetDashboardSnapshotUseCase.swift; sourceTree = "<group>"; };
 		F80000000000000000000015 /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
 		F873A8A0B3188F4E26EECFD5 /* MedicalDocumentDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/MedicalDocumentDetailView.swift; sourceTree = "<group>"; };
+		F950C30A45A4CC70AA5C1B2D /* PTBXLClassifier.mlmodelc */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = wrapper; path = PTBXLClassifier.mlmodelc; sourceTree = "<group>"; };
 		FA0000000000000000000011 /* ChatRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatRepository.swift; sourceTree = "<group>"; };
 		FA0000000000000000000012 /* EngineChatRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineChatRepository.swift; sourceTree = "<group>"; };
 		FA0000000000000000000013 /* LoadChatHistoryUseCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadChatHistoryUseCase.swift; sourceTree = "<group>"; };
@@ -644,6 +648,8 @@
 			isa = PBXGroup;
 			children = (
 				F00000000000000000000135 /* doc_type_classifier_v1.mlmodelc */,
+				81A26192327ABBFBC884DCDC /* ECGClassifier.mlpackage */,
+				F950C30A45A4CC70AA5C1B2D /* PTBXLClassifier.mlmodelc */,
 			);
 			path = MLModels;
 			sourceTree = "<group>";
@@ -908,6 +914,7 @@
 				AA000000000000000000000B /* Assets.xcassets in Resources */,
 				AA000000000000000000000C /* Preview Assets.xcassets in Resources */,
 				EF0000000000000000000019 /* doc_type_classifier_v1.mlmodelc in Resources */,
+				BAA71FE35FF5622C85CEB390 /* PTBXLClassifier.mlmodelc in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1094,6 +1101,7 @@
 				E1B000000000000000000002 /* OcrDocumentCard.swift in Sources */,
 				E1B000000000000000000003 /* EmptyDocumentsView.swift in Sources */,
 				E3A0A95F77EA70138F38EAC7 /* BLEManager.swift in Sources */,
+				41964FFDD5BD599341880B4A /* ECGClassifier.mlpackage in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -13,6 +13,12 @@ public sealed record EcgFrameInput
     [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
     public double HeartRate { get; init; }
     public DateTime Timestamp { get; init; }
+
+    /// <summary>Number of leads in Samples (1 = Lead II only for rules, 12 = full 12-lead).</summary>
+    public int? NumLeads { get; init; }
+
+    /// <summary>CoreML ECGClassifier probabilities keyed by label ("1dAVb","RBBB","LBBB","SB","AF","ST").</summary>
+    public Dictionary<string, double>? MlScores { get; init; }
 }
 
 public sealed record EcgEvaluationResult
@@ -99,6 +105,7 @@ public sealed record MlAuditSummaryDto
 [JsonSerializable(typeof(EcgFrameDto))]
 [JsonSerializable(typeof(CriticalAlertDto))]
 [JsonSerializable(typeof(EcgEvaluationResult))]
+[JsonSerializable(typeof(Dictionary<string, double>))]
 // Chat
 [JsonSerializable(typeof(ChatMessageDto))]
 [JsonSerializable(typeof(ChatMessageDto[]), TypeInfoPropertyName = "ChatMessageDtoArray")]

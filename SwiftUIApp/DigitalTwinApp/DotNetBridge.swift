@@ -420,14 +420,15 @@ class DotNetBridge {
     
     // MARK: - ECG
     
-    /// Evaluate an ECG frame for triage
-    func evaluateEcgFrame(_ frame: EcgFrameInput) throws -> EcgEvaluationResult {
+    /// Evaluate an ECG frame for triage.
+    /// Returns the raw engine response — MobileEngineHandle maps this to EcgEvaluationResult.
+    func evaluateEcgFrame(_ frame: EcgFrameInput) throws -> EcgEngineResponse {
         let json = try jsonEncoder.encode(frame)
         let jsonString = String(data: json, encoding: .utf8)!
         let result = jsonString.withCString { ptr in
             Self.mobile_engine_evaluate_ecg_frame(ptr)
         }
-        return try parseResult(result, as: EcgEvaluationResult.self)
+        return try parseResult(result, as: EcgEngineResponse.self)
     }
     
     // MARK: - AI Chat
@@ -787,4 +788,27 @@ struct RecordVitalSignsResult: Codable {
     let success: Bool
     let count: Int
     let error: String?
+}
+
+// MARK: - ECG Engine Response
+// Mirrors the exact JSON shape returned by .NET EcgEvaluationResult:
+// { "frame": { "triageResult": "Pass"|"Critical", "spO2": ..., "heartRate": ..., ... },
+//   "alert": { "ruleName": "...", "message": "...", "timestamp": "..." } | null }
+// MobileEngineHandle maps this to the canonical Swift EcgEvaluationResult.
+
+struct EcgEngineResponse: Codable {
+    struct EngineFrame: Codable {
+        let samples: [Double]?
+        let spO2: Double
+        let heartRate: Int
+        let timestamp: Date?
+        let triageResult: String   // "Pass" or "Critical"
+    }
+    struct EngineAlert: Codable {
+        let ruleName: String
+        let message: String
+        let timestamp: Date
+    }
+    let frame: EngineFrame?
+    let alert: EngineAlert?
 }

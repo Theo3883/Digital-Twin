@@ -5,7 +5,6 @@ struct EcgMonitorView: View {
     @EnvironmentObject private var ble: BLEManager
     @StateObject private var viewModel: EcgMonitorViewModel
     @State private var showSettings = false
-    @State private var frameCount = 0
     @State private var mlTimer: Timer?
 
     init(viewModel: EcgMonitorViewModel) {
@@ -47,10 +46,27 @@ struct EcgMonitorView: View {
             }
         }
         .pageEnterAnimation()
-        .onAppear {
-            startMlEvaluationTimer()
-        }
         .task { await viewModel.load() }
+        .onChange(of: ble.isConnected) { _, connected in
+            if connected {
+                viewModel.reconnectTriage()
+                startMlEvaluationTimer()
+            } else {
+                mlTimer?.invalidate()
+                viewModel.disconnectTriage()
+            }
+        }
+        .onAppear {
+            if ble.isConnected {
+                viewModel.reconnectTriage()
+                startMlEvaluationTimer()
+            } else {
+                viewModel.disconnectTriage()
+            }
+        }
+        .onDisappear {
+            mlTimer?.invalidate()
+        }
     }
 
     // MARK: - No Profile Warning
@@ -183,11 +199,17 @@ struct EcgMonitorView: View {
             
             // Render only real BLE waveform when device is connected and samples exist.
             if ble.isConnected, !ble.ecgBuffer.isEmpty {
-                let scaledSamples = ble.ecgBuffer.map { Double($0) / 1000.0 }
-                EcgWaveformPath(samples: scaledSamples)
-                    .stroke(Color(red: 0, green: 1, blue: 136/255), lineWidth: 1.5)
-                    .frame(height: 240)
-                    .padding(.horizontal, 40)
+                // ble.ecgBuffer shape is [12][4096]. Index 1 is Lead II.
+                let leadIISamples = ble.leadIIBuffer
+                if !leadIISamples.isEmpty {
+                    // Extract the last 1000 samples for display (approx 4 seconds at 250sps)
+                    let recentSamples = leadIISamples.suffix(1000)
+                    let scaledSamples = recentSamples.map { Double($0) / 1000.0 }
+                    EcgWaveformPath(samples: scaledSamples)
+                        .stroke(Color(red: 0, green: 1, blue: 136/255), lineWidth: 1.5)
+                        .frame(height: 240)
+                        .padding(.horizontal, 40)
+                }
             }
             
             // X-axis labels
@@ -221,19 +243,19 @@ struct EcgMonitorView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "heart.fill")
                         .font(.system(size: 16))
-                        .foregroundColor(ble.heartRate > 0 ? LiquidGlass.redCritical : LiquidGlass.tealPrimary)
-                    Text(ble.heartRate > 0 ? "\(String(format: "%.0f", ble.heartRate)) BPM" : "-- BPM")
+                        .foregroundColor(ble.isConnected && ble.heartRate > 0 ? LiquidGlass.redCritical : LiquidGlass.tealPrimary)
+                    Text(ble.isConnected && ble.heartRate > 0 ? "\(String(format: "%.0f", ble.heartRate)) BPM" : "-- BPM")
                         .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                 }
-                .glassPill(tint: LiquidGlass.redCritical.opacity(0.1))
+                .glassPill(tint: ble.isConnected && ble.heartRate > 0 ? LiquidGlass.redCritical.opacity(0.1) : LiquidGlass.tealPrimary.opacity(0.1))
                 
                 // SpO2
                 HStack(spacing: 8) {
                     Text("O₂")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(LiquidGlass.bluePrimary)
-                    Text(ble.spO2 > 0 ? "\(String(format: "%.1f", ble.spO2))%" : "--%")
+                    Text(ble.isConnected && ble.spO2 > 0 ? "\(String(format: "%.1f", ble.spO2))%" : "--%")
                         .font(.system(size: 18, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                 }
@@ -242,9 +264,9 @@ struct EcgMonitorView: View {
                 // Signal Quality
                 HStack(spacing: 8) {
                     Circle()
-                        .fill(LiquidGlass.greenPositive)
+                        .fill(viewModel.latestResult?.signalQualityPassed == true ? LiquidGlass.greenPositive : LiquidGlass.redCritical)
                         .frame(width: 8, height: 8)
-                    Text(frameCount > 0 ? "\(frameCount) frames" : "98% Good Signal")
+                    Text(viewModel.latestResult?.signalQualityPassed == true ? "✓ Good Signal" : "✗ Weak Signal")
                         .font(.system(size: 14))
                         .foregroundColor(.white.opacity(0.65))
                 }
@@ -263,7 +285,53 @@ struct EcgMonitorView: View {
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(.white)
             
-            if let result = viewModel.latestResult, result.isCritical {
+            if let mlError = viewModel.mlLoadError {
+                // CoreML failed to load
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(LiquidGlass.redCritical.opacity(0.2))
+                            .frame(width: 32, height: 32)
+                        Image(systemName: "xmark.octagon.fill")
+                            .foregroundColor(LiquidGlass.redCritical)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("AI Triage Offline")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(LiquidGlass.redCritical)
+                        Text(mlError)
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.65))
+                    }
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .glassEffect(.regular.tint(LiquidGlass.redCritical.opacity(0.15)), in: RoundedRectangle(cornerRadius: LiquidGlass.radiusInner))
+
+            } else if !ble.isConnected {
+                // Disconnected state
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(.yellow.opacity(0.2))
+                            .frame(width: 32, height: 32)
+                        Image(systemName: "antenna.radiowaves.left.and.right.slash")
+                            .foregroundColor(.yellow)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("ESP32 Disconnected")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(.yellow)
+                        Text("Monitoring paused. Connect device to resume.")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.65))
+                    }
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .glassEffect(.regular.tint(.yellow.opacity(0.1)), in: RoundedRectangle(cornerRadius: LiquidGlass.radiusInner))
+
+            } else if let result = viewModel.latestResult, result.isCritical {
                 // Critical state
                 HStack(spacing: 12) {
                     ZStack {
@@ -274,11 +342,11 @@ struct EcgMonitorView: View {
                             .foregroundColor(LiquidGlass.redCritical)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("⚠ CRITICAL — \(result.alerts.first ?? "Abnormal")")
+                        Text("⚠ CRITICAL — \(result.mlTopLabel ?? result.alerts.first ?? "Abnormal")")
                             .font(.subheadline.weight(.semibold))
                             .foregroundColor(LiquidGlass.redCritical)
-                        if result.alerts.count > 1 {
-                            Text(result.alerts.dropFirst().joined(separator: ", "))
+                        if result.alerts.count > 0 {
+                            Text(result.alerts.joined(separator: ", "))
                                 .font(.caption)
                                 .foregroundColor(.white.opacity(0.65))
                         }
@@ -287,7 +355,8 @@ struct EcgMonitorView: View {
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .glassEffect(.regular.tint(LiquidGlass.redCritical.opacity(0.15)), in: RoundedRectangle(cornerRadius: LiquidGlass.radiusInner))
-            } else {
+
+            } else if viewModel.latestResult != nil {
                 // Normal state
                 HStack(spacing: 12) {
                     ZStack {
@@ -297,26 +366,53 @@ struct EcgMonitorView: View {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(LiquidGlass.greenPositive)
                     }
-                    Text("✓ NORMAL SINUS RHYTHM")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundColor(LiquidGlass.greenPositive)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("✓ \(viewModel.latestResult?.mlTopLabel?.uppercased() ?? "NORMAL SINUS RHYTHM")")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(LiquidGlass.greenPositive)
+                        if let conf = viewModel.latestResult?.mlConfidence {
+                            Text("CNN Confidence: \(String(format: "%.0f", conf * 100))%")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.65))
+                        }
+                    }
                 }
                 .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .glassEffect(.regular.tint(LiquidGlass.greenPositive.opacity(0.08)), in: RoundedRectangle(cornerRadius: LiquidGlass.radiusInner))
+            } else {
+                // Loading/Buffering state
+                HStack(spacing: 12) {
+                    ProgressView()
+                        .tint(.white)
+                    Text("Buffering ECG Data...")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.white)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .glassEffect(.regular.tint(.white.opacity(0.05)), in: RoundedRectangle(cornerRadius: LiquidGlass.radiusInner))
             }
             
             // Rule Status List
             VStack(spacing: 0) {
-                triageRuleRow(name: "Signal Quality Rule", status: "✓ Pass", color: LiquidGlass.greenPositive)
+                triageRuleRow(name: "Signal Quality Rule", 
+                              status: viewModel.latestResult?.signalQualityPassed == true ? "✓ Pass" : (ble.isConnected ? "✗ Fail" : "—"),
+                              color: viewModel.latestResult?.signalQualityPassed == true ? LiquidGlass.greenPositive : (ble.isConnected ? LiquidGlass.redCritical : .gray))
                 Divider().background(.white.opacity(0.1))
-                triageRuleRow(name: "Heart Rate Activity", status: ble.heartRate > 0 ? "✓ \(String(format: "%.0f", ble.heartRate)) bpm" : "—", color: LiquidGlass.greenPositive)
+                triageRuleRow(name: "Heart Rate Activity", 
+                              status: ble.isConnected && ble.heartRate > 0 ? "✓ \(String(format: "%.0f", ble.heartRate)) bpm" : "—", 
+                              color: ble.isConnected && ble.heartRate > 0 ? LiquidGlass.greenPositive : .gray)
                 Divider().background(.white.opacity(0.1))
-                triageRuleRow(name: "SpO₂ Rule", status: ble.spO2 > 0 ? "✓ \(String(format: "%.1f", ble.spO2))%" : "—", color: LiquidGlass.greenPositive)
+                triageRuleRow(name: "SpO₂ Rule", 
+                              status: ble.isConnected && ble.spO2 > 0 ? "✓ \(String(format: "%.1f", ble.spO2))%" : "—", 
+                              color: ble.isConnected && ble.spO2 > 0 ? LiquidGlass.greenPositive : .gray)
             }
             
             // Footer
-            Text("CNN Anomaly Detection · \(frameCount) frames received · Class: \(viewModel.latestResult?.isCritical == true ? "A (Afib)" : "N (Normal)") · Confidence: 97.3%")
+            let label = viewModel.latestResult?.mlTopLabel ?? "--"
+            let conf = viewModel.latestResult?.mlConfidence.map { String(format: "%.0f%%", $0 * 100) } ?? "--"
+            Text("ResNet CoreML · \(viewModel.frameCount) evals · Class: \(label) · Confidence: \(conf)")
                 .font(.system(size: 10))
                 .foregroundColor(.white.opacity(0.3))
         }
@@ -345,23 +441,8 @@ struct EcgMonitorView: View {
         mlTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             MainActor.assumeIsolated {
                 guard ble.isConnected else { return }
-
-                // Grab up to the last 100 samples from the buffer (1 sec of data at 250sps / whatever native rate)
-                let bufferLen = ble.ecgBuffer.count
-                let chunkSize = min(100, bufferLen)
-                guard chunkSize > 0 else { return }
-                
-                let recentInts = Array(ble.ecgBuffer[(bufferLen - chunkSize)...])
-                // Scale native -2048 to +2048 down to visual ~ -1.5 to +1.5
-                let samples = recentInts.map { Double($0) / 1000.0 }
-                
-                let hr = Double(ble.heartRate)
-                let sp = Double(ble.spO2)
-
-                frameCount += chunkSize
-                
-                Task { @MainActor in
-                    await viewModel.evaluateFrame(samples: samples, spO2: sp, heartRate: hr)
+                Task {
+                    await viewModel.evaluateFrame(ble: ble)
                 }
             }
         }

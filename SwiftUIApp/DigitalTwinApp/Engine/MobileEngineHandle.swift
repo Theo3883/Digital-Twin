@@ -105,7 +105,20 @@ actor MobileEngineHandle {
     // MARK: - ECG
 
     func evaluateEcgFrame(_ frame: EcgFrameInput) async throws -> EcgEvaluationResult {
-        try bridge.evaluateEcgFrame(frame)
+        // DotNetBridge.evaluateEcgFrame returns the raw JSON from .NET which has this shape:
+        //   { "frame": { "triageResult": "Pass"|"Critical", "spO2": 98.2, "heartRate": 72, ... },
+        //     "alert": { "ruleName": "...", "message": "...", "timestamp": "..." } | null }
+        //
+        // This does NOT match EcgEvaluationResult which expects { "triageResult": Int, "alerts": [...] }.
+        // We decode into EcgEngineResponse and map to EcgEvaluationResult explicitly.
+        let engineResponse = try bridge.evaluateEcgFrame(frame)
+        return EcgEvaluationResult(
+            triageResult: engineResponse.frame?.triageResult == "Critical" ? 2 : 0,
+            alerts: engineResponse.alert.map { [$0.message] } ?? [],
+            heartRate: Double(engineResponse.frame?.heartRate ?? 0),
+            spO2: engineResponse.frame?.spO2 ?? 0,
+            signalQualityPassed: engineResponse.alert?.ruleName != "SignalQuality"
+        )
     }
 
     // MARK: - AI Chat

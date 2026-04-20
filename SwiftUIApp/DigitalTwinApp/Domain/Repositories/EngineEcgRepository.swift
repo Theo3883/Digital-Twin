@@ -12,8 +12,11 @@ final class EngineEcgRepository: EcgRepository {
         engine.patientProfile != nil
     }
 
-    func evaluateFrame(samples: [Double], spO2: Double, heartRate: Double) async -> EcgEvaluationResult? {
-        await engine.evaluateEcgFrame(samples: samples, spO2: spO2, heartRate: heartRate)
+    func evaluateFrame(samples: [Double], spO2: Double, heartRate: Double,
+                       mlScores: [String: Double]? = nil) async -> EcgEvaluationResult? {
+        await engine.evaluateEcgFrame(samples: samples, spO2: spO2, heartRate: heartRate,
+                                      mlScores: mlScores)
     }
 }
+
 
