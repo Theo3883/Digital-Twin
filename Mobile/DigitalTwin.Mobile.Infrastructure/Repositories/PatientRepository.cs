@@ -2,14 +2,20 @@ using DigitalTwin.Mobile.Domain.Interfaces;
 using DigitalTwin.Mobile.Domain.Models;
 using DigitalTwin.Mobile.Infrastructure.Data;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Logging;
 
 namespace DigitalTwin.Mobile.Infrastructure.Repositories;
 
 public class PatientRepository : IPatientRepository
 {
     private readonly SqliteConnectionFactory _db;
+    private readonly ILogger<PatientRepository> _logger;
 
-    public PatientRepository(SqliteConnectionFactory db) => _db = db;
+    public PatientRepository(SqliteConnectionFactory db, ILogger<PatientRepository> logger)
+    {
+        _db = db;
+        _logger = logger;
+    }
 
     public async Task<Patient?> GetByIdAsync(Guid id)
     {
@@ -38,18 +44,32 @@ public class PatientRepository : IPatientRepository
         await using var conn = _db.CreateConnection();
         await conn.OpenAsync();
 
+        var userCount = await CountAsync(conn, "SELECT COUNT(1) FROM Users");
+        var patientCount = await CountAsync(conn, "SELECT COUNT(1) FROM Patients");
+
         // Get first user
         await using var userCmd = conn.CreateCommand();
         userCmd.CommandText = "SELECT Id FROM Users ORDER BY CreatedAt LIMIT 1";
         var userIdObj = await userCmd.ExecuteScalarAsync();
-        if (userIdObj is not string userIdStr) return null;
+        if (userIdObj is not string userIdStr)
+        {
+            _logger.LogWarning("[SleepDebug][PatientRepo] No current user found. users={UserCount} patients={PatientCount}", userCount, patientCount);
+            return null;
+        }
 
         // Get patient by that user's ID
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT * FROM Patients WHERE UserId = @userId LIMIT 1";
         cmd.Parameters.AddWithValue("@userId", userIdStr);
         await using var r = await cmd.ExecuteReaderAsync();
-        return await r.ReadAsync() ? ReadEntity(r) : null;
+        if (await r.ReadAsync())
+        {
+            var patient = ReadEntity(r);
+            return patient;
+        }
+
+        _logger.LogWarning("[SleepDebug][PatientRepo] No patient row for current user userId={UserId}", userIdStr);
+        return null;
     }
 
     public async Task SaveAsync(Patient patient)
@@ -121,4 +141,12 @@ public class PatientRepository : IPatientRepository
         UpdatedAt = DateTime.Parse(r.GetString(r.GetOrdinal("UpdatedAt"))),
         IsSynced = r.GetInt64(r.GetOrdinal("IsSynced")) != 0
     };
+
+    private static async Task<long> CountAsync(SqliteConnection conn, string sql)
+    {
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        var result = await cmd.ExecuteScalarAsync();
+        return Convert.ToInt64(result);
+    }
 }

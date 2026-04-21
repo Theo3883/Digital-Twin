@@ -11,6 +11,7 @@ protocol MobileEngineClient: Sendable {
     func updatePatientProfile(_ update: PatientUpdateInfo) async throws -> OperationResult
 
     func recordVitalSign(_ vitalSign: VitalSignInput) async throws -> OperationResult
+    func recordVitalSigns(_ vitalSigns: [VitalSignInput]) async throws -> RecordVitalSignsResult
     func getVitalSigns(from: Date?, to: Date?) async throws -> [VitalSignInfo]
     func getVitalSignsByType(_ type: VitalSignType, from: Date?, to: Date?) async throws -> [VitalSignInfo]
 

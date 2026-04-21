@@ -35,6 +35,7 @@ actor DotNetMobileEngineClient: MobileEngineClient {
     func updatePatientProfile(_ update: PatientUpdateInfo) async throws -> OperationResult { try await handle.updatePatientProfile(update) }
 
     func recordVitalSign(_ vitalSign: VitalSignInput) async throws -> OperationResult { try await handle.recordVitalSign(vitalSign) }
+    func recordVitalSigns(_ vitalSigns: [VitalSignInput]) async throws -> RecordVitalSignsResult { try await handle.recordVitalSigns(vitalSigns) }
     func getVitalSigns(from: Date?, to: Date?) async throws -> [VitalSignInfo] { try await handle.getVitalSigns(from: from, to: to) }
     func getVitalSignsByType(_ type: VitalSignType, from: Date?, to: Date?) async throws -> [VitalSignInfo] { try await handle.getVitalSignsByType(type, from: from, to: to) }
 

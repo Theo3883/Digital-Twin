@@ -26,10 +26,7 @@ struct SyncGateView: View {
             let _ = await engineWrapper.performSync()
             stage = .merge
 
-            if engineWrapper.medications.isEmpty {
-                await engineWrapper.loadMedications()
-            }
-            await engineWrapper.loadLatestEnvironmentReading()
+            engineWrapper.warmCachesAfterSyncInBackground()
 
             stage = .ready
 

@@ -2,14 +2,18 @@ import Foundation
 import SwiftUI
 
 struct HomeWidgetGrid: View {
-    let heartRate: Double
-    let spO2: Double
+    let heartRateLatest: Double
+    let heartRateAverage: Double
+    let spO2Latest: Double
+    let spO2Average: Double
     let steps: Double
     let envReading: EnvironmentReadingInfo?
     let sleepMinutes: Int
     let sleepQuality: Double
     let coachingAdvice: CoachingAdviceInfo?
     let hasProfile: Bool
+    let isHeartRateLive: Bool
+    let isSpO2Live: Bool
     @Binding var selectedTab: Int
     @State private var showInsightDetails = false
 
@@ -58,21 +62,41 @@ struct HomeWidgetGrid: View {
         return text
     }
 
+    private var displayedHeartRate: Double {
+        heartRateLatest > 0 ? heartRateLatest : heartRateAverage
+    }
+
+    private var heartRateAverageLabel: String {
+        heartRateAverage > 0 ? String(format: "%.0f", heartRateAverage) : "--"
+    }
+
+    private var displayedSpO2: Double {
+        spO2Latest > 0 ? spO2Latest : spO2Average
+    }
+
+    private var spO2AverageLabel: String {
+        spO2Average > 0 ? String(format: "%.1f%%", spO2Average) : "--"
+    }
+
+    private var spO2LatestLabel: String {
+        spO2Latest > 0 ? String(format: "%.1f%%", spO2Latest) : "--"
+    }
+
     private var spO2Status: String {
-        if spO2 >= 95 { return "Normal" }
-        if spO2 >= 90 { return "Low" }
+        if displayedSpO2 >= 95 { return "Normal" }
+        if displayedSpO2 >= 90 { return "Low" }
         return "Critical"
     }
 
     private var spO2StatusColor: Color {
-        if spO2 >= 95 { return LiquidGlass.greenPositive }
-        if spO2 >= 90 { return LiquidGlass.amberWarning }
+        if displayedSpO2 >= 95 { return LiquidGlass.greenPositive }
+        if displayedSpO2 >= 90 { return LiquidGlass.amberWarning }
         return LiquidGlass.redCritical
     }
 
     private var sleepQualityLabel: String {
-        if sleepQuality >= 80 { return "Optimal" }
-        if sleepQuality >= 60 { return "Fair" }
+        if sleepMinutes >= 420 { return "Optimal" }
+        if sleepMinutes >= 360 { return "Fair" }
         return "Poor"
     }
 
@@ -115,21 +139,25 @@ struct HomeWidgetGrid: View {
                         .foregroundColor(.white.opacity(0.65))
                     Spacer()
                     if hasProfile {
-                        Text("Live")
+                        let label = isHeartRateLive ? "ESP Live" : (displayedHeartRate > 0 ? "Last read" : "No data")
+                        let color = isHeartRateLive ? LiquidGlass.greenPositive : .white.opacity(0.6)
+                        let tint = isHeartRateLive ? LiquidGlass.greenPositive.opacity(0.15) : .white.opacity(0.08)
+
+                        Text(label)
                             .font(.caption2.weight(.semibold))
-                            .foregroundColor(LiquidGlass.greenPositive)
+                            .foregroundColor(color)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
                             .background {
                                 RoundedRectangle(cornerRadius: LiquidGlass.radiusChip)
-                                    .fill(LiquidGlass.greenPositive.opacity(0.15))
+                                    .fill(tint)
                             }
                     }
                 }
 
                 if hasProfile {
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        Text(heartRate > 0 ? String(format: "%.0f", heartRate) : "--")
+                        Text(displayedHeartRate > 0 ? String(format: "%.0f", displayedHeartRate) : "--")
                             .font(.system(size: 56, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
                         Text("BPM")
@@ -137,7 +165,11 @@ struct HomeWidgetGrid: View {
                             .foregroundColor(.white.opacity(0.4))
                     }
 
-                    Text(heartRate > 0 ? "\(String(format: "%.0f", heartRate)) BPM · Live" : "Waiting for data…")
+                    Text(
+                        displayedHeartRate > 0
+                            ? "Latest \(String(format: "%.0f", displayedHeartRate)) BPM · 1-min avg \(heartRateAverageLabel) BPM"
+                            : "Waiting for data…"
+                    )
                         .font(.caption.weight(.medium))
                         .foregroundColor(LiquidGlass.redCritical.opacity(0.8))
                 } else {
@@ -224,16 +256,37 @@ struct HomeWidgetGrid: View {
                         .foregroundColor(LiquidGlass.bluePrimary)
                 }
                 Spacer()
+
+                let label = isSpO2Live ? "ESP Live" : (displayedSpO2 > 0 ? "Last read" : "No data")
+                let color = isSpO2Live ? LiquidGlass.greenPositive : .white.opacity(0.6)
+                let tint = isSpO2Live ? LiquidGlass.greenPositive.opacity(0.15) : .white.opacity(0.08)
+
+                Text(label)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundColor(color)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background {
+                        RoundedRectangle(cornerRadius: LiquidGlass.radiusChip)
+                            .fill(tint)
+                    }
             }
             Text("Blood Oxygen")
                 .font(.caption)
                 .foregroundColor(.white.opacity(0.65))
-            Text(spO2 > 0 ? String(format: "%.1f%%", spO2) : "--")
+            Text(displayedSpO2 > 0 ? String(format: "%.1f%%", displayedSpO2) : "--")
                 .font(.title2.weight(.bold))
                 .foregroundColor(.white)
-            Text(spO2 > 0 ? spO2Status : "No data")
+            Text(displayedSpO2 > 0 ? spO2Status : "No data")
                 .font(.caption2)
-                .foregroundColor(spO2 > 0 ? spO2StatusColor : .white.opacity(0.4))
+                .foregroundColor(displayedSpO2 > 0 ? spO2StatusColor : .white.opacity(0.4))
+            Text(
+                displayedSpO2 > 0
+                    ? "Latest \(spO2LatestLabel) · 1-min avg \(spO2AverageLabel)"
+                    : "Waiting for data…"
+            )
+            .font(.caption2)
+            .foregroundColor(.white.opacity(0.5))
         }
         .frame(minHeight: 140)
         .glassCard()

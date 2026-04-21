@@ -80,6 +80,7 @@
 		E1B000000000000000000001 /* OcrResultCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A000000000000000000001 /* OcrResultCard.swift */; };
 		E1B000000000000000000002 /* OcrDocumentCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A000000000000000000002 /* OcrDocumentCard.swift */; };
 		E1B000000000000000000003 /* EmptyDocumentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A000000000000000000003 /* EmptyDocumentsView.swift */; };
+		C1A4E95F77EA70138F38EAC8 /* Esp32MinuteVitalsPersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A4E95F77EA70138F38EAC9 /* Esp32MinuteVitalsPersistenceService.swift */; };
 		E3A0A95F77EA70138F38EAC7 /* BLEManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9268C3715A6D853AA680697A /* BLEManager.swift */; };
 		E60C9C49C487B616F177E612 /* DocumentScanNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A68A72FB4337039D200ECF2 /* DocumentScanNormalizer.swift */; };
 		EE0000000000000000000001 /* ContentView_Previews.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000011 /* ContentView_Previews.swift */; };
@@ -223,6 +224,7 @@
 		81A26192327ABBFBC884DCDC /* ECGClassifier.mlpackage */ = {isa = PBXFileReference; includeInIndex = 1; path = ECGClassifier.mlpackage; sourceTree = "<group>"; };
 		888668FC10C641F9CEE4F306 /* OcrResultPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/OcrResultPageView.swift; sourceTree = "<group>"; };
 		9268C3715A6D853AA680697A /* BLEManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BLEManager.swift; sourceTree = "<group>"; };
+		C1A4E95F77EA70138F38EAC9 /* Esp32MinuteVitalsPersistenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Esp32MinuteVitalsPersistenceService.swift; sourceTree = "<group>"; };
 		AA0000000000000000000011 /* DigitalTwinAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DigitalTwinAppApp.swift; sourceTree = "<group>"; };
 		AA0000000000000000000012 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		AA0000000000000000000013 /* MobileEngineWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileEngineWrapper.swift; sourceTree = "<group>"; };
@@ -523,6 +525,7 @@
 				FB0000000000000000000016 /* LocationManager.swift */,
 				DD0000000000000000000004 /* GoogleSignInService.swift */,
 				CC0000000000000000000012 /* GeocodingService.swift */,
+				C1A4E95F77EA70138F38EAC9 /* Esp32MinuteVitalsPersistenceService.swift */,
 				9268C3715A6D853AA680697A /* BLEManager.swift */,
 			);
 			path = Services;
@@ -1100,6 +1103,7 @@
 				E1B000000000000000000001 /* OcrResultCard.swift in Sources */,
 				E1B000000000000000000002 /* OcrDocumentCard.swift in Sources */,
 				E1B000000000000000000003 /* EmptyDocumentsView.swift in Sources */,
+				C1A4E95F77EA70138F38EAC8 /* Esp32MinuteVitalsPersistenceService.swift in Sources */,
 				E3A0A95F77EA70138F38EAC7 /* BLEManager.swift in Sources */,
 				41964FFDD5BD599341880B4A /* ECGClassifier.mlpackage in Sources */,
 			);

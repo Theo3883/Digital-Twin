@@ -49,6 +49,18 @@ class MobileEngineSessionStore: ObservableObject {
     private let openRouterModel: String?
     private let openWeatherApiKey: String?
     private let googleOAuthClientId: String?
+    private var medicationInteractionRefreshTask: Task<Void, Never>?
+    private var cacheWarmupTask: Task<Void, Never>?
+    private var lastHealthKitSleepImportAt: Date?
+    private var lastHealthKitSleepPulledThrough: Date?
+
+    private let healthKitSleepImportCooldownSeconds: TimeInterval = 5 * 60
+    private let healthKitSleepImportWindowDays = 14
+    private let healthKitSleepIncrementalOverlapHours = 12
+
+    private enum PersistedKeys {
+        static let lastHealthKitSleepPulledThroughIso = "healthkit.sleep.lastPulledThrough.iso"
+    }
 
     init() {
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -71,6 +83,11 @@ class MobileEngineSessionStore: ObservableObject {
                 errorMessage = "Missing AI provider key. Fill GEMINI_API_KEY or OPENROUTER_API_KEY in Secrets.xcconfig to enable the AI assistant."
             }
         }
+
+        if let iso = UserDefaults.standard.string(forKey: PersistedKeys.lastHealthKitSleepPulledThroughIso),
+           let date = ISO8601DateFormatter().date(from: iso) {
+            lastHealthKitSleepPulledThrough = date
+        }
     }
 
     private static func sanitizedConfigValue(_ value: String?) -> String? {
@@ -86,6 +103,9 @@ class MobileEngineSessionStore: ObservableObject {
     var databasePathString: String { databasePath }
 
     deinit {
+        medicationInteractionRefreshTask?.cancel()
+        cacheWarmupTask?.cancel()
+
         // We can't `await` in deinit; fire-and-forget cleanup.
         if let engine = engine {
             Task { await engine.dispose() }
@@ -177,7 +197,14 @@ class MobileEngineSessionStore: ObservableObject {
     }
 
     func performManualSync() async -> Bool {
-        await backgroundSyncService.performManualSync()
+        let success = await backgroundSyncService.performManualSync()
+
+        if success {
+            await loadSleepSessions()
+            warmCachesAfterSyncInBackground()
+        }
+
+        return success
     }
 
     // MARK: - Authentication
@@ -289,12 +316,16 @@ class MobileEngineSessionStore: ObservableObject {
     // MARK: - Sign Out
 
     func signOut() async {
+        medicationInteractionRefreshTask?.cancel()
+        cacheWarmupTask?.cancel()
+
         isAuthenticated = false
         currentUser = nil
         patientProfile = nil
         hasCloudProfile = false
         isCloudAuthenticated = false
         medications = []
+        sleepSessions = []
         chatMessages = []
         ocrDocuments = []
         medicalHistory = []
@@ -313,6 +344,11 @@ class MobileEngineSessionStore: ObservableObject {
         do { return try await engine.recordVitalSign(vitalSign).success } catch { return false }
     }
 
+    func recordVitalSigns(_ vitalSigns: [VitalSignInput]) async -> Int {
+        guard let engine else { return 0 }
+        do { return try await engine.recordVitalSigns(vitalSigns).count } catch { return 0 }
+    }
+
     func getVitalSigns(from: Date? = nil, to: Date? = nil) async -> [VitalSignInfo] {
         guard let engine else { return [] }
         do { return try await engine.getVitalSigns(from: from, to: to) } catch { return [] }
@@ -329,8 +365,17 @@ class MobileEngineSessionStore: ObservableObject {
         guard let engine else { return }
         do {
             medications = try await engine.getMedications()
-            await refreshMedicationInteractionsCache()
+            refreshMedicationInteractionsCacheInBackground()
         } catch {}
+    }
+
+    private func refreshMedicationInteractionsCacheInBackground() {
+        medicationInteractionRefreshTask?.cancel()
+
+        medicationInteractionRefreshTask = Task(priority: .utility) { [weak self] in
+            guard let self else { return }
+            await self.refreshMedicationInteractionsCache()
+        }
     }
 
     /// Rebuild the interactions cache from the currently loaded medications.
@@ -394,6 +439,30 @@ class MobileEngineSessionStore: ObservableObject {
         do { latestEnvironmentReading = try await engine.getLatestEnvironmentReading() } catch {}
     }
 
+    func refreshEnvironmentForPreferredLocation() async {
+        if let manual = LocationManager.manualLocationCoordinatesIfSelected() {
+            await fetchEnvironmentReading(latitude: manual.latitude, longitude: manual.longitude)
+            return
+        }
+
+        if let current = LocationManager.cachedCurrentLocationCoordinates() {
+            await fetchEnvironmentReading(latitude: current.latitude, longitude: current.longitude)
+            return
+        }
+
+        await loadLatestEnvironmentReading()
+    }
+
+    func warmCachesAfterSyncInBackground() {
+        cacheWarmupTask?.cancel()
+
+        cacheWarmupTask = Task(priority: .utility) { [weak self] in
+            guard let self else { return }
+            await self.loadMedications()
+            await self.refreshEnvironmentForPreferredLocation()
+        }
+    }
+
     // MARK: - ECG
 
     func evaluateEcgFrame(samples: [Double], spO2: Double, heartRate: Double,
@@ -453,12 +522,19 @@ class MobileEngineSessionStore: ObservableObject {
     // MARK: - Sleep
 
     func recordSleepSession(startTime: Date, endTime: Date, qualityScore: Double?) async -> Bool {
-        guard let engine else { return false }
         let durationMinutes = Int(endTime.timeIntervalSince(startTime) / 60)
         let input = SleepSessionInput(startTime: startTime, endTime: endTime, durationMinutes: durationMinutes, qualityScore: qualityScore)
+        return await recordSleepSession(input, reloadAfterWrite: true)
+    }
+
+    func recordSleepSession(_ input: SleepSessionInput, reloadAfterWrite: Bool) async -> Bool {
+        guard let engine else { return false }
+
         do {
             let result = try await engine.recordSleepSession(input)
-            if result.success { await loadSleepSessions() }
+            if result.success, reloadAfterWrite {
+                await loadSleepSessions()
+            }
             return result.success
         } catch {
             return false
@@ -467,7 +543,29 @@ class MobileEngineSessionStore: ObservableObject {
 
     func loadSleepSessions(from: Date? = nil, to: Date? = nil) async {
         guard let engine else { return }
-        do { sleepSessions = try await engine.getSleepSessions(from: from, to: to) } catch {}
+
+        func formatDate(_ value: Date?) -> String {
+            guard let value else { return "nil" }
+            return ISO8601DateFormatter().string(from: value)
+        }
+
+        _ = await importHealthKitSleepIfNeeded(reason: "loadSleepSessions", force: false)
+
+        do {
+            sleepSessions = try await engine.getSleepSessions(from: from, to: to)
+        } catch {
+
+        }
+    }
+
+    /// Read sleep sessions from local SQLite without triggering a HealthKit import.
+    /// Use this for startup/home rendering so UI doesn't block on HealthKit.
+    func loadSleepSessionsFromLocalStoreOnly(from: Date? = nil, to: Date? = nil) async {
+        guard let engine else { return }
+        do {
+            sleepSessions = try await engine.getSleepSessions(from: from, to: to)
+        } catch {
+        }
     }
 
     // MARK: - Medical History & OCR
@@ -690,6 +788,13 @@ class MobileEngineSessionStore: ObservableObject {
         guard let engine else { return false }
 
         if !isCloudAuthenticated {
+            if healthKitService.isAuthorized {
+                // Don't block UI on HealthKit import.
+                Task(priority: .utility) { [weak self] in
+                    await self?.syncHealthKitData(reason: "performSync-local-only")
+                }
+            }
+
             await getCurrentUser()
             await loadPatientProfile()
             return true
@@ -701,7 +806,10 @@ class MobileEngineSessionStore: ObservableObject {
 
         do {
             if healthKitService.isAuthorized {
-                await syncHealthKitData()
+                // Run HealthKit import in background; cloud sync can proceed immediately.
+                Task(priority: .utility) { [weak self] in
+                    await self?.syncHealthKitData(reason: "performSync-cloud")
+                }
             }
 
             let result = try await engine.performSync()
@@ -713,8 +821,7 @@ class MobileEngineSessionStore: ObservableObject {
 
                 await getCurrentUser()
                 await loadPatientProfile()
-                // Invalidate & rebuild medications cache so doctor-side changes are reflected
-                await loadMedications()
+                warmCachesAfterSyncInBackground()
                 return true
             } else {
                 errorMessage = result.error ?? "Sync failed"
@@ -726,23 +833,95 @@ class MobileEngineSessionStore: ObservableObject {
         }
     }
 
-    private func syncHealthKitData() async {
+    private func syncHealthKitData(reason: String) async {
         do {
             let endDate = Date()
             let startDate = Calendar.current.date(byAdding: .day, value: -7, to: endDate) ?? endDate
+
             let healthKitVitals = try await healthKitService.readVitalSigns(from: startDate, to: endDate)
 
-            for vital in healthKitVitals {
-                let vitalInput = VitalSignInput(
+            let vitalInputs = healthKitVitals.map { vital in
+                VitalSignInput(
                     type: vital.type,
                     value: vital.value,
                     unit: vital.unit,
                     source: vital.source,
                     timestamp: vital.timestamp
                 )
-                let _ = await recordVitalSign(vitalInput)
             }
-        } catch {}
+
+            let recordedCount = await recordVitalSigns(vitalInputs)
+
+            let estimatedSleepInserted = await importHealthKitSleepIfNeeded(reason: "syncHealthKitData", force: true)
+
+        } catch {
+
+        }
+    }
+
+    private func importHealthKitSleepIfNeeded(reason: String, force: Bool) async -> Int {
+        guard healthKitService.isAuthorized else {
+            return 0
+        }
+
+        if !force,
+           let lastImport = lastHealthKitSleepImportAt,
+           Date().timeIntervalSince(lastImport) < healthKitSleepImportCooldownSeconds {
+            return 0
+        }
+
+        guard let engine else {
+            return 0
+        }
+
+        do {
+            let endDate = Date()
+            // Incremental pull: start from the last successful pull-through timestamp (persisted),
+            // with a small overlap to tolerate HealthKit late writes / timezone boundary issues.
+            // Safety cap: never go farther back than the max window.
+            let windowFloor = Calendar.current.date(byAdding: .day, value: -healthKitSleepImportWindowDays, to: endDate) ?? endDate
+            let incrementalStart: Date? = {
+                guard let lastPulledThrough = lastHealthKitSleepPulledThrough else { return nil }
+                let overlap = TimeInterval(healthKitSleepIncrementalOverlapHours) * 60 * 60
+                return lastPulledThrough.addingTimeInterval(-overlap)
+            }()
+
+            let startDate = max(windowFloor, incrementalStart ?? windowFloor)
+
+            let beforeCount = (try? await engine.getSleepSessions(from: nil, to: nil).count) ?? -1
+            let sessions = try await healthKitService.readSleepSessions(from: startDate, to: endDate)
+
+            var successfulWrites = 0
+            for session in sessions {
+                let normalized = SleepSessionInput(
+                    startTime: session.startTime,
+                    endTime: session.endTime,
+                    durationMinutes: session.durationMinutes,
+                    qualityScore: session.qualityScore ?? 0
+                )
+
+                do {
+                    let result = try await engine.recordSleepSession(normalized)
+                    if result.success {
+                        successfulWrites += 1
+                    }
+                } catch {
+                }
+            }
+
+            let afterCount = (try? await engine.getSleepSessions(from: nil, to: nil).count) ?? -1
+            let estimatedInserted = max(afterCount - beforeCount, 0)
+
+            print("[SleepDebug][HealthKitSync] sleep import write summary reason=\(reason) successfulWrites=\(successfulWrites) localCountBefore=\(beforeCount) localCountAfter=\(afterCount) estimatedInserted=\(estimatedInserted)")
+
+            lastHealthKitSleepImportAt = Date()
+            lastHealthKitSleepPulledThrough = endDate
+            UserDefaults.standard.set(ISO8601DateFormatter().string(from: endDate), forKey: PersistedKeys.lastHealthKitSleepPulledThroughIso)
+            return estimatedInserted
+        } catch {
+            print("[SleepDebug][HealthKitSync] sleep import failed. reason=\(reason) error=\(error.localizedDescription)")
+            return 0
+        }
     }
 
     private func writeVitalsToHealthKit() async {

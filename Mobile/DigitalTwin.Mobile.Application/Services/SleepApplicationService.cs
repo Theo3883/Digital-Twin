@@ -35,7 +35,6 @@ public class SleepApplicationService
             // Deduplicate by patient + start time
             if (await _sleepRepo.ExistsAsync(patient.Id, input.StartTime))
             {
-                _logger.LogInformation("[SleepApp] Sleep session already exists for {StartTime}", input.StartTime);
                 return true;
             }
 
@@ -84,17 +83,25 @@ public class SleepApplicationService
         if (sessions.Count > 0)
             await _sleepRepo.SaveRangeAsync(sessions);
 
-        _logger.LogInformation("[SleepApp] Recorded {Count} sleep sessions", sessions.Count);
         return sessions.Count;
     }
 
     public async Task<IEnumerable<SleepSessionDto>> GetSleepSessionsAsync(DateTime? from = null, DateTime? to = null)
     {
-        var patient = await _patientRepo.GetCurrentPatientAsync();
-        if (patient == null) return [];
+        _logger.LogInformation("[SleepDebug][SleepApp] GetSleepSessionsAsync request. from={From} to={To}",
+            from?.ToString("O") ?? "nil",
+            to?.ToString("O") ?? "nil");
 
+        var patient = await _patientRepo.GetCurrentPatientAsync();
+        if (patient == null)
+        {
+            _logger.LogWarning("[SleepDebug][SleepApp] No current patient found while fetching sleep sessions");
+            return [];
+        }
+
+        
         var sessions = await _sleepRepo.GetByPatientIdAsync(patient.Id, from, to);
-        return sessions.Select(s => new SleepSessionDto
+        var mapped = sessions.Select(s => new SleepSessionDto
         {
             Id = s.Id,
             StartTime = s.StartTime,
@@ -103,5 +110,17 @@ public class SleepApplicationService
             QualityScore = s.QualityScore,
             IsSynced = s.IsSynced
         }).OrderByDescending(s => s.StartTime);
+
+        var mappedArray = mapped.ToArray();
+        if (mappedArray.Length > 0)
+        {
+            var latest = mappedArray[0];
+        }
+        else
+        {
+            _logger.LogInformation("[SleepDebug][SleepApp] Returning sleep sessions. count=0");
+        }
+
+        return mappedArray;
     }
 }

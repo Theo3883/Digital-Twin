@@ -44,23 +44,29 @@ struct EnvironmentView: View {
         .pageEnterAnimation()
         .task {
             await viewModel.loadInitial(preloaded: engineWrapper.latestEnvironmentReading)
-            if viewModel.reading == nil {
-                await fetchWithLocation()
-            }
+
+            await fetchWithPreferredLocation()
         }
-        .refreshable { await fetchWithLocation() }
+        .refreshable { await fetchWithPreferredLocation() }
         .sheet(isPresented: $showLocationSheet) {
             LocationEditSheet(
                 locationManager: locationManager,
                 cityText: $cityText,
                 onUseMyLocation: {
                     showLocationSheet = false
+                    LocationManager.setUseCurrentLocation()
                     refresh()
                 },
                 onApplyCity: { city in
                     showLocationSheet = false
                     Task {
                         if let result = await geocodingService.geocode(city: city) {
+                            LocationManager.saveManualLocation(
+                                latitude: result.latitude,
+                                longitude: result.longitude,
+                                displayName: result.displayName
+                            )
+
                             await viewModel.fetch(latitude: result.latitude, longitude: result.longitude)
                         }
                     }
@@ -70,21 +76,38 @@ struct EnvironmentView: View {
     }
 
     private func refresh() {
-        Task { await fetchWithLocation() }
+        Task { await fetchWithPreferredLocation() }
     }
 
-    private func fetchWithLocation() async {
+    private func fetchWithPreferredLocation() async {
         isRefreshing = true
         defer { isRefreshing = false }
 
+        if let manual = LocationManager.manualLocationCoordinatesIfSelected() {
+            await viewModel.fetch(latitude: manual.latitude, longitude: manual.longitude)
+            return
+        }
+
         if let location = locationManager.lastLocation {
             await viewModel.fetch(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
-        } else {
-            locationManager.requestLocation()
-            try? await Task.sleep(for: .seconds(2))
-            if let location = locationManager.lastLocation {
-                await viewModel.fetch(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
-            }
+            return
+        }
+
+        locationManager.requestLocation()
+        try? await Task.sleep(for: .seconds(2))
+
+        if let location = locationManager.lastLocation {
+            await viewModel.fetch(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
+            return
+        }
+
+        if let cachedCurrent = LocationManager.cachedCurrentLocationCoordinates() {
+            await viewModel.fetch(latitude: cachedCurrent.latitude, longitude: cachedCurrent.longitude)
+            return
+        }
+
+        if let manualFallback = LocationManager.manualLocationCoordinates() {
+            await viewModel.fetch(latitude: manualFallback.latitude, longitude: manualFallback.longitude)
         }
     }
 }

@@ -281,9 +281,9 @@ public class DatabaseInitializer
             """);
 
         // Add columns that may be missing from earlier schema versions.
-        await ExecuteAsync(conn, """ALTER TABLE "Users" ADD COLUMN "Address" TEXT NULL;""", ignoreDuplicateColumn: true);
-        await ExecuteAsync(conn, """ALTER TABLE "Users" ADD COLUMN "City"    TEXT NULL;""", ignoreDuplicateColumn: true);
-        await ExecuteAsync(conn, """ALTER TABLE "Users" ADD COLUMN "Country" TEXT NULL;""", ignoreDuplicateColumn: true);
+        await AddColumnIfMissingAsync(conn, "Users", "Address", """ALTER TABLE "Users" ADD COLUMN "Address" TEXT NULL;""");
+        await AddColumnIfMissingAsync(conn, "Users", "City", """ALTER TABLE "Users" ADD COLUMN "City" TEXT NULL;""");
+        await AddColumnIfMissingAsync(conn, "Users", "Country", """ALTER TABLE "Users" ADD COLUMN "Country" TEXT NULL;""");
 
         await ExecuteAsync(conn,"""
             CREATE TABLE IF NOT EXISTS "Patients" (
@@ -453,10 +453,10 @@ public class DatabaseInitializer
             """);
 
         // Backward-compatible migration for existing local DBs created before DocumentType was introduced.
-        await ExecuteAsync(conn,"""
+        await AddColumnIfMissingAsync(conn, "OcrDocuments", "DocumentType", """
             ALTER TABLE "OcrDocuments"
             ADD COLUMN "DocumentType" TEXT NOT NULL DEFAULT 'Unknown';
-            """, ignoreDuplicateColumn: true);
+            """);
 
         // ── MedicalHistoryEntries ──────────────────────────────────────────
         await ExecuteAsync(conn,"""
@@ -538,5 +538,38 @@ public class DatabaseInitializer
         {
             // No-op: column already exists from a previous app run.
         }
+    }
+
+    private static async Task AddColumnIfMissingAsync(
+        Microsoft.Data.Sqlite.SqliteConnection conn,
+        string tableName,
+        string columnName,
+        string alterTableSql)
+    {
+        if (await ColumnExistsAsync(conn, tableName, columnName))
+            return;
+
+        // Keep duplicate-column suppression to safely handle race-y or partially migrated DB states.
+        await ExecuteAsync(conn, alterTableSql, ignoreDuplicateColumn: true);
+    }
+
+    private static async Task<bool> ColumnExistsAsync(
+        Microsoft.Data.Sqlite.SqliteConnection conn,
+        string tableName,
+        string columnName)
+    {
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = $"PRAGMA table_info(\"{tableName}\");";
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            // PRAGMA table_info columns: cid, name, type, notnull, dflt_value, pk
+            var existingName = reader.GetString(1);
+            if (string.Equals(existingName, columnName, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
     }
 }

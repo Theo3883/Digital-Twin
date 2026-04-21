@@ -766,9 +766,29 @@ public class MobileEngine : IDisposable
             if (!string.IsNullOrEmpty(fromDateIso)) from = DateTime.Parse(fromDateIso);
             if (!string.IsNullOrEmpty(toDateIso)) to = DateTime.Parse(toDateIso);
 
+            _logger.LogInformation("[SleepDebug][MobileEngine] GetSleepSessionsAsync request. fromIso={FromIso} toIso={ToIso} parsedFrom={ParsedFrom} parsedTo={ParsedTo}",
+                fromDateIso ?? "nil",
+                toDateIso ?? "nil",
+                from?.ToString("O") ?? "nil",
+                to?.ToString("O") ?? "nil");
+
             var service = _scope.ServiceProvider.GetRequiredService<SleepApplicationService>();
             var sessions = await service.GetSleepSessionsAsync(from, to);
-            return JsonSerializer.Serialize(sessions.ToArray(), MobileJsonContext.Default.SleepSessionDtoArray);
+            var sessionsArray = sessions.ToArray();
+            if (sessionsArray.Length > 0)
+            {
+                var latest = sessionsArray.MaxBy(s => s.EndTime);
+                _logger.LogInformation("[SleepDebug][MobileEngine] GetSleepSessionsAsync result count={Count} latestEnd={LatestEnd} latestDurationMin={LatestDuration}",
+                    sessionsArray.Length,
+                    latest?.EndTime.ToString("O") ?? "nil",
+                    latest?.DurationMinutes ?? 0);
+            }
+            else
+            {
+                _logger.LogInformation("[SleepDebug][MobileEngine] GetSleepSessionsAsync result count=0");
+            }
+
+            return JsonSerializer.Serialize(sessionsArray, MobileJsonContext.Default.SleepSessionDtoArray);
         }
         catch (Exception ex)
         {

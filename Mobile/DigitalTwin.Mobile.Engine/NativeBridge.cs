@@ -513,7 +513,10 @@ public static class NativeBridge
             if (_engine == null) throw new InvalidOperationException("Engine not initialized");
             var from = Marshal.PtrToStringUTF8(fromDateIsoPtr);
             var to = Marshal.PtrToStringUTF8(toDateIsoPtr);
-            return await _engine.GetSleepSessionsAsync(from, to);
+            Console.WriteLine($"[SleepDebug][NativeBridge] get_sleep_sessions called. from={from ?? "nil"} to={to ?? "nil"}");
+            var payload = await _engine.GetSleepSessionsAsync(from, to);
+            Console.WriteLine($"[SleepDebug][NativeBridge] get_sleep_sessions completed. payloadChars={payload.Length}");
+            return payload;
         });
     }
 

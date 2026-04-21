@@ -3,8 +3,18 @@ import SwiftUI
 struct MedicalAssistantView: View {
     @EnvironmentObject var engineWrapper: MobileEngineWrapper
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: MedicalAssistantViewModel
     @FocusState private var isInputFocused: Bool
+    @State private var scrollViewMaxY: CGFloat = 0
+    @State private var bottomAnchorMaxY: CGFloat = 0
+    @State private var userIsReviewingHistory = false
+    @State private var didRunInitialConversationScroll = false
+    @State private var pendingAutoScrollWorkItem: DispatchWorkItem?
+
+    private static let chatBottomAnchorId = "medical-assistant-chat-bottom"
+    private static let nearBottomThreshold: CGFloat = 120
+    private static let autoScrollDelay: TimeInterval = 0.06
 
     init(viewModel: MedicalAssistantViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -34,8 +44,20 @@ struct MedicalAssistantView: View {
         }
         .pageEnterAnimation()
         .animation(.easeInOut(duration: 0.2), value: viewModel.assistantStatusText)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    isInputFocused = false
+                }
+            }
+        }
         .task {
             await viewModel.onAppear()
+        }
+        .onDisappear {
+            pendingAutoScrollWorkItem?.cancel()
+            pendingAutoScrollWorkItem = nil
         }
     }
 
@@ -151,16 +173,106 @@ struct MedicalAssistantView: View {
                     
                     if viewModel.isSending {
                         typingIndicator
+                            .id("medical-assistant-typing")
                     }
+
+                    Color.clear
+                        .frame(height: 1)
+                        .id(Self.chatBottomAnchorId)
+                        .background(
+                            GeometryReader { geometry in
+                                Color.clear.preference(
+                                    key: ChatBottomAnchorMaxYPreferenceKey.self,
+                                    value: geometry.frame(in: .global).maxY
+                                )
+                            }
+                        )
                 }
                 .padding(16)
             }
+            .scrollDismissesKeyboard(.interactively)
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    isInputFocused = false
+                }
+            )
+            .background(
+                GeometryReader { geometry in
+                    Color.clear.preference(
+                        key: ChatScrollViewMaxYPreferenceKey.self,
+                        value: geometry.frame(in: .global).maxY
+                    )
+                }
+            )
+            .onPreferenceChange(ChatBottomAnchorMaxYPreferenceKey.self) { value in
+                bottomAnchorMaxY = value
+                refreshScrollReviewState()
+            }
+            .onPreferenceChange(ChatScrollViewMaxYPreferenceKey.self) { value in
+                scrollViewMaxY = value
+                refreshScrollReviewState()
+            }
             .onChange(of: viewModel.messages.count) { _, _ in
-                if let last = viewModel.messages.last {
-                    withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                if viewModel.messages.isEmpty {
+                    didRunInitialConversationScroll = false
+                    userIsReviewingHistory = false
+                } else {
+                    scheduleSmoothAutoScroll(using: proxy)
                 }
             }
+            .onChange(of: viewModel.isSending) { _, _ in
+                scheduleSmoothAutoScroll(using: proxy)
+            }
+            .task(id: viewModel.messages.count) {
+                guard !didRunInitialConversationScroll else { return }
+                guard !viewModel.messages.isEmpty else { return }
+
+                didRunInitialConversationScroll = true
+                scheduleSmoothAutoScroll(using: proxy, force: true)
+            }
         }
+    }
+
+    private func scheduleSmoothAutoScroll(using proxy: ScrollViewProxy, force: Bool = false) {
+        guard force || !userIsReviewingHistory else { return }
+
+        pendingAutoScrollWorkItem?.cancel()
+
+        let workItem = DispatchWorkItem {
+            scrollToLatest(using: proxy, animated: true, force: force)
+        }
+
+        pendingAutoScrollWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.autoScrollDelay, execute: workItem)
+    }
+
+    private func scrollToLatest(using proxy: ScrollViewProxy, animated: Bool = true, force: Bool = false) {
+        guard force || !userIsReviewingHistory else { return }
+
+        let scrollAction = {
+            proxy.scrollTo(Self.chatBottomAnchorId, anchor: .bottom)
+        }
+
+        if animated {
+            if #available(iOS 17.0, *) {
+                withAnimation(.smooth(duration: 0.3, extraBounce: 0)) {
+                    scrollAction()
+                }
+            } else {
+                withAnimation(.easeInOut(duration: 0.28)) {
+                    scrollAction()
+                }
+            }
+        } else {
+            scrollAction()
+        }
+    }
+
+    private func refreshScrollReviewState() {
+        guard scrollViewMaxY > 0, bottomAnchorMaxY > 0 else { return }
+
+        let distanceFromBottom = bottomAnchorMaxY - scrollViewMaxY
+        userIsReviewingHistory = distanceFromBottom > Self.nearBottomThreshold
     }
 
     // MARK: - Typing Indicator
@@ -220,6 +332,10 @@ struct MedicalAssistantView: View {
                 .focused($isInputFocused)
                 .foregroundColor(.white)
                 .tint(LiquidGlass.tealPrimary)
+                .submitLabel(.send)
+                .onSubmit {
+                    viewModel.sendMessage()
+                }
 
             Button(action: viewModel.sendMessage) {
                 ZStack {
@@ -267,5 +383,21 @@ struct MedicalAssistantView: View {
             .frame(maxWidth: .infinity)
             .padding(.horizontal, tabAlignedHorizontalInset)
             .padding(.bottom, 8)
+    }
+}
+
+private struct ChatBottomAnchorMaxYPreferenceKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+private struct ChatScrollViewMaxYPreferenceKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }

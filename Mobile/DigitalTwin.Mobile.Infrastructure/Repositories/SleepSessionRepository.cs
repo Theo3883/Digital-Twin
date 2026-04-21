@@ -2,27 +2,63 @@ using DigitalTwin.Mobile.Domain.Interfaces;
 using DigitalTwin.Mobile.Domain.Models;
 using DigitalTwin.Mobile.Infrastructure.Data;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Logging;
 
 namespace DigitalTwin.Mobile.Infrastructure.Repositories;
 
 public class SleepSessionRepository : ISleepSessionRepository
 {
     private readonly SqliteConnectionFactory _db;
+    private readonly ILogger<SleepSessionRepository> _logger;
 
-    public SleepSessionRepository(SqliteConnectionFactory db) => _db = db;
+    public SleepSessionRepository(SqliteConnectionFactory db, ILogger<SleepSessionRepository> logger)
+    {
+        _db = db;
+        _logger = logger;
+    }
 
     public async Task<IEnumerable<SleepSession>> GetByPatientIdAsync(Guid patientId, DateTime? from = null, DateTime? to = null)
     {
         await using var conn = _db.CreateConnection();
         await conn.OpenAsync();
+
+        var effectiveFrom = from ?? DateTime.MinValue;
+        var effectiveTo = to ?? DateTime.MaxValue;
+        var totalRows = await CountSleepRowsAsync(conn);
+        var patientRows = await CountSleepRowsForPatientAsync(conn, patientId);
+
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT * FROM SleepSessions WHERE PatientId = @pid AND StartTime >= @from AND StartTime <= @to ORDER BY StartTime DESC";
         cmd.Parameters.AddWithValue("@pid", patientId.ToString());
-        cmd.Parameters.AddWithValue("@from", (from ?? DateTime.MinValue).ToString("O"));
-        cmd.Parameters.AddWithValue("@to", (to ?? DateTime.MaxValue).ToString("O"));
+        cmd.Parameters.AddWithValue("@from", effectiveFrom.ToString("O"));
+        cmd.Parameters.AddWithValue("@to", effectiveTo.ToString("O"));
         await using var r = await cmd.ExecuteReaderAsync();
         var list = new List<SleepSession>();
         while (await r.ReadAsync()) list.Add(ReadEntity(r));
+
+        if (list.Count > 0)
+        {
+            var latest = list[0];
+            _logger.LogInformation("[SleepDebug][SleepRepo] Query result count={Count} patientId={PatientId} from={From} to={To} totalRows={TotalRows} patientRows={PatientRows} latestStart={LatestStart} latestEnd={LatestEnd}",
+                list.Count,
+                patientId,
+                effectiveFrom.ToString("O"),
+                effectiveTo.ToString("O"),
+                totalRows,
+                patientRows,
+                latest.StartTime.ToString("O"),
+                latest.EndTime.ToString("O"));
+        }
+        else
+        {
+            _logger.LogWarning("[SleepDebug][SleepRepo] Query returned 0 rows. patientId={PatientId} from={From} to={To} totalRows={TotalRows} patientRows={PatientRows}",
+                patientId,
+                effectiveFrom.ToString("O"),
+                effectiveTo.ToString("O"),
+                totalRows,
+                patientRows);
+        }
+
         return list;
     }
 
@@ -120,4 +156,21 @@ public class SleepSessionRepository : ISleepSessionRepository
         CreatedAt = DateTime.Parse(r.GetString(r.GetOrdinal("CreatedAt"))),
         IsSynced = r.GetInt64(r.GetOrdinal("IsSynced")) != 0
     };
+
+    private static async Task<long> CountSleepRowsAsync(SqliteConnection conn)
+    {
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(1) FROM SleepSessions";
+        var result = await cmd.ExecuteScalarAsync();
+        return Convert.ToInt64(result);
+    }
+
+    private static async Task<long> CountSleepRowsForPatientAsync(SqliteConnection conn, Guid patientId)
+    {
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(1) FROM SleepSessions WHERE PatientId = @pid";
+        cmd.Parameters.AddWithValue("@pid", patientId.ToString());
+        var result = await cmd.ExecuteScalarAsync();
+        return Convert.ToInt64(result);
+    }
 }

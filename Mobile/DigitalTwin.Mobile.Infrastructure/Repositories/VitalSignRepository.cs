@@ -54,6 +54,53 @@ public class VitalSignRepository : IVitalSignRepository
         return list;
     }
 
+    public async Task<bool> ExistsAsync(Guid patientId, VitalSignType type, DateTime timestamp, string source)
+    {
+        await using var conn = _db.CreateConnection();
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            SELECT 1
+            FROM VitalSigns
+            WHERE PatientId = @pid
+              AND Type = @type
+              AND Timestamp = @ts
+              AND Source = @source
+            LIMIT 1
+            """;
+        cmd.Parameters.AddWithValue("@pid", patientId.ToString());
+        cmd.Parameters.AddWithValue("@type", (int)type);
+        cmd.Parameters.AddWithValue("@ts", timestamp.ToString("O"));
+        cmd.Parameters.AddWithValue("@source", source);
+
+        var result = await cmd.ExecuteScalarAsync();
+        return result != null && result != DBNull.Value;
+    }
+
+    public async Task<Guid?> GetIdByKeyAsync(Guid patientId, VitalSignType type, DateTime timestamp, string source)
+    {
+        await using var conn = _db.CreateConnection();
+        await conn.OpenAsync();
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            SELECT Id
+            FROM VitalSigns
+            WHERE PatientId = @pid
+              AND Type = @type
+              AND Timestamp = @ts
+              AND Source = @source
+            LIMIT 1
+            """;
+        cmd.Parameters.AddWithValue("@pid", patientId.ToString());
+        cmd.Parameters.AddWithValue("@type", (int)type);
+        cmd.Parameters.AddWithValue("@ts", timestamp.ToString("O"));
+        cmd.Parameters.AddWithValue("@source", source);
+
+        var result = await cmd.ExecuteScalarAsync();
+        if (result == null || result == DBNull.Value) return null;
+        return Guid.TryParse(result.ToString(), out var id) ? id : null;
+    }
+
     public async Task SaveAsync(VitalSign vitalSign)
     {
         await using var conn = _db.CreateConnection();

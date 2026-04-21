@@ -54,6 +54,10 @@ actor MobileEngineHandle {
         try bridge.recordVitalSign(vitalSign)
     }
 
+    func recordVitalSigns(_ vitalSigns: [VitalSignInput]) async throws -> RecordVitalSignsResult {
+        try bridge.recordVitalSigns(vitalSigns)
+    }
+
     func getVitalSigns(from: Date?, to: Date?) async throws -> [VitalSignInfo] {
         try bridge.getVitalSigns(from: from, to: to)
     }

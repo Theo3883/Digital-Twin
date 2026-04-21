@@ -103,14 +103,16 @@ final class BackgroundSyncService: ObservableObject {
             return false
         }
 
-        guard engineWrapper.isCloudAuthenticated else {
-            print("[BackgroundSyncService] Skipping cloud sync: cloud authentication is not ready")
-            return true
-        }
-        
-        // 1. Sync HealthKit data if authorized
+        healthKitService.refreshAuthorizationStatus()
+
+        // 1. Sync HealthKit data to local DB even when cloud auth is not ready.
         if healthKitService.isAuthorized {
             await syncHealthKitData(engineWrapper: engineWrapper)
+        }
+
+        guard engineWrapper.isCloudAuthenticated else {
+            print("[BackgroundSyncService] Skipping cloud sync: cloud authentication is not ready (local HealthKit import completed)")
+            return true
         }
 
         // 2. Push local changes to cloud
@@ -129,7 +131,7 @@ final class BackgroundSyncService: ObservableObject {
 
         // 4. Rebuild medications + environment caches so they are hot on next foreground
         await engineWrapper.loadMedications()
-        await engineWrapper.loadLatestEnvironmentReading()
+        await engineWrapper.refreshEnvironmentForPreferredLocation()
 
         // 5. Send local notification if significant changes
         await sendSyncNotificationIfNeeded()
@@ -140,29 +142,46 @@ final class BackgroundSyncService: ObservableObject {
     /// Sync HealthKit data to the engine
     private func syncHealthKitData(engineWrapper: MobileEngineWrapper) async {
         do {
-            // Get HealthKit data from the last 24 hours
+            // Import a wider window so stale local sleep can be backfilled without manual intervention.
             let endDate = Date()
-            let startDate = Calendar.current.date(byAdding: .day, value: -1, to: endDate) ?? endDate
-            
+            let startDate = Calendar.current.date(byAdding: .day, value: -14, to: endDate) ?? endDate
+
             let healthKitVitals = try await healthKitService.readVitalSigns(from: startDate, to: endDate)
-            
+            let healthKitSleepSessions = try await healthKitService.readSleepSessions(from: startDate, to: endDate)
+
             // Convert to VitalSignInput and record in engine
-            for vital in healthKitVitals {
-                let vitalInput = VitalSignInput(
+            let vitalInputs = healthKitVitals.map { vital in
+                VitalSignInput(
                     type: vital.type,
                     value: vital.value,
                     unit: vital.unit,
                     source: vital.source,
                     timestamp: vital.timestamp
                 )
-                
-                let _ = await engineWrapper.recordVitalSign(vitalInput)
+            }
+
+            let recordedVitals = await engineWrapper.recordVitalSigns(vitalInputs)
+
+            var recordedSleep = 0
+            for sleepSession in healthKitSleepSessions {
+                let input = SleepSessionInput(
+                    startTime: sleepSession.startTime,
+                    endTime: sleepSession.endTime,
+                    durationMinutes: sleepSession.durationMinutes,
+                    qualityScore: sleepSession.qualityScore
+                )
+
+                if await engineWrapper.recordSleepSession(input, reloadAfterWrite: false) {
+                    recordedSleep += 1
+                }
+            }
+
+            if recordedSleep > 0 {
+                await engineWrapper.loadSleepSessions()
             }
             
-            print("[BackgroundSyncService] Synced \(healthKitVitals.count) HealthKit vitals")
-            
         } catch {
-            print("[BackgroundSyncService] HealthKit sync error: \(error)")
+            print("[BackgroundSync] HealthKit sync error: \(error)")
         }
     }
     

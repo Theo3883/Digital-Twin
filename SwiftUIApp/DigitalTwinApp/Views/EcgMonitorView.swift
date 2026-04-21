@@ -25,12 +25,12 @@ struct EcgMonitorView: View {
                         connectionPanel
                     }
                     
-                    // Critical Alert
-                    if let result = viewModel.latestResult, result.isCritical {
-                        CriticalAlertBanner(result: result)
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 12)
-                    }
+                    // // Critical Alert
+                    // if let result = viewModel.latestResult, result.isCritical {
+                    //     CriticalAlertBanner(result: result)
+                    //         .padding(.horizontal, 16)
+                    //         .padding(.bottom, 12)
+                    // }
                     
                     // ECG Canvas
                     ecgCanvasView
@@ -165,35 +165,27 @@ struct EcgMonitorView: View {
             RoundedRectangle(cornerRadius: 0)
                 .fill(Color(red: 8/255, green: 14/255, blue: 30/255).opacity(0.95))
                 .frame(height: 280)
-            
-            // Grid Y-axis labels
-            HStack {
-                VStack(spacing: 0) {
-                    ForEach(["1.5", "1.0", "0.5", " 0", "-0.5", "-1.5"], id: \.self) { label in
-                        Text(label)
+
+            GeometryReader { geo in
+                let gridHeight: CGFloat = 240
+                let gridTopInset: CGFloat = (280 - gridHeight) / 2
+                let gridRect = CGRect(x: 0, y: gridTopInset, width: geo.size.width, height: gridHeight)
+
+                // Draw a calibrated grid + labels using the SAME transform as the waveform.
+                EcgCalibratedGrid(rect: gridRect)
+
+                // Calibration label: derive real window from sample count + sample rate.
+                VStack {
+                    HStack {
+                        Spacer()
+                        Text(calibrationLabelText)
                             .font(.system(size: 10, design: .monospaced))
                             .foregroundColor(Color(red: 0, green: 1, blue: 136/255).opacity(0.5))
-                        if label != "-1.5" { Spacer() }
+                            .padding(.trailing, 12)
+                            .padding(.top, 8)
                     }
-                }
-                .frame(width: 30)
-                .padding(.leading, 8)
-                
-                Spacer()
-            }
-            .frame(height: 260)
-            
-            // Speed label
-            VStack {
-                HStack {
                     Spacer()
-                    Text("25 mm/s · 10 mm/mV")
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundColor(Color(red: 0, green: 1, blue: 136/255).opacity(0.5))
-                        .padding(.trailing, 12)
-                        .padding(.top, 8)
                 }
-                Spacer()
             }
             .frame(height: 280)
             
@@ -202,10 +194,16 @@ struct EcgMonitorView: View {
                 // ble.ecgBuffer shape is [12][4096]. Index 1 is Lead II.
                 let leadIISamples = ble.leadIIBuffer
                 if !leadIISamples.isEmpty {
-                    // Extract the last 1000 samples for display (approx 4 seconds at 250sps)
-                    let recentSamples = leadIISamples.suffix(1000)
-                    let scaledSamples = recentSamples.map { Double($0) / 1000.0 }
-                    EcgWaveformPath(samples: scaledSamples)
+                    // Extract the last N samples for display.
+                    let recentSamples = leadIISamples.suffix(displaySampleCount)
+                    let scaledSamples = recentSamples.map { Double($0) / adcScaleDivisor }
+
+                    // Center baseline: use a robust estimate (median of the middle 80%) so QRS spikes
+                    // don't bias the baseline upward/downward.
+                    let baseline = robustBaseline(scaledSamples)
+                    let centeredSamples = scaledSamples.map { $0 - baseline }
+
+                    EcgWaveformPath(samples: centeredSamples, yRangeMv: yRangeMv)
                         .stroke(Color(red: 0, green: 1, blue: 136/255), lineWidth: 1.5)
                         .frame(height: 240)
                         .padding(.horizontal, 40)
@@ -216,11 +214,11 @@ struct EcgMonitorView: View {
             VStack {
                 Spacer()
                 HStack {
-                    ForEach(["0s", "1s", "2s", "3s", "4s", "5s"], id: \.self) { label in
+                    ForEach(xAxisLabels, id: \.self) { label in
                         Text(label)
                             .font(.system(size: 10, design: .monospaced))
                             .foregroundColor(Color(red: 0, green: 1, blue: 136/255).opacity(0.5))
-                        if label != "5s" { Spacer() }
+                        if label != xAxisLabels.last { Spacer() }
                     }
                 }
                 .padding(.horizontal, 40)
@@ -446,5 +444,84 @@ struct EcgMonitorView: View {
                 }
             }
         }
+    }
+
+    // MARK: - ECG Calibration / Baseline
+
+    private let sampleRateHz: Double = 250
+    private let displaySampleCount: Int = 1000
+    private let adcScaleDivisor: Double = 1000.0
+
+    /// Visible mV span for the waveform/grid mapping.
+    /// \(+/-1.5mV\) matches the labels on the left.
+    private let yRangeMv: ClosedRange<Double> = (-1.5)...(1.5)
+
+    private var displayedSeconds: Double {
+        Double(displaySampleCount) / sampleRateHz
+    }
+
+    private var calibrationLabelText: String {
+        // We can make time window exact; "mm/s" / "mm/mV" are display conventions,
+        // but the real data backing the view is sample-rate + mV span.
+        let spanMv = yRangeMv.upperBound - yRangeMv.lowerBound
+        return String(format: "%.0f Hz · %.1fs · %.1f mV span", sampleRateHz, displayedSeconds, spanMv)
+    }
+
+    private var xAxisLabels: [String] {
+        // Label in whole seconds up to the displayed window.
+        let seconds = Int(round(displayedSeconds))
+        return (0...seconds).map { "\($0)s" }
+    }
+
+    private func robustBaseline(_ values: [Double]) -> Double {
+        guard !values.isEmpty else { return 0 }
+        let sorted = values.sorted()
+        let n = sorted.count
+        let low = Int(Double(n) * 0.10)
+        let high = Int(Double(n) * 0.90)
+        if high <= low { return sorted[n / 2] }
+        let middle = Array(sorted[low..<high])
+        return middle[middle.count / 2]
+    }
+}
+
+private struct EcgCalibratedGrid: View {
+    let rect: CGRect
+
+    private let yRangeMv: ClosedRange<Double> = (-1.5)...(1.5)
+    private let labelColor = Color(red: 0, green: 1, blue: 136/255).opacity(0.5)
+    private let gridLineColor = Color(red: 0, green: 1, blue: 136/255).opacity(0.12)
+    private let zeroLineColor = Color(red: 0, green: 1, blue: 136/255).opacity(0.30)
+
+    private func y(forMv mv: Double) -> CGFloat {
+        let minV = yRangeMv.lowerBound
+        let maxV = yRangeMv.upperBound
+        let t = (maxV - mv) / (maxV - minV) // 0 at top, 1 at bottom
+        return rect.minY + CGFloat(t) * rect.height
+    }
+
+    var body: some View {
+        // Lines + labels aligned to the same coordinate system.
+        let ticks: [Double] = [1.5, 1.0, 0.5, 0.0, -0.5, -1.0, -1.5]
+
+        ZStack(alignment: .topLeading) {
+            ForEach(ticks, id: \.self) { tick in
+                let yPos = y(forMv: tick)
+                Path { p in
+                    p.move(to: CGPoint(x: rect.minX + 40, y: yPos))
+                    p.addLine(to: CGPoint(x: rect.maxX - 12, y: yPos))
+                }
+                .stroke(tick == 0 ? zeroLineColor : gridLineColor, lineWidth: tick == 0 ? 1.0 : 0.5)
+                .allowsHitTesting(false)
+
+                Text(tick == 0 ? "0" : String(format: "%.1f", tick))
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundColor(labelColor)
+                    .frame(width: 34, alignment: .trailing)
+                    .position(x: rect.minX + 20, y: yPos)
+                    .allowsHitTesting(false)
+            }
+        }
+        .frame(height: rect.maxY)
     }
 }
