@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>mean</key>
+	<real>-0.0007771724002828525</real>
+	<key>scale</key>
+	<real>0.23895642180464072</real>
+	<key>source</key>
+	<string>models/ecg_ptbxl_benchmarking/output/exp0/data/standard_scaler.pkl</string>
+</dict>
+</plist>

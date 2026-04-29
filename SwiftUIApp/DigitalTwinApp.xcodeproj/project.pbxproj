@@ -8,8 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		03646D66F5CD83E87F892BEF /* DocumentTypeMlClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E929B242F264D126884BA14 /* DocumentTypeMlClassifier.swift */; };
+		0942B80FDA06417A0DD6763D /* ECGModel.onnx in Resources */ = {isa = PBXBuildFile; fileRef = F22BE85E3AE35CFCC3E0521D /* ECGModel.onnx */; };
 		1531A3119B52A649A21F700D /* OcrSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF9544026E3F3957FED3755D /* OcrSheetView.swift */; };
 		220C2540FBB4DEB0733F06B7 /* OcrVisionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA93725FB742B80D23707678 /* OcrVisionService.swift */; };
+		271FF88474FE202AAE382A72 /* ECGClassifierService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB612E7E9406634E583253A9 /* ECGClassifierService.swift */; };
 		41964FFDD5BD599341880B4A /* ECGClassifier.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = 81A26192327ABBFBC884DCDC /* ECGClassifier.mlpackage */; };
 		58A5CFC5185D39DC8D3F0EAC /* ImportPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51109CBC1AE487E550261F42 /* ImportPageView.swift */; };
 		5A64237EEA35C6DF2A3B71A9 /* PhotoLibraryPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13454D7A16E9B61E9E9F42D2 /* PhotoLibraryPicker.swift */; };
@@ -17,6 +19,7 @@
 		662DCAB0BD5F0817642C077C /* SanitizedPreviewPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3545E6A1F1D938DBE0AF872C /* SanitizedPreviewPanelView.swift */; };
 		6DF31F0CF81F1E83F46159CD /* OcrSecurityPosture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FC3BB78E741E4C45688EAE0 /* OcrSecurityPosture.swift */; };
 		74C1621DAE4304A21244C359 /* SecurityPostureCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72D59C1FB1159CBAD46F1940 /* SecurityPostureCardView.swift */; };
+		840729DC24AD367C7A27F3F8 /* onnxruntime in Frameworks */ = {isa = PBXBuildFile; productRef = 2A4FF62A891276CE84003BF3 /* onnxruntime */; };
 		9AFE1AE9F3520D5A87F005B8 /* MedicalDocumentDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F873A8A0B3188F4E26EECFD5 /* MedicalDocumentDetailView.swift */; };
 		A224298888DC1BE019C83E80 /* PostureRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C85DA4856D47E1B4D5D127F /* PostureRowView.swift */; };
 		AA0000000000000000000001 /* DigitalTwinAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000011 /* DigitalTwinAppApp.swift */; };
@@ -47,6 +50,7 @@
 		BB0000000000000000000017 /* MedicationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000007 /* MedicationsView.swift */; };
 		BB0000000000000000000019 /* SleepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000009 /* SleepView.swift */; };
 		BF8A7E7300BBC87FC06D0E19 /* ScanPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8F5D278B79D6068DC8FE5BF /* ScanPageView.swift */; };
+		C1A4E95F77EA70138F38EAC8 /* Esp32MinuteVitalsPersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A4E95F77EA70138F38EAC9 /* Esp32MinuteVitalsPersistenceService.swift */; };
 		CA0000000000000000000001 /* AssignedDoctorInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000011 /* AssignedDoctorInfo.swift */; };
 		CA0000000000000000000002 /* EnvironmentAnalyticsInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000012 /* EnvironmentAnalyticsInfo.swift */; };
 		CA0000000000000000000003 /* DoctorRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA0000000000000000000013 /* DoctorRepository.swift */; };
@@ -80,7 +84,6 @@
 		E1B000000000000000000001 /* OcrResultCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A000000000000000000001 /* OcrResultCard.swift */; };
 		E1B000000000000000000002 /* OcrDocumentCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A000000000000000000002 /* OcrDocumentCard.swift */; };
 		E1B000000000000000000003 /* EmptyDocumentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A000000000000000000003 /* EmptyDocumentsView.swift */; };
-		C1A4E95F77EA70138F38EAC8 /* Esp32MinuteVitalsPersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A4E95F77EA70138F38EAC9 /* Esp32MinuteVitalsPersistenceService.swift */; };
 		E3A0A95F77EA70138F38EAC7 /* BLEManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9268C3715A6D853AA680697A /* BLEManager.swift */; };
 		E60C9C49C487B616F177E612 /* DocumentScanNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A68A72FB4337039D200ECF2 /* DocumentScanNormalizer.swift */; };
 		EE0000000000000000000001 /* ContentView_Previews.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000011 /* ContentView_Previews.swift */; };
@@ -221,10 +224,9 @@
 		51109CBC1AE487E550261F42 /* ImportPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/ImportPageView.swift; sourceTree = "<group>"; };
 		6E6A2AB7861E40A7C6E0BB4F /* VaultKeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Internal/VaultKeychainService.swift; sourceTree = "<group>"; };
 		72D59C1FB1159CBAD46F1940 /* SecurityPostureCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/SecurityPostureCardView.swift; sourceTree = "<group>"; };
-		81A26192327ABBFBC884DCDC /* ECGClassifier.mlpackage */ = {isa = PBXFileReference; includeInIndex = 1; path = ECGClassifier.mlpackage; sourceTree = "<group>"; };
+		81A26192327ABBFBC884DCDC /* ECGClassifier.mlpackage */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.mlpackage; path = ECGClassifier.mlpackage; sourceTree = "<group>"; };
 		888668FC10C641F9CEE4F306 /* OcrResultPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/OcrResultPageView.swift; sourceTree = "<group>"; };
 		9268C3715A6D853AA680697A /* BLEManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BLEManager.swift; sourceTree = "<group>"; };
-		C1A4E95F77EA70138F38EAC9 /* Esp32MinuteVitalsPersistenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Esp32MinuteVitalsPersistenceService.swift; sourceTree = "<group>"; };
 		AA0000000000000000000011 /* DigitalTwinAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DigitalTwinAppApp.swift; sourceTree = "<group>"; };
 		AA0000000000000000000012 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		AA0000000000000000000013 /* MobileEngineWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileEngineWrapper.swift; sourceTree = "<group>"; };
@@ -256,6 +258,8 @@
 		BB0000000000000000000006 /* MedicalHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicalHistoryView.swift; sourceTree = "<group>"; };
 		BB0000000000000000000007 /* MedicationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationsView.swift; sourceTree = "<group>"; };
 		BB0000000000000000000009 /* SleepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepView.swift; sourceTree = "<group>"; };
+		BB612E7E9406634E583253A9 /* ECGClassifierService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ECGClassifierService.swift; sourceTree = "<group>"; };
+		C1A4E95F77EA70138F38EAC9 /* Esp32MinuteVitalsPersistenceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Esp32MinuteVitalsPersistenceService.swift; sourceTree = "<group>"; };
 		C8F5D278B79D6068DC8FE5BF /* ScanPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/ScanPageView.swift; sourceTree = "<group>"; };
 		CA0000000000000000000011 /* AssignedDoctorInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssignedDoctorInfo.swift; sourceTree = "<group>"; };
 		CA0000000000000000000012 /* EnvironmentAnalyticsInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentAnalyticsInfo.swift; sourceTree = "<group>"; };
@@ -335,6 +339,7 @@
 		F1000000000000000000001C /* MobileEngineClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileEngineClient.swift; sourceTree = "<group>"; };
 		F1000000000000000000001D /* DotNetMobileEngineClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DotNetMobileEngineClient.swift; sourceTree = "<group>"; };
 		F1000000000000000000001E /* MobileEngineSessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileEngineSessionStore.swift; sourceTree = "<group>"; };
+		F22BE85E3AE35CFCC3E0521D /* ECGModel.onnx */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = file; path = ECGModel.onnx; sourceTree = "<group>"; };
 		F50000000000000000000011 /* AppContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppContainer.swift; sourceTree = "<group>"; };
 		F80000000000000000000011 /* DashboardSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardSnapshot.swift; sourceTree = "<group>"; };
 		F80000000000000000000012 /* DashboardRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardRepository.swift; sourceTree = "<group>"; };
@@ -408,6 +413,7 @@
 				AA000000000000000000000E /* DigitalTwin.Mobile.NativeHost.xcframework in Frameworks */,
 				DD0000000000000000000001 /* GoogleSignIn in Frameworks */,
 				DD0000000000000000000002 /* GoogleSignInSwift in Frameworks */,
+				840729DC24AD367C7A27F3F8 /* onnxruntime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -527,6 +533,7 @@
 				CC0000000000000000000012 /* GeocodingService.swift */,
 				C1A4E95F77EA70138F38EAC9 /* Esp32MinuteVitalsPersistenceService.swift */,
 				9268C3715A6D853AA680697A /* BLEManager.swift */,
+				BB612E7E9406634E583253A9 /* ECGClassifierService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -653,6 +660,7 @@
 				F00000000000000000000135 /* doc_type_classifier_v1.mlmodelc */,
 				81A26192327ABBFBC884DCDC /* ECGClassifier.mlpackage */,
 				F950C30A45A4CC70AA5C1B2D /* PTBXLClassifier.mlmodelc */,
+				F22BE85E3AE35CFCC3E0521D /* ECGModel.onnx */,
 			);
 			path = MLModels;
 			sourceTree = "<group>";
@@ -868,6 +876,7 @@
 			packageProductDependencies = (
 				DD0000000000000000000010 /* GoogleSignIn */,
 				DD0000000000000000000011 /* GoogleSignInSwift */,
+				2A4FF62A891276CE84003BF3 /* onnxruntime */,
 			);
 			productName = DigitalTwinApp;
 			productReference = AA0000000000000000000100 /* DigitalTwinApp.app */;
@@ -898,6 +907,7 @@
 			mainGroup = AA0000000000000000000300;
 			packageReferences = (
 				DD0000000000000000000020 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				16A7F7EF1F6F64B2103A164E /* XCRemoteSwiftPackageReference "onnxruntime-swift-package-manager" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AA0000000000000000000310 /* Products */;
@@ -918,6 +928,7 @@
 				AA000000000000000000000C /* Preview Assets.xcassets in Resources */,
 				EF0000000000000000000019 /* doc_type_classifier_v1.mlmodelc in Resources */,
 				BAA71FE35FF5622C85CEB390 /* PTBXLClassifier.mlmodelc in Resources */,
+				0942B80FDA06417A0DD6763D /* ECGModel.onnx in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1106,6 +1117,7 @@
 				C1A4E95F77EA70138F38EAC8 /* Esp32MinuteVitalsPersistenceService.swift in Sources */,
 				E3A0A95F77EA70138F38EAC7 /* BLEManager.swift in Sources */,
 				41964FFDD5BD599341880B4A /* ECGClassifier.mlpackage in Sources */,
+				271FF88474FE202AAE382A72 /* ECGClassifierService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1337,6 +1349,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		16A7F7EF1F6F64B2103A164E /* XCRemoteSwiftPackageReference "onnxruntime-swift-package-manager" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Theo3883/onnxruntime-swift-package-manager";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		DD0000000000000000000020 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
@@ -1348,6 +1368,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		2A4FF62A891276CE84003BF3 /* onnxruntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 16A7F7EF1F6F64B2103A164E /* XCRemoteSwiftPackageReference "onnxruntime-swift-package-manager" */;
+			productName = onnxruntime;
+		};
 		DD0000000000000000000010 /* GoogleSignIn */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DD0000000000000000000020 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;

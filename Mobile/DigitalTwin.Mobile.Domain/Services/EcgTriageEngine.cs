@@ -6,6 +6,18 @@ namespace DigitalTwin.Mobile.Domain.Services;
 
 public class EcgTriageEngine
 {
+    private const string NormalLabel = "Normal";
+
+    private static readonly Dictionary<string, string> MlDisplayNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["AFib"] = "Atrial fibrillation",
+        ["Bradycardia"] = "Bradycardia",
+        ["LongQT"] = "Long QT interval",
+        ["PVC"] = "Premature ventricular complex",
+        ["STEMI"] = "ST-elevation myocardial infarction",
+        ["Tachycardia"] = "Tachycardia"
+    };
+
     private readonly IEnumerable<IEcgTriageRule> _rules;
 
     public EcgTriageEngine(IEnumerable<IEcgTriageRule> rules)
@@ -31,23 +43,21 @@ public class EcgTriageEngine
             }
         }
 
-        // ── 2. ML-driven detection (CoreML ECGClassifier scores) ─────────────
+        // ── 2. ML-driven detection (XceptionTime ONNX scores) ────────────────
         if (frame.MlScores is { Count: > 0 })
         {
-            // Find highest-confidence abnormality above threshold
-            const double threshold = 0.5;
-            var topAbnormality = frame.MlScores
-                .Where(kv => kv.Value > threshold)
+            var topPrediction = frame.MlScores
                 .OrderByDescending(kv => kv.Value)
                 .Select(kv => (Label: kv.Key, Prob: kv.Value))
                 .FirstOrDefault();
 
-            if (topAbnormality.Label is not null)
+            if (!string.IsNullOrWhiteSpace(topPrediction.Label)
+                && !IsNormalLabel(topPrediction.Label))
             {
                 var alert = new CriticalAlertEvent
                 {
-                    RuleName = $"ML_{topAbnormality.Label}",
-                    Message = BuildMlMessage(topAbnormality.Label, topAbnormality.Prob),
+                    RuleName = $"ML_{topPrediction.Label}",
+                    Message = BuildMlMessage(topPrediction.Label, topPrediction.Prob),
                     Timestamp = frame.Timestamp
                 };
                 return (TriageResult.Critical, alert);
@@ -65,15 +75,13 @@ public class EcgTriageEngine
         _                  => $"Critical alert triggered by rule: {ruleName}."
     };
 
-    private static string BuildMlMessage(string label, double prob) => label switch
+    private static string BuildMlMessage(string label, double prob)
     {
-        "AF"    => $"Atrial Fibrillation detected by ResNet CNN ({prob:P0} confidence). Seek medical evaluation.",
-        "RBBB"  => $"Right Bundle Branch Block detected by CNN ({prob:P0} confidence).",
-        "LBBB"  => $"Left Bundle Branch Block detected by CNN ({prob:P0} confidence). May indicate cardiac disease.",
-        "SB"    => $"Sinus Bradycardia confirmed by CNN ({prob:P0} confidence). Heart rate critically low.",
-        "ST"    => $"Sinus Tachycardia confirmed by CNN ({prob:P0} confidence). Heart rate critically elevated.",
-        "1dAVb" => $"1st Degree AV Block detected ({prob:P0} confidence). Conduction delay detected.",
-        _       => $"Cardiac abnormality '{label}' detected ({prob:P0} confidence)."
-    };
+        var displayName = MlDisplayNames.GetValueOrDefault(label, label);
+        return $"{displayName} detected by XceptionTime (PTB-XL) ({prob:P0} confidence). Seek medical evaluation.";
+    }
+
+    private static bool IsNormalLabel(string label)
+        => label.Equals(NormalLabel, StringComparison.OrdinalIgnoreCase);
 }
 

@@ -12,8 +12,8 @@ public class EcgFrame
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
     /// <summary>
-    /// Probabilities from on-device CoreML inference (ECGClassifier.mlpackage).
-    /// Keys: "1dAVb", "RBBB", "LBBB", "SB", "AF", "ST". Null when not yet computed.
+    /// Probabilities from on-device XceptionTime (PTB-XL) inference.
+    /// Labels: "Normal", "AFib", "Bradycardia", "Tachycardia", "PVC", "STEMI", "LongQT".
     /// </summary>
     public Dictionary<string, double>? MlScores { get; set; }
 }

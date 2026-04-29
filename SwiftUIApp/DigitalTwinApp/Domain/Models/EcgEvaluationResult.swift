@@ -6,12 +6,12 @@ struct EcgEvaluationResult: Codable {
     let heartRate: Double
     let spO2: Double
 
-    // ── ML fields — populated by EcgMonitorViewModel after CoreML inference ──
-    /// Top abnormality label e.g. "AF", "RBBB", or "Normal Sinus Rhythm"
+    // ── ML fields — populated by EcgMonitorViewModel after ONNX inference ──
+    /// Top XceptionTime label, e.g. "AFib" or "Normal".
     var mlTopLabel: String?
     /// Confidence of the top prediction (0.0–1.0)
     var mlConfidence: Double?
-    /// All 6 class probabilities keyed by label ("1dAVb","RBBB","LBBB","SB","AF","ST")
+    /// XceptionTime (PTB-XL) probabilities keyed by label ("Normal", "AFib", "PVC", etc.).
     var mlProbabilities: [String: Double]?
 
     // ── Connection & signal quality ──────────────────────────────────────────

@@ -1,6 +1,5 @@
 import Foundation
 import CoreBluetooth
-import CoreML
 
 
 // ===========================================================
@@ -45,7 +44,7 @@ final class BLEManager: NSObject, ObservableObject, @unchecked Sendable {
         ecgBuffer.allSatisfy { $0.count >= ecgBufferSize }
     }
 
-    /// Returns the buffer shaped as [12][1000] for PTB-XL Model.
+    /// Returns the buffer shaped as [12][1000] for the XceptionTime ONNX model.
     func getMLInput() -> [[Int]] {
         guard isBufferReady else { return [] }
         // The ESP32 is natively streaming 100Hz, simply slice the 1000 frame window.
@@ -273,152 +272,3 @@ extension BLEManager {
     }
 }
 
-// ===========================================================
-//  ECG Classification Result
-// ===========================================================
-
-struct ECGClassification {
-    /// Probabilities for each of the 6 Ribeiro model classes (0.0–1.0)
-    let probabilities: [String: Double]
-
-    /// Highest-probability label, localised to a clinical term
-    let topLabel: String
-
-    /// Confidence of the top prediction (0.0–1.0)
-    let topConfidence: Double
-
-    /// True when any class probability exceeds the abnormality threshold (0.5)
-    let isAbnormal: Bool
-
-    /// Human-readable summary: "AF (87%)" or "Normal Sinus Rhythm (94%)"
-    var summary: String {
-        "\(topLabel) (\(Int(topConfidence * 100))%)"
-    }
-}
-
-// ===========================================================
-//  PTB-XL Classifier Service
-//  Wraps PTBXLClassifier.mlmodelc (xresnet1d101 PTB-XL)
-//  Input:  MLMultiArray(shape: [1, 12, 1000], dataType: .float32)
-//  Output: 71-element probability vector
-// ===========================================================
-
-final class PTBXLClassifierService {
-
-    private static let abnormalityThreshold: Double = 0.5
-
-    // ESP32 ADC scale conversion
-    private static let adcToVoltScale: Float = 1e-3
-
-    private var model: MLModel?
-    private(set) var isLoaded = false
-
-    // MARK: - Loading
-
-    /// Load the PTBXLClassifier.mlmodelc from the main bundle.
-    func load() throws {
-        guard !isLoaded else { return }
-
-        guard let modelURL = Bundle.main.url(
-            forResource: "PTBXLClassifier",
-            withExtension: "mlmodelc"
-        ) else {
-            throw ECGClassifierError.modelNotFound
-        }
-
-        let config = MLModelConfiguration()
-
-        config.computeUnits = .cpuAndNeuralEngine
-        model = try MLModel(contentsOf: modelURL, configuration: config)
-        isLoaded = true
-        print("[PTBXLClassifier] Model loaded successfully from \(modelURL.lastPathComponent)")
-    }
-
-    // MARK: - Inference
-
-    /// Classify a full 12-lead window.
-    /// - Parameter mlInput: [12][1000] integer array from BLEManager.getMLInput()
-    /// - Returns: ECGClassification or nil if model not loaded / inference fails
-    func classify(mlInput: [[Int]]) -> ECGClassification? {
-        guard let model, isLoaded else {
-            print("[PTBXLClassifier] Model not loaded — skipping inference")
-            return nil
-        }
-        guard mlInput.count == 12, mlInput.first?.count == 1000 else {
-            print("[PTBXLClassifier] Input shape mismatch: expected [12][1000], got [\(mlInput.count)][\(mlInput.first?.count ?? 0)]")
-            return nil
-        }
-
-        do {
-            // Build MLMultiArray shape (1, 12, 1000)
-            let array = try MLMultiArray(shape: [1, 12, 1000], dataType: .float32)
-            for lead in 0..<12 {
-                for t in 0..<1000 {
-                    let idx = [0, lead, t] as [NSNumber]
-                    array[idx] = NSNumber(value: Float(mlInput[lead][t]) * Self.adcToVoltScale)
-                }
-            }
-
-            let input  = try MLDictionaryFeatureProvider(dictionary: ["ecg_signal": array])
-            let output = try model.prediction(from: input)
-
-            return extractClassification(from: output)
-
-        } catch {
-            print("[PTBXLClassifier] Inference error: \(error.localizedDescription)")
-            return nil
-        }
-    }
-
-    // MARK: - Private helpers
-
-    private func extractClassification(from output: MLFeatureProvider) -> ECGClassification? {
-        // The output feature name may vary; try common names from CoreML conversion
-        let featureNames = output.featureNames
-        guard let outputName = featureNames.first,
-              let multiArray = output.featureValue(for: outputName)?.multiArrayValue
-        else {
-            print("[PTBXLClassifier] Could not read output feature. Available: \(output.featureNames)")
-            return nil
-        }
-
-        var probs: [String: Double] = [:]
-        for i in 0..<multiArray.count {
-            // PTB-XL PyTorch wrapper outputs raw logits natively.
-            // We must apply the Sigmoid activation mathematically: 1 / (1 + e^-x)
-            let logit = multiArray[i].doubleValue
-            let probability = 1.0 / (1.0 + exp(-logit))
-            
-            // Dynamically assign array index as class label
-            probs["Class \(i)"] = probability
-        }
-
-        // Find the highest-confidence label
-        let sorted = probs.sorted { $0.value > $1.value }
-        guard let top = sorted.first else { return nil }
-
-        let isAbnormal  = top.value > Self.abnormalityThreshold
-        let topLabel    = isAbnormal ? top.key : ("Normal Sinus Rhythm")
-
-        return ECGClassification(
-            probabilities:  probs,
-            topLabel:       topLabel,
-            topConfidence:  top.value,
-            isAbnormal:     isAbnormal
-        )
-    }
-}
-
-// MARK: - Errors
-
-enum ECGClassifierError: LocalizedError {
-    case modelNotFound
-    case inputShapeMismatch
-
-    var errorDescription: String? {
-        switch self {
-        case .modelNotFound:        return "PTBXLClassifier.mlmodelc not found in bundle. Ensure the compiled ML model is packaged."
-        case .inputShapeMismatch:   return "ECG input array must be [1, 12, 1000]"
-        }
-    }
-}

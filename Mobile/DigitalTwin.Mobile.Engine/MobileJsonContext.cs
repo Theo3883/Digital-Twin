@@ -17,7 +17,7 @@ public sealed record EcgFrameInput
     /// <summary>Number of leads in Samples (1 = Lead II only for rules, 12 = full 12-lead).</summary>
     public int? NumLeads { get; init; }
 
-    /// <summary>CoreML ECGClassifier probabilities keyed by label ("1dAVb","RBBB","LBBB","SB","AF","ST").</summary>
+    /// <summary>XceptionTime (PTB-XL) probabilities keyed by label ("Normal", "AFib", "PVC", etc.).</summary>
     public Dictionary<string, double>? MlScores { get; init; }
 }
 

@@ -2,6 +2,9 @@ import Foundation
 
 @MainActor
 final class EcgMonitorViewModel: ObservableObject {
+
+    // MARK: - Published State
+
     @Published private(set) var hasProfile: Bool = false
     @Published private(set) var latestResult: EcgEvaluationResult?
     @Published private(set) var mlClassification: ECGClassification?
@@ -9,28 +12,33 @@ final class EcgMonitorViewModel: ObservableObject {
     @Published private(set) var frameCount: Int = 0
     @Published private(set) var mlLoadError: String?
 
+    // MARK: - Dependencies
+
     private let repository: EcgRepository
     private let evaluate: EvaluateEcgFrameUseCase
-    private let classifier: PTBXLClassifierService
+    let classifier: ECGClassifierProtocol
 
-    init(repository: EcgRepository, evaluate: EvaluateEcgFrameUseCase,
-         classifier: PTBXLClassifierService = PTBXLClassifierService()) {
+    // MARK: - Init
+
+    init(repository: EcgRepository,
+         evaluate: EvaluateEcgFrameUseCase,
+         classifier: ECGClassifierProtocol = ECGClassifierService.shared) {
         self.repository = repository
         self.evaluate = evaluate
         self.classifier = classifier
 
-        // Load the CoreML model in the background
-        Task { [weak self] in
-            guard let self else { return }
-            do {
-                try self.classifier.load()
-            } catch {
-                let msg = error.localizedDescription
-                print("[EcgMonitorViewModel] CoreML load failed: \(msg)")
-                await MainActor.run {
-                    self.mlLoadError = msg
-                }
-            }
+        Task { await self.loadClassifier() }
+    }
+
+    /// Loads the ONNX model on a background thread to avoid blocking the UI.
+    nonisolated private func loadClassifier() async {
+        do {
+            try await Task.sleep(nanoseconds: 100_000_000)
+            try classifier.load()
+        } catch {
+            let msg = error.localizedDescription
+            print("[EcgMonitorViewModel] ONNX load failed: \(msg)")
+            await MainActor.run { self.mlLoadError = msg }
         }
     }
 
@@ -38,35 +46,44 @@ final class EcgMonitorViewModel: ObservableObject {
         hasProfile = await repository.hasPatientProfile()
     }
 
-    // MARK: - Triage Evaluation (called on 1-second timer)
+    // MARK: - Triage Evaluation (called every ~1 second)
 
-    /// Called each evaluation tick.
-    /// - Parameters:
-    ///   - ble: the live BLEManager providing the 12-lead ring buffer
+    /// Runs one evaluation tick: domain-rule triage + ML classification.
+    ///
+    /// - Parameter ble: The live `BLEManager` that provides the 12-lead ring buffer.
     func evaluateFrame(ble: BLEManager) async {
-        // 1. Use Lead II (index 1) as the 1D sample array for domain rules
-        let leadII = ble.leadIIBuffer.suffix(4096).map { Double($0) }
-        let spO2   = Double(ble.spO2)
-        let hr     = Double(ble.heartRate)
 
-        // 2. Run CoreML on the full 12-lead buffer when ready (≥ 4096 samples/lead)
+        // 1. Extract Lead-II history and current vitals for domain-rule evaluation.
+        let leadII = ble.leadIIBuffer.suffix(4096).map { Double($0) }
+        let spO2 = Double(ble.spO2)
+        let hr = Double(ble.heartRate)
+
+        // 2. Feed the full ecgBuffer [12][up to 1000] directly to the classifier.
+        //    The classifier handles ADC→mV conversion and checks if 1000 samples
+        //    are available before running inference.
         var mlScores: [String: Double]? = nil
-        if ble.isBufferReady, classifier.isLoaded {
-            let mlInput = ble.getMLInput()
-            let classification = classifier.classify(mlInput: mlInput)
-            mlClassification = classification
-            mlScores = classification?.probabilities
+
+        if classifier.isLoaded {
+            let classification = classifier.classify(ecgBuffer: ble.ecgBuffer, heartRate: hr)
+            if let classification {
+                mlClassification = classification
+                mlScores = classification.probabilities
+            }
         }
 
-        // 3. Call engine (domain rules + ML-enhanced triage)
-        var result = await evaluate(samples: Array(leadII), spO2: spO2, heartRate: hr,
-                                    mlScores: mlScores)
+        // 3. Run the domain-rule engine (HR/SpO₂ thresholds, rhythm checks, etc.).
+        var result = await evaluate(
+            samples: Array(leadII),
+            spO2: spO2,
+            heartRate: hr,
+            mlScores: mlScores
+        )
 
-        // 4. Merge CoreML output into the result
+        // 4. Merge the ML output into the triage result so the UI can display both.
         if var r = result {
             if let ml = mlClassification {
-                r.mlTopLabel      = ml.topLabel
-                r.mlConfidence    = ml.topConfidence
+                r.mlTopLabel = ml.topLabel
+                r.mlConfidence = ml.topConfidence
                 r.mlProbabilities = ml.probabilities
             }
             r.isConnected = true
@@ -80,21 +97,21 @@ final class EcgMonitorViewModel: ObservableObject {
 
     // MARK: - Connection State
 
-    /// Called when ESP32 disconnects — immediately reflects in the triage panel
+    /// Immediately reflects an ESP32 disconnect in the triage panel.
     func disconnectTriage() {
         isTriageActive = false
-        latestResult   = .disconnected
+        latestResult = .disconnected
         mlClassification = nil
         frameCount = 0
         print("[EcgMonitorViewModel] Triage suspended — ESP32 disconnected")
     }
 
-    /// Called when ESP32 reconnects — clears stale state, ready for next evaluation
+    /// Clears stale state so the next evaluation starts fresh after reconnect.
     func reconnectTriage() {
-        latestResult     = nil
+        latestResult = nil
         mlClassification = nil
-        isTriageActive   = false
-        frameCount       = 0
+        isTriageActive = false
+        frameCount = 0
         print("[EcgMonitorViewModel] Triage resumed — ESP32 connected")
     }
 }
