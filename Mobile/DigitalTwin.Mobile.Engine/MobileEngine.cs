@@ -22,6 +22,8 @@ public class MobileEngine : IDisposable
     private readonly IHost _host;
     private readonly IServiceScope _scope;
     private readonly ILogger<MobileEngine> _logger;
+    private DateTime _lastCriticalAlertSentAtUtc = DateTime.MinValue;
+    private string _lastCriticalAlertRule = string.Empty;
 
     public MobileEngine(string databasePath, string apiBaseUrl, string? geminiApiKey = null, string? openWeatherApiKey = null, string? googleOAuthClientId = null, string? openRouterApiKey = null, string? openRouterModel = null)
     {
@@ -99,6 +101,49 @@ public class MobileEngine : IDisposable
                 ErrorMessage = ex.Message
             };
             return JsonSerializer.Serialize(errorResult, MobileJsonContext.Default.AuthenticationResult);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Cloud session restore (token is stored by the iOS app)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public string SetCloudAccessToken(string accessToken)
+    {
+        try
+        {
+            var trimmed = accessToken?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(trimmed))
+                return JsonSerializer.Serialize(new NativeBridge.OperationResultDto { Success = false, Error = "Missing access token" }, MobileJsonContext.Default.OperationResultDto);
+
+            var tokenStore = _scope.ServiceProvider.GetRequiredService<IAccessTokenStore>();
+            tokenStore.AccessToken = trimmed;
+
+            _logger.LogInformation("[CloudDebug][MobileEngine] Cloud access token set (length={Len})", trimmed.Length);
+            return JsonSerializer.Serialize(new NativeBridge.OperationResultDto { Success = true }, MobileJsonContext.Default.OperationResultDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to set cloud access token");
+            return JsonSerializer.Serialize(new NativeBridge.OperationResultDto { Success = false, Error = ex.Message }, MobileJsonContext.Default.OperationResultDto);
+        }
+    }
+
+    public string GetCloudAuthStatus()
+    {
+        try
+        {
+            var cloud = _scope.ServiceProvider.GetRequiredService<ICloudSyncService>();
+            return JsonSerializer.Serialize(
+                new CloudAuthStatusDto { IsAuthenticated = cloud.IsAuthenticated },
+                MobileJsonContext.Default.CloudAuthStatusDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "[MobileEngine] Failed to get cloud auth status");
+            return JsonSerializer.Serialize(
+                new CloudAuthStatusDto { IsAuthenticated = false },
+                MobileJsonContext.Default.CloudAuthStatusDto);
         }
     }
 
@@ -516,6 +561,42 @@ public class MobileEngine : IDisposable
             var service = _scope.ServiceProvider.GetRequiredService<EcgApplicationService>();
             var (frameDto, alertDto) = service.EvaluateFrame(ecgFrame);
 
+            if (alertDto != null)
+            {
+                // Fire-and-forget: avoid blocking the real-time ECG path.
+                // Throttle to avoid sending 1 alert per second while the condition persists.
+                var nowUtc = DateTime.UtcNow;
+                if (!string.Equals(_lastCriticalAlertRule, alertDto.RuleName, StringComparison.Ordinal)
+                    || (nowUtc - _lastCriticalAlertSentAtUtc) > TimeSpan.FromSeconds(30))
+                {
+                    _lastCriticalAlertRule = alertDto.RuleName;
+                    _lastCriticalAlertSentAtUtc = nowUtc;
+
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            var cloud = _scope.ServiceProvider.GetRequiredService<ICloudSyncService>();
+                            _logger.LogInformation(
+                                "[CloudDebug][MobileEngine] Critical alert produced. cloud.IsAuthenticated={IsAuth} rule={Rule}",
+                                cloud.IsAuthenticated,
+                                alertDto.RuleName);
+
+                            await cloud.SendCriticalAlertAsync(new CriticalAlertEvent
+                            {
+                                RuleName = alertDto.RuleName ?? "CriticalAlert",
+                                Message = alertDto.Message ?? "Critical alert",
+                                Timestamp = alertDto.Timestamp
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "[CloudDebug][MobileEngine] Failed to post critical alert to cloud");
+                        }
+                    });
+                }
+            }
+
             var result = new EcgEvaluationResult { Frame = frameDto, Alert = alertDto };
             return JsonSerializer.Serialize(result, MobileJsonContext.Default.EcgEvaluationResult);
         }
@@ -658,6 +739,26 @@ public class MobileEngine : IDisposable
         {
             _logger.LogError(ex, "[MobileEngine] Failed to get assigned doctors");
             return JsonSerializer.Serialize(Array.Empty<AssignedDoctorDto>(), MobileJsonContext.Default.AssignedDoctorDtoArray);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Notifications
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public async Task<string> GetNotificationsAsync(int limit = 50, bool unreadOnly = false)
+    {
+        try
+        {
+            var service = _scope.ServiceProvider.GetRequiredService<NotificationApplicationService>();
+            var notifications = await service.GetNotificationsAsync(limit, unreadOnly);
+            var dtos = notifications.Select(Application.DTOs.NotificationItemDto.FromDomain).ToArray();
+            return JsonSerializer.Serialize(dtos, MobileJsonContext.Default.NotificationItemDtoArray);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileEngine] Failed to get notifications");
+            return JsonSerializer.Serialize(Array.Empty<Application.DTOs.NotificationItemDto>(), MobileJsonContext.Default.NotificationItemDtoArray);
         }
     }
 

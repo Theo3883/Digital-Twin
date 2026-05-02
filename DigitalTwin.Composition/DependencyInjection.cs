@@ -14,6 +14,8 @@ using DigitalTwin.Domain.Sync.Drainers;
 using DigitalTwin.Infrastructure;
 using DigitalTwin.Infrastructure.Policies;
 using DigitalTwin.Infrastructure.Services;
+using DigitalTwin.Infrastructure.Services.Notifications;
+using DigitalTwin.Domain.Events;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -63,6 +65,8 @@ public static class DependencyInjection
             sp.GetRequiredKeyedService<IOcrDocumentRepository>(Cloud));
         services.AddScoped<IMedicalHistoryEntryRepository>(sp =>
             sp.GetRequiredKeyedService<IMedicalHistoryEntryRepository>(Cloud));
+        services.AddScoped<INotificationRepository>(sp =>
+            sp.GetRequiredKeyedService<INotificationRepository>(Cloud));
 
         // ── Domain services (only those required by the API) ─────────────────
         services.AddCoreDomainServices();
@@ -84,7 +88,12 @@ public static class DependencyInjection
 
         // ── Infrastructure services ──────────────────────────────────────────
         services.AddSingleton<ITransientFailurePolicy, NpgsqlTransientFailurePolicy>();
-        services.AddScoped<IDomainEventDispatcher, NoOpDomainEventDispatcher>();
+        services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+        services.AddScoped<IDomainEventHandler<PatientAssignedEvent>, NotificationEventHandlers>();
+        services.AddScoped<IDomainEventHandler<PatientUnassignedEvent>, NotificationEventHandlers>();
+        services.AddScoped<IDomainEventHandler<MedicationAddedEvent>, NotificationEventHandlers>();
+        services.AddScoped<IDomainEventHandler<MedicationDiscontinuedEvent>, NotificationEventHandlers>();
+        services.AddScoped<IDomainEventHandler<MedicationDeletedEvent>, NotificationEventHandlers>();
         services.AddScoped<IMedicationManagementService>(sp => new MedicationManagementService(
             sp.GetRequiredService<IMedicationRepository>(),
             sp.GetKeyedService<IMedicationRepository>(Cloud),
@@ -173,7 +182,7 @@ public static class DependencyInjection
 
         // ── Infrastructure services ──────────────────────────────────────────
         services.AddSingleton<ITransientFailurePolicy, NpgsqlTransientFailurePolicy>();
-        services.AddScoped<IDomainEventDispatcher, NoOpDomainEventDispatcher>();
+        services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
         services.AddScoped<IMedicationManagementService>(sp => new MedicationManagementService(
             sp.GetRequiredService<IMedicationRepository>(),
             sp.GetKeyedService<IMedicationRepository>(Cloud),

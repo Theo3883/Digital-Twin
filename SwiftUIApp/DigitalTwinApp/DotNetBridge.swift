@@ -108,6 +108,17 @@ class DotNetBridge {
     @_silgen_name("mobile_engine_get_assigned_doctors")
     private static func mobile_engine_get_assigned_doctors() -> UnsafePointer<CChar>?
     
+    // Notifications
+    @_silgen_name("mobile_engine_get_notifications")
+    private static func mobile_engine_get_notifications(_ limit: Int32, _ unreadOnly: Bool) -> UnsafePointer<CChar>?
+
+    // Cloud session restore
+    @_silgen_name("mobile_engine_set_cloud_access_token")
+    private static func mobile_engine_set_cloud_access_token(_ token: UnsafePointer<CChar>) -> UnsafePointer<CChar>?
+
+    @_silgen_name("mobile_engine_get_cloud_auth_status")
+    private static func mobile_engine_get_cloud_auth_status() -> UnsafePointer<CChar>?
+    
     // Local Data Reset
     @_silgen_name("mobile_engine_reset_local_data")
     private static func mobile_engine_reset_local_data() -> UnsafePointer<CChar>?
@@ -495,6 +506,31 @@ class DotNetBridge {
     func getAssignedDoctors() throws -> [AssignedDoctorInfo] {
         let result = Self.mobile_engine_get_assigned_doctors()
         return try parseResult(result, as: [AssignedDoctorInfo].self)
+    }
+    
+    // MARK: - Notifications
+    
+    /// Get notifications from cloud
+    func getNotifications(limit: Int = 50, unreadOnly: Bool = false) throws -> [NotificationInfo] {
+        let result = Self.mobile_engine_get_notifications(Int32(limit), unreadOnly)
+        return try parseResult(result, as: [NotificationInfo].self)
+    }
+
+    // MARK: - Cloud session restore
+
+    func setCloudAccessToken(_ token: String) throws -> OperationResult {
+        let result = token.withCString { ptr in
+            Self.mobile_engine_set_cloud_access_token(ptr)
+        }
+        return try parseResult(result, as: OperationResult.self)
+    }
+
+    private struct CloudAuthStatus: Codable { let isAuthenticated: Bool }
+
+    func getCloudAuthStatus() throws -> Bool {
+        let result = Self.mobile_engine_get_cloud_auth_status()
+        let parsed = try parseResult(result, as: CloudAuthStatus.self)
+        return parsed.isAuthenticated
     }
     
     // MARK: - Local Data Reset

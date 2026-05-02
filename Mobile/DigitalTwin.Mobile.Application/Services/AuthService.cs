@@ -79,6 +79,13 @@ public class AuthService
             try
             {
                 cloud = await _cloudSyncService.AuthenticateAsync(googleIdToken);
+                _logger.LogInformation(
+                    "[CloudDebug][AuthService] cloud auth attempted success={Success} tokenLen={Len} hasBootstrapUser={HasUser} hasBootstrapPatient={HasPatient} err={Err}",
+                    cloud?.Success ?? false,
+                    cloud?.AccessToken?.Length ?? 0,
+                    cloud?.Bootstrap?.User != null,
+                    cloud?.Bootstrap?.Patient != null,
+                    cloud?.ErrorMessage ?? "nil");
             }
             catch (Exception ex)
             {

@@ -81,5 +81,7 @@
 	</array>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>This app connects to your DigitalTwin ESP32 to receive ECG, heart rate, and SpO2 data.</string>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>DigitalTwin sends critical alerts when the AI triage engine detects abnormal ECG patterns, even when you are not on the ECG screen.</string>
 </dict>
 </plist>

@@ -42,6 +42,13 @@ public interface ICloudSyncService
 
     // Doctor assignments (read-only from cloud)
     Task<IEnumerable<AssignedDoctor>> GetAssignedDoctorsAsync();
+    
+    // Notifications (read-only from cloud)
+    Task<IEnumerable<NotificationItem>> GetNotificationsAsync(int limit = 50, bool unreadOnly = false);
+    Task<int> GetUnreadNotificationCountAsync();
+
+    // Critical alerts (write to cloud for doctor portal)
+    Task<bool> SendCriticalAlertAsync(CriticalAlertEvent alert);
 }
 
 public sealed record CloudAuthResult

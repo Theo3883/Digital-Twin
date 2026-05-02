@@ -161,6 +161,22 @@ actor MobileEngineHandle {
         try bridge.getAssignedDoctors()
     }
 
+    // MARK: - Notifications
+
+    func getNotifications(limit: Int, unreadOnly: Bool) async throws -> [NotificationInfo] {
+        try bridge.getNotifications(limit: limit, unreadOnly: unreadOnly)
+    }
+
+    // MARK: - Cloud session restore
+
+    func setCloudAccessToken(_ token: String) async throws -> OperationResult {
+        try bridge.setCloudAccessToken(token)
+    }
+
+    func getCloudAuthStatus() async throws -> Bool {
+        try bridge.getCloudAuthStatus()
+    }
+
     // MARK: - Local Data Reset
 
     func resetLocalData() async throws -> OperationResult {

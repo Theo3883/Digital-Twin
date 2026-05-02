@@ -317,3 +317,38 @@ public sealed record CloudAssignedDoctorDto
     public string? Notes { get; init; }
 }
 
+// ── Notification DTOs (read-only from cloud) ──────────────────────────────
+
+public sealed record CloudNotificationItemDto
+{
+    public Guid Id { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public string Body { get; init; } = string.Empty;
+    public int Type { get; init; }
+    public int Severity { get; init; }
+    public Guid RecipientUserId { get; init; }
+    public Guid? ActorUserId { get; init; }
+    public string? ActorName { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime? ReadAt { get; init; }
+}
+
+public sealed record NotificationsResponse
+{
+    public List<CloudNotificationItemDto>? Notifications { get; init; }
+}
+
+public sealed record UnreadCountResponse
+{
+    public int Count { get; init; }
+}
+
+// ── Critical alerts (mobile → cloud) ────────────────────────────────────────
+
+public sealed record CriticalAlertSyncItem
+{
+    public string RuleName { get; init; } = string.Empty;
+    public string Message { get; init; } = string.Empty;
+    public DateTime Timestamp { get; init; }
+}
+

@@ -1,72 +1,67 @@
 import SwiftUI
-import Charts
 
 struct EcgMonitorView: View {
     @EnvironmentObject private var ble: BLEManager
     @StateObject private var viewModel: EcgMonitorViewModel
     @State private var showSettings = false
-    @State private var mlTimer: Timer?
 
     init(viewModel: EcgMonitorViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
 
     var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(spacing: 0) {
-                if !viewModel.hasProfile {
-                    noProfileWarning
-                } else {
-                    // Top Bar
-                    ecgTopBar
-                    
-                    // Connection Panel
-                    if showSettings {
-                        connectionPanel
+        ZStack {
+            // Ensure the ECG tab matches the rest of the app even when wrapped
+            // in a NavigationStack (which can otherwise draw its own background).
+            MeshGradientBackground()
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    if !viewModel.hasProfile {
+                        noProfileWarning
+                    } else {
+                        // Top Bar
+                        ecgTopBar
+
+                        // Connection Panel
+                        if showSettings {
+                            connectionPanel
+                        }
+
+                        // ECG Canvas
+                        ecgCanvasView
+
+                        // Metrics Strip
+                        metricsStrip
+
+                        // Triage Panel
+                        triagePanel
                     }
-                    
-                    // // Critical Alert
-                    // if let result = viewModel.latestResult, result.isCritical {
-                    //     CriticalAlertBanner(result: result)
-                    //         .padding(.horizontal, 16)
-                    //         .padding(.bottom, 12)
-                    // }
-                    
-                    // ECG Canvas
-                    ecgCanvasView
-                    
-                    // Metrics Strip
-                    metricsStrip
-                    
-                    // Triage Panel
-                    triagePanel
+
+                    Spacer(minLength: 100)
                 }
-                
-                Spacer(minLength: 100)
             }
+            .background(Color.clear)
         }
         .pageEnterAnimation()
         .task { await viewModel.load() }
         .onChange(of: ble.isConnected) { _, connected in
+            // UI-only state: reflect connection status in triage panel.
+            // The actual evaluation loop is owned by BackgroundECGTriageService.
             if connected {
                 viewModel.reconnectTriage()
-                startMlEvaluationTimer()
             } else {
-                mlTimer?.invalidate()
                 viewModel.disconnectTriage()
             }
         }
         .onAppear {
             if ble.isConnected {
                 viewModel.reconnectTriage()
-                startMlEvaluationTimer()
             } else {
                 viewModel.disconnectTriage()
             }
         }
-        .onDisappear {
-            mlTimer?.invalidate()
-        }
+        .liquidGlassNavigationStyle()
     }
 
     // MARK: - No Profile Warning
@@ -104,20 +99,20 @@ struct EcgMonitorView: View {
             Text("ECG Monitor")
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundColor(.white)
-            
+
             Spacer()
-            
+
             // Connection status pill
             HStack(spacing: 8) {
                 Circle()
                     .fill(ble.isConnected ? LiquidGlass.greenPositive :
-                          (viewModel.latestResult?.isCritical == true ? LiquidGlass.redCritical : .gray))
+                            (viewModel.latestResult?.isCritical == true ? LiquidGlass.redCritical : .gray))
                     .frame(width: 8, height: 8)
-                
+
                 Text(ble.isConnected ? "Recording · ESP32" : "Not Connected")
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.65))
-                
+
                 Button(action: { showSettings.toggle() }) {
                     Image(systemName: "gearshape.fill")
                         .font(.caption)
@@ -140,7 +135,7 @@ struct EcgMonitorView: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.leading, 10)
-                
+
                 Button(ble.isConnected ? "Disconnect" : (ble.isScanning ? "Stop Scan" : "Connect ESP32")) {
                     if ble.isConnected {
                         ble.disconnect()
@@ -172,9 +167,9 @@ struct EcgMonitorView: View {
                 let gridRect = CGRect(x: 0, y: gridTopInset, width: geo.size.width, height: gridHeight)
 
                 // Draw a calibrated grid + labels using the SAME transform as the waveform.
-                EcgCalibratedGrid(rect: gridRect)
+                EcgCalibratedGrid(rect: gridRect, yRangeMv: yRangeMv)
 
-                // Calibration label: derive real window from sample count + sample rate.
+                // Calibration label
                 VStack {
                     HStack {
                         Spacer()
@@ -186,50 +181,47 @@ struct EcgMonitorView: View {
                     }
                     Spacer()
                 }
-            }
-            .frame(height: 280)
-            
-            // Render only real BLE waveform when device is connected and samples exist.
-            if ble.isConnected, !ble.ecgBuffer.isEmpty {
-                // ble.ecgBuffer shape is [12][4096]. Index 1 is Lead II.
-                let leadIISamples = ble.leadIIBuffer
-                if !leadIISamples.isEmpty {
-                    // Extract the last N samples for display.
-                    let recentSamples = leadIISamples.suffix(displaySampleCount)
-                    let scaledSamples = recentSamples.map { Double($0) / adcScaleDivisor }
+                .frame(height: 280)
 
-                    // Center baseline: use a robust estimate (median of the middle 80%) so QRS spikes
-                    // don't bias the baseline upward/downward.
-                    let baseline = robustBaseline(scaledSamples)
-                    let centeredSamples = scaledSamples.map { $0 - baseline }
+                if ble.isConnected, !ble.ecgBuffer.isEmpty {
+                    let leadIISamples = ble.leadIIBuffer
+                    if !leadIISamples.isEmpty {
+                        let recentSamples = leadIISamples.suffix(displaySampleCount)
+                        let scaledSamples = recentSamples.map { Double($0) / adcScaleDivisor }
 
-                    EcgWaveformPath(samples: centeredSamples, yRangeMv: yRangeMv)
-                        .stroke(Color(red: 0, green: 1, blue: 136/255), lineWidth: 1.5)
-                        .frame(height: 240)
-                        .padding(.horizontal, 40)
-                }
-            }
-            
-            // X-axis labels
-            VStack {
-                Spacer()
-                HStack {
-                    ForEach(xAxisLabels, id: \.self) { label in
-                        Text(label)
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundColor(Color(red: 0, green: 1, blue: 136/255).opacity(0.5))
-                        if label != xAxisLabels.last { Spacer() }
+                        // Robust baseline: median of middle 80%
+                        let baseline = robustBaseline(scaledSamples)
+                        let centeredSamples = scaledSamples.map { $0 - baseline }
+
+                        EcgWaveformPath(samples: centeredSamples, yRangeMv: yRangeMv)
+                            .stroke(Color(red: 0, green: 1, blue: 136/255), lineWidth: 1.5)
+                            .frame(height: 240)
+                            .padding(.horizontal, 40)
+                            .offset(y: gridTopInset)
                     }
                 }
-                .padding(.horizontal, 40)
-                .padding(.bottom, 4)
+
+                // X-axis labels
+                VStack {
+                    Spacer()
+                    HStack {
+                        ForEach(xAxisLabels, id: \.self) { label in
+                            Text(label)
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundColor(Color(red: 0, green: 1, blue: 136/255).opacity(0.5))
+                            if label != xAxisLabels.last { Spacer() }
+                        }
+                    }
+                    .padding(.horizontal, 40)
+                    .padding(.bottom, 4)
+                }
+                .frame(height: 280)
             }
-            .frame(height: 280)
+            .overlay(
+                Rectangle()
+                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+            )
         }
-        .overlay(
-            Rectangle()
-                .stroke(Color.white.opacity(0.1), lineWidth: 1)
-        )
     }
 
     // MARK: - Metrics Strip
@@ -247,7 +239,7 @@ struct EcgMonitorView: View {
                         .foregroundColor(.white)
                 }
                 .glassPill(tint: ble.isConnected && ble.heartRate > 0 ? LiquidGlass.redCritical.opacity(0.1) : LiquidGlass.tealPrimary.opacity(0.1))
-                
+
                 // SpO2
                 HStack(spacing: 8) {
                     Text("O₂")
@@ -258,7 +250,7 @@ struct EcgMonitorView: View {
                         .foregroundColor(.white)
                 }
                 .glassPill(tint: LiquidGlass.bluePrimary.opacity(0.1))
-                
+
                 // Signal Quality
                 HStack(spacing: 8) {
                     Circle()
@@ -282,9 +274,9 @@ struct EcgMonitorView: View {
             Text("AI Triage Engine · Status")
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(.white)
-            
+
             if let mlError = viewModel.mlLoadError {
-                // CoreML failed to load
+                // Model failed to load
                 HStack(spacing: 12) {
                     ZStack {
                         Circle()
@@ -307,7 +299,7 @@ struct EcgMonitorView: View {
                 .glassEffect(.regular.tint(LiquidGlass.redCritical.opacity(0.15)), in: RoundedRectangle(cornerRadius: LiquidGlass.radiusInner))
 
             } else if !ble.isConnected {
-                // Disconnected state
+                // Disconnected
                 HStack(spacing: 12) {
                     ZStack {
                         Circle()
@@ -330,7 +322,7 @@ struct EcgMonitorView: View {
                 .glassEffect(.regular.tint(.yellow.opacity(0.1)), in: RoundedRectangle(cornerRadius: LiquidGlass.radiusInner))
 
             } else if let result = viewModel.latestResult, result.isCritical {
-                // Critical state
+                // Critical
                 HStack(spacing: 12) {
                     ZStack {
                         Circle()
@@ -343,7 +335,7 @@ struct EcgMonitorView: View {
                         Text("⚠ CRITICAL — \(result.mlTopLabel ?? result.alerts.first ?? "Abnormal")")
                             .font(.subheadline.weight(.semibold))
                             .foregroundColor(LiquidGlass.redCritical)
-                        if result.alerts.count > 0 {
+                        if !result.alerts.isEmpty {
                             Text(result.alerts.joined(separator: ", "))
                                 .font(.caption)
                                 .foregroundColor(.white.opacity(0.65))
@@ -355,7 +347,7 @@ struct EcgMonitorView: View {
                 .glassEffect(.regular.tint(LiquidGlass.redCritical.opacity(0.15)), in: RoundedRectangle(cornerRadius: LiquidGlass.radiusInner))
 
             } else if viewModel.latestResult != nil {
-                // Normal state
+                // Normal
                 HStack(spacing: 12) {
                     ZStack {
                         Circle()
@@ -379,7 +371,7 @@ struct EcgMonitorView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .glassEffect(.regular.tint(LiquidGlass.greenPositive.opacity(0.08)), in: RoundedRectangle(cornerRadius: LiquidGlass.radiusInner))
             } else {
-                // Loading/Buffering state
+                // Buffering
                 HStack(spacing: 12) {
                     ProgressView()
                         .tint(.white)
@@ -391,27 +383,33 @@ struct EcgMonitorView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .glassEffect(.regular.tint(.white.opacity(0.05)), in: RoundedRectangle(cornerRadius: LiquidGlass.radiusInner))
             }
-            
+
             // Rule Status List
             VStack(spacing: 0) {
-                triageRuleRow(name: "Signal Quality Rule", 
-                              status: viewModel.latestResult?.signalQualityPassed == true ? "✓ Pass" : (ble.isConnected ? "✗ Fail" : "—"),
-                              color: viewModel.latestResult?.signalQualityPassed == true ? LiquidGlass.greenPositive : (ble.isConnected ? LiquidGlass.redCritical : .gray))
+                triageRuleRow(
+                    name: "Signal Quality Rule",
+                    status: viewModel.latestResult?.signalQualityPassed == true ? "✓ Pass" : (ble.isConnected ? "✗ Fail" : "—"),
+                    color: viewModel.latestResult?.signalQualityPassed == true ? LiquidGlass.greenPositive : (ble.isConnected ? LiquidGlass.redCritical : .gray)
+                )
                 Divider().background(.white.opacity(0.1))
-                triageRuleRow(name: "Heart Rate Activity", 
-                              status: ble.isConnected && ble.heartRate > 0 ? "✓ \(String(format: "%.0f", ble.heartRate)) bpm" : "—", 
-                              color: ble.isConnected && ble.heartRate > 0 ? LiquidGlass.greenPositive : .gray)
+                triageRuleRow(
+                    name: "Heart Rate Activity",
+                    status: ble.isConnected && ble.heartRate > 0 ? "✓ \(String(format: "%.0f", ble.heartRate)) bpm" : "—",
+                    color: ble.isConnected && ble.heartRate > 0 ? LiquidGlass.greenPositive : .gray
+                )
                 Divider().background(.white.opacity(0.1))
-                triageRuleRow(name: "SpO₂ Rule", 
-                              status: ble.isConnected && ble.spO2 > 0 ? "✓ \(String(format: "%.1f", ble.spO2))%" : "—", 
-                              color: ble.isConnected && ble.spO2 > 0 ? LiquidGlass.greenPositive : .gray)
+                triageRuleRow(
+                    name: "SpO₂ Rule",
+                    status: ble.isConnected && ble.spO2 > 0 ? "✓ \(String(format: "%.1f", ble.spO2))%" : "—",
+                    color: ble.isConnected && ble.spO2 > 0 ? LiquidGlass.greenPositive : .gray
+                )
             }
-            
+
             // Footer
             let label = viewModel.latestResult?.mlTopLabel ?? "--"
             let conf = viewModel.latestResult?.mlConfidence.map { String(format: "%.0f%%", $0 * 100) } ?? "--"
-            Text("ResNet CoreML · \(viewModel.frameCount) evals · Class: \(label) · Confidence: \(conf)")
-                .font(.system(size: 10))
+            Text("XceptionTime (ONNX) · \(viewModel.frameCount) evals · Class: \(label) · Confidence: \(conf)")
+                .font(.system(size: 10, design: .monospaced))
                 .foregroundColor(.white.opacity(0.3))
         }
         .padding(16)
@@ -432,28 +430,13 @@ struct EcgMonitorView: View {
         .padding(.vertical, 8)
     }
 
-    // MARK: - ML Evaluation
-
-    private func startMlEvaluationTimer() {
-        mlTimer?.invalidate()
-        mlTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            MainActor.assumeIsolated {
-                guard ble.isConnected else { return }
-                Task {
-                    await viewModel.evaluateFrame(ble: ble)
-                }
-            }
-        }
-    }
-
     // MARK: - ECG Calibration / Baseline
 
-    private let sampleRateHz: Double = 250
+    private let sampleRateHz: Double = 100
     private let displaySampleCount: Int = 1000
-    private let adcScaleDivisor: Double = 1000.0
+    private let adcScaleDivisor: Double = 800.0
 
     /// Visible mV span for the waveform/grid mapping.
-    /// \(+/-1.5mV\) matches the labels on the left.
     private let yRangeMv: ClosedRange<Double> = (-1.5)...(1.5)
 
     private var displayedSeconds: Double {
@@ -461,16 +444,13 @@ struct EcgMonitorView: View {
     }
 
     private var calibrationLabelText: String {
-        // We can make time window exact; "mm/s" / "mm/mV" are display conventions,
-        // but the real data backing the view is sample-rate + mV span.
         let spanMv = yRangeMv.upperBound - yRangeMv.lowerBound
         return String(format: "%.0f Hz · %.1fs · %.1f mV span", sampleRateHz, displayedSeconds, spanMv)
     }
 
     private var xAxisLabels: [String] {
-        // Label in whole seconds up to the displayed window.
-        let seconds = Int(round(displayedSeconds))
-        return (0...seconds).map { "\($0)s" }
+        let seconds = Int(floor(displayedSeconds))
+        return (0...max(seconds, 1)).map { "\($0)s" }
     }
 
     private func robustBaseline(_ values: [Double]) -> Double {
@@ -487,8 +467,8 @@ struct EcgMonitorView: View {
 
 private struct EcgCalibratedGrid: View {
     let rect: CGRect
+    let yRangeMv: ClosedRange<Double>
 
-    private let yRangeMv: ClosedRange<Double> = (-1.5)...(1.5)
     private let labelColor = Color(red: 0, green: 1, blue: 136/255).opacity(0.5)
     private let gridLineColor = Color(red: 0, green: 1, blue: 136/255).opacity(0.12)
     private let zeroLineColor = Color(red: 0, green: 1, blue: 136/255).opacity(0.30)
@@ -501,7 +481,6 @@ private struct EcgCalibratedGrid: View {
     }
 
     var body: some View {
-        // Lines + labels aligned to the same coordinate system.
         let ticks: [Double] = [1.5, 1.0, 0.5, 0.0, -0.5, -1.0, -1.5]
 
         ZStack(alignment: .topLeading) {

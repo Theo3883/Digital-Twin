@@ -24,10 +24,6 @@ struct MainTabView: View {
         EngineOcrRepository(engine: engineWrapper)
     }
     
-    private var ecgRepository: EngineEcgRepository {
-        EngineEcgRepository(engine: engineWrapper)
-    }
-
     private var doctorRepository: EngineDoctorRepository {
         EngineDoctorRepository(engine: engineWrapper)
     }
@@ -50,12 +46,22 @@ struct MainTabView: View {
             Tab("ECG", systemImage: "waveform.path.ecg", value: 1) {
                 ZStack {
                     MeshGradientBackground()
-                    EcgMonitorView(
-                        viewModel: EcgMonitorViewModel(
-                            repository: ecgRepository,
-                            evaluate: EvaluateEcgFrameUseCase(repository: ecgRepository)
-                        )
-                    )
+                    NavigationStack {
+                        if let vm = EcgMonitorViewModelFactory.shared {
+                            EcgMonitorView(viewModel: vm)
+                                .background(Color.clear)
+                                .liquidGlassNavigationStyle()
+                        } else {
+                            VStack(spacing: 12) {
+                                ProgressView()
+                                Text("Preparing ECG…")
+                                    .foregroundColor(.white.opacity(0.7))
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        }
+                    }
+                    .background(Color.clear)
+                    .toolbarBackground(.hidden, for: .navigationBar)
                 }
             }
             Tab("Assistant", systemImage: "brain.head.profile", value: 2) {

@@ -60,6 +60,14 @@ namespace DigitalTwin.Mobile.Infrastructure.Services;
 [JsonSerializable(typeof(AssignedDoctorsResponse))]
 [JsonSerializable(typeof(CloudAssignedDoctorDto))]
 [JsonSerializable(typeof(List<CloudAssignedDoctorDto>))]
+// Notifications (read-only from cloud)
+[JsonSerializable(typeof(NotificationsResponse))]
+[JsonSerializable(typeof(CloudNotificationItemDto))]
+[JsonSerializable(typeof(List<CloudNotificationItemDto>))]
+[JsonSerializable(typeof(UnreadCountResponse))]
+[JsonSerializable(typeof(CriticalAlertSyncItem))]
+[JsonSerializable(typeof(List<CriticalAlertSyncItem>))]
+[JsonSerializable(typeof(DeviceRequestEnvelope<CriticalAlertSyncItem>))]
 public partial class InfrastructureJsonContext : JsonSerializerContext;
 
 // NativeAOT-safe JSON context for third-party integration API payloads.

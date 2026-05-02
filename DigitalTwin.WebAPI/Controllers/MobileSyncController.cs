@@ -31,6 +31,8 @@ public class MobileSyncController : ControllerBase
     private readonly IOcrDocumentRepository _ocrRepo;
     private readonly IMedicalHistoryEntryRepository _historyRepo;
     private readonly IDoctorAssignmentApplicationService _doctorAssignmentService;
+    private readonly IDoctorPatientAssignmentRepository _assignments;
+    private readonly INotificationRepository _notifications;
     private readonly ILogger<MobileSyncController> _logger;
 
     public MobileSyncController(
@@ -44,6 +46,8 @@ public class MobileSyncController : ControllerBase
         IOcrDocumentRepository ocrRepo,
         IMedicalHistoryEntryRepository historyRepo,
         IDoctorAssignmentApplicationService doctorAssignmentService,
+        IDoctorPatientAssignmentRepository assignments,
+        INotificationRepository notifications,
         ILogger<MobileSyncController> logger)
     {
         _config = config;
@@ -56,8 +60,13 @@ public class MobileSyncController : ControllerBase
         _ocrRepo = ocrRepo;
         _historyRepo = historyRepo;
         _doctorAssignmentService = doctorAssignmentService;
+        _assignments = assignments;
+        _notifications = notifications;
         _logger = logger;
     }
+
+    public record CriticalAlertSyncItem(string RuleName, string Message, DateTime Timestamp);
+    public record DeviceRequestEnvelope<T>(string? DeviceId, string? RequestId, T? User, T? Patient, List<T>? Items);
 
     // ═══════════════════════════════════════════════════════════════════════════
     //  Helpers
@@ -339,7 +348,7 @@ public class MobileSyncController : ControllerBase
         string? PhotoUrl, string? Phone, string? Address, string? City, string? Country, DateTime? DateOfBirth);
 
     /// <summary>GET /api/mobile/auth/me — get current user profile.</summary>
-    [Authorize]
+    [Authorize(AuthenticationSchemes = "Google")]
     [HttpGet("auth/me")]
     public async Task<IActionResult> GetCurrentProfile()
     {
@@ -352,7 +361,7 @@ public class MobileSyncController : ControllerBase
     /// <summary>
     /// GET /api/mobile/bootstrap — fetch all cloud data for the current user (one-shot sync seed).
     /// </summary>
-    [Authorize]
+    [Authorize(AuthenticationSchemes = "Google")]
     [HttpGet("bootstrap")]
     public async Task<ActionResult<MobileBootstrap>> Bootstrap()
     {
@@ -368,7 +377,7 @@ public class MobileSyncController : ControllerBase
     public record SyncResult(bool Success, string? ErrorMessage = null);
 
     /// <summary>POST /api/mobile/sync/users/upsert — upsert user profile from device.</summary>
-    [Authorize]
+    [Authorize(AuthenticationSchemes = "Google")]
     [HttpPost("sync/users/upsert")]
     public async Task<ActionResult<SyncResult>> UpsertUser([FromBody] UpsertUserBody body)
     {
@@ -422,7 +431,7 @@ public class MobileSyncController : ControllerBase
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// <summary>POST /api/mobile/sync/patients/upsert — upsert patient profile from device.</summary>
-    [Authorize]
+    [Authorize(AuthenticationSchemes = "Google")]
     [HttpPost("sync/patients/upsert")]
     public async Task<ActionResult<SyncResult>> UpsertPatient([FromBody] UpsertPatientBody body)
     {
@@ -459,7 +468,7 @@ public class MobileSyncController : ControllerBase
         decimal? Cholesterol, string? Cnp);
 
     /// <summary>GET /api/mobile/sync/patients/profile — pull patient profile to device.</summary>
-    [Authorize]
+    [Authorize(AuthenticationSchemes = "Google")]
     [HttpGet("sync/patients/profile")]
     public async Task<IActionResult> GetPatientProfile()
     {
@@ -488,7 +497,7 @@ public class MobileSyncController : ControllerBase
     public record VitalSyncResult(int AcceptedCount, int DedupedCount);
 
     /// <summary>POST /api/mobile/sync/vitals/append — push vital signs from device.</summary>
-    [Authorize]
+    [Authorize(AuthenticationSchemes = "Google")]
     [HttpPost("sync/vitals/append")]
     public async Task<ActionResult<VitalSyncResult>> AppendVitals([FromBody] VitalAppendBody body)
     {
@@ -524,7 +533,7 @@ public class MobileSyncController : ControllerBase
     }
 
     /// <summary>GET /api/mobile/sync/vitals — pull vital signs to device.</summary>
-    [Authorize]
+    [Authorize(AuthenticationSchemes = "Google")]
     [HttpGet("sync/vitals")]
     public async Task<IActionResult> GetVitals([FromQuery] DateTime fromUtc, [FromQuery] DateTime? toUtc)
     {
@@ -545,7 +554,7 @@ public class MobileSyncController : ControllerBase
         string? DiscontinuedReason, int AddedByRole, DateTime CreatedAt, DateTime UpdatedAt);
 
     /// <summary>POST /api/mobile/sync/medications/upsert — push medication changes from device.</summary>
-    [Authorize]
+    [Authorize(AuthenticationSchemes = "Google")]
     [HttpPost("sync/medications/upsert")]
     public async Task<ActionResult<SyncResult>> UpsertMedications([FromBody] MedicationUpsertBody body)
     {
@@ -582,7 +591,7 @@ public class MobileSyncController : ControllerBase
     public record MedicationUpsertBody(string? DeviceId, string? RequestId, List<MedicationSyncItem>? Items);
 
     /// <summary>GET /api/mobile/sync/medications — pull medications for patient.</summary>
-    [Authorize]
+    [Authorize(AuthenticationSchemes = "Google")]
     [HttpGet("sync/medications")]
     public async Task<IActionResult> GetMedications()
     {
@@ -608,7 +617,7 @@ public class MobileSyncController : ControllerBase
         DateTime Timestamp);
 
     /// <summary>POST /api/mobile/sync/environment/append — push environment readings.</summary>
-    [Authorize]
+    [Authorize(AuthenticationSchemes = "Google")]
     [HttpPost("sync/environment/append")]
     public async Task<ActionResult<SyncResult>> AppendEnvironment([FromBody] EnvironmentAppendBody body)
     {
@@ -644,7 +653,7 @@ public class MobileSyncController : ControllerBase
     public record SleepSyncItem(DateTime StartTime, DateTime EndTime, int DurationMinutes, double QualityScore);
 
     /// <summary>POST /api/mobile/sync/sleep/append — push sleep sessions.</summary>
-    [Authorize]
+    [Authorize(AuthenticationSchemes = "Google")]
     [HttpPost("sync/sleep/append")]
     public async Task<ActionResult<SyncResult>> AppendSleep([FromBody] SleepAppendBody body)
     {
@@ -668,7 +677,7 @@ public class MobileSyncController : ControllerBase
     }
 
     /// <summary>GET /api/mobile/sync/sleep — pull sleep sessions.</summary>
-    [Authorize]
+    [Authorize(AuthenticationSchemes = "Google")]
     [HttpGet("sync/sleep")]
     public async Task<IActionResult> GetSleep([FromQuery] DateTime? fromUtc, [FromQuery] DateTime? toUtc)
     {
@@ -687,7 +696,7 @@ public class MobileSyncController : ControllerBase
         string? Sha256OfNormalized, string SanitizedOcrPreview, DateTime ScannedAt);
 
     /// <summary>POST /api/mobile/sync/ocr-documents/upsert — push OCR document metadata.</summary>
-    [Authorize]
+    [Authorize(AuthenticationSchemes = "Google")]
     [HttpPost("sync/ocr-documents/upsert")]
     public async Task<ActionResult<SyncResult>> UpsertOcrDocuments([FromBody] OcrDocumentUpsertBody body)
     {
@@ -727,7 +736,7 @@ public class MobileSyncController : ControllerBase
         string Summary, decimal Confidence, DateTime EventDate);
 
     /// <summary>POST /api/mobile/sync/medical-history/append — push medical history entries.</summary>
-    [Authorize]
+    [Authorize(AuthenticationSchemes = "Google")]
     [HttpPost("sync/medical-history/append")]
     public async Task<ActionResult<SyncResult>> AppendMedicalHistory([FromBody] MedicalHistoryAppendBody body)
     {
@@ -768,7 +777,7 @@ public class MobileSyncController : ControllerBase
     public record AssignedDoctorsResult(List<AssignedDoctorItem>? Doctors);
 
     /// <summary>GET /api/mobile/doctors/assigned — get doctors assigned to current patient.</summary>
-    [Authorize]
+    [Authorize(AuthenticationSchemes = "Google")]
     [HttpGet("doctors/assigned")]
     public async Task<ActionResult<AssignedDoctorsResult>> GetAssignedDoctors()
     {
@@ -780,5 +789,74 @@ public class MobileSyncController : ControllerBase
         )).ToList();
 
         return Ok(new AssignedDoctorsResult(items));
+    }
+
+    /// <summary>
+    /// POST /api/mobile/alerts/ecg — push a critical ECG triage alert to the cloud.
+    /// The backend fans it out to the patient's assigned doctors as notifications.
+    /// </summary>
+    [Authorize(AuthenticationSchemes = "Google")]
+    [HttpPost("alerts/ecg")]
+    public async Task<ActionResult<SyncResult>> PostCriticalEcgAlert([FromBody] DeviceRequestEnvelope<CriticalAlertSyncItem> body)
+    {
+        try
+        {
+            var (user, patient) = await GetCurrentUserAndPatientAsync();
+
+            var alert = body.Items?.FirstOrDefault();
+            if (alert is null)
+                return BadRequest(new SyncResult(false, "Missing alert payload."));
+
+            var assignments = (await _assignments.GetByPatientIdAsync(patient.Id)).ToList();
+            if (assignments.Count == 0)
+            {
+                _logger.LogInformation("[MobileSync] Critical alert received but patient has no assigned doctors. patientId={PatientId}", patient.Id);
+                return Ok(new SyncResult(true));
+            }
+
+            var patientDisplay = string.IsNullOrWhiteSpace(user.FullName) ? user.Email : user.FullName;
+            var title = "Critical ECG alert";
+            var bodyText = $"{patientDisplay}: {alert.Message}";
+
+            foreach (var a in assignments)
+            {
+                await _notifications.AddAsync(new NotificationItem
+                {
+                    RecipientUserId = a.DoctorId,
+                    RecipientRole = UserRole.Doctor,
+                    Title = title,
+                    Body = bodyText,
+                    Type = NotificationType.CriticalAlert,
+                    Severity = NotificationSeverity.Critical,
+                    PatientId = patient.Id,
+                    ActorUserId = user.Id,
+                    ActorName = patientDisplay
+                });
+            }
+
+            // Also store a copy for the patient inbox.
+            await _notifications.AddAsync(new NotificationItem
+            {
+                RecipientUserId = user.Id,
+                RecipientRole = UserRole.Patient,
+                Title = title,
+                Body = alert.Message,
+                Type = NotificationType.CriticalAlert,
+                Severity = NotificationSeverity.Critical,
+                PatientId = patient.Id,
+                ActorUserId = user.Id,
+                ActorName = patientDisplay
+            });
+
+            _logger.LogWarning("[MobileSync] Critical ECG alert persisted. patientId={PatientId} doctorCount={DoctorCount} rule={Rule}",
+                patient.Id, assignments.Count, alert.RuleName);
+
+            return Ok(new SyncResult(true));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[MobileSync] Failed to persist critical ECG alert");
+            return StatusCode(500, new SyncResult(false, "Failed to persist critical alert."));
+        }
     }
 }

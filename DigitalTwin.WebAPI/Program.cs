@@ -9,10 +9,12 @@ using DigitalTwin.Domain.Interfaces.Services;
 using DigitalTwin.Integrations.AI;
 using DigitalTwin.Integrations.Medication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using DigitalTwin.WebAPI.Middleware;
+using DigitalTwin.WebAPI.Auth;
 
 // ── Load .env.local before the host builder reads configuration ───────────────
 var envFile = Path.Combine(Directory.GetCurrentDirectory(), ".env.local");
@@ -43,6 +45,12 @@ builder.Services
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
     });
+
+// ── Google ID token auth (mobile) ────────────────────────────────────────────
+builder.Services.AddAuthentication()
+    .AddScheme<AuthenticationSchemeOptions, GoogleBearerAuthenticationHandler>(
+        "Google",
+        _ => { });
 
 builder.Services.AddAuthorization();
 

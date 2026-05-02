@@ -1,5 +1,7 @@
 import Foundation
 import SwiftUI
+import Security
+import GoogleSignIn
 
 @MainActor
 class MobileEngineSessionStore: ObservableObject {
@@ -14,6 +16,7 @@ class MobileEngineSessionStore: ObservableObject {
     @Published var errorMessage: String?
     @Published var hasCloudProfile = false
     @Published var isCloudAuthenticated = false
+    @Published var cloudAccessToken: String?
 
     // MARK: - Feature State
 
@@ -42,6 +45,9 @@ class MobileEngineSessionStore: ObservableObject {
     // MARK: - Private Properties
 
     private var engine: MobileEngineClient?
+
+    /// Exposed for services that need direct engine access (e.g. notification fetches). Nil until `initialize()` succeeds.
+    internal var mobileEngineClient: MobileEngineClient? { engine }
     private let databasePath: String
     private let apiBaseUrl: String
     private let geminiApiKey: String?
@@ -158,7 +164,35 @@ class MobileEngineSessionStore: ObservableObject {
                 // never renders ProfileSetupGateView (and never fires its .onAppear).
                 patientProfile = try? await engine.getPatientProfile()
                 isAuthenticated = true
-                // hasCloudProfile / isCloudAuthenticated are resolved on next performSync()
+                print("[CloudDebug][restoreCachedSession] user restored email=\(user.email) engineReady=true")
+
+                // Google-only cloud auth:
+                // - Cloud requests require a Google ID token (RS256) as Bearer.
+                // - A cached local user does NOT imply we still have a Google token.
+                // Try to restore the previous Google session and inject the ID token into the engine.
+                if let restored = try? await GIDSignIn.sharedInstance.restorePreviousSignIn(),
+                   let idToken = restored.idToken?.tokenString,
+                   !idToken.isEmpty {
+                    print("[CloudDebug][restoreCachedSession] restored Google ID token len=\(idToken.count)")
+                    // `setCloudAccessToken` now effectively sets the bearer token used by the engine.
+                    let setResult = try? await engine.setCloudAccessToken(idToken)
+                    print("[CloudDebug][restoreCachedSession] engine.setCloudAccessToken success=\(setResult?.success ?? false) err=\(setResult?.error ?? "nil")")
+                } else {
+                    print("[CloudDebug][restoreCachedSession] no Google session to restore")
+                }
+
+                let status = (try? await engine.getCloudAuthStatus()) ?? false
+                print("[CloudDebug][restoreCachedSession] engine.getCloudAuthStatus=\(status)")
+                isCloudAuthenticated = status
+                hasCloudProfile = status
+
+                // Kick a sync probe in the background so cloud-dependent UI (Notifications)
+                // doesn't incorrectly show "Cloud unavailable" on cold start.
+                Task(priority: .utility) { [weak self] in
+                    print("[CloudDebug][restoreCachedSession] performSync probe start")
+                    _ = await self?.performSync()
+                    print("[CloudDebug][restoreCachedSession] performSync probe done isCloudAuthenticated=\(self?.isCloudAuthenticated ?? false)")
+                }
             }
         } catch {}
     }
@@ -217,12 +251,18 @@ class MobileEngineSessionStore: ObservableObject {
         defer { isLoading = false }
 
         do {
+            print("[CloudDebug][auth] starting google auth tokenLen=\(googleIdToken.count)")
             let result = try await engine.authenticate(googleIdToken: googleIdToken)
             if result.success {
                 isAuthenticated = true
                 currentUser = result.user
                 hasCloudProfile = result.hasCloudProfile ?? false
                 isCloudAuthenticated = !(result.accessToken?.isEmpty ?? true)
+                cloudAccessToken = result.accessToken
+                print("[CloudDebug][auth] success hasCloudProfile=\(hasCloudProfile) accessTokenLen=\(result.accessToken?.count ?? 0) isCloudAuthenticated=\(isCloudAuthenticated)")
+
+                let status = (try? await engine.getCloudAuthStatus()) ?? false
+                print("[CloudDebug][auth] engine.getCloudAuthStatus=\(status)")
 
                 // If the cloud has a profile, the .NET engine should have seeded local SQLite during auth.
                 // Hydrate the in-memory state so UI can route correctly.
@@ -238,11 +278,15 @@ class MobileEngineSessionStore: ObservableObject {
             } else {
                 errorMessage = result.errorMessage ?? "Authentication failed"
                 isCloudAuthenticated = false
+                cloudAccessToken = nil
+                print("[CloudDebug][auth] failed error=\(errorMessage ?? "nil")")
                 return false
             }
         } catch {
             errorMessage = "Authentication failed: \(error.localizedDescription)"
             isCloudAuthenticated = false
+            cloudAccessToken = nil
+            print("[CloudDebug][auth] exception \(error.localizedDescription)")
             return false
         }
     }
@@ -324,6 +368,7 @@ class MobileEngineSessionStore: ObservableObject {
         patientProfile = nil
         hasCloudProfile = false
         isCloudAuthenticated = false
+        cloudAccessToken = nil
         medications = []
         sleepSessions = []
         chatMessages = []
@@ -787,24 +832,12 @@ class MobileEngineSessionStore: ObservableObject {
     func performSync() async -> Bool {
         guard let engine else { return false }
 
-        if !isCloudAuthenticated {
-            if healthKitService.isAuthorized {
-                // Don't block UI on HealthKit import.
-                Task(priority: .utility) { [weak self] in
-                    await self?.syncHealthKitData(reason: "performSync-local-only")
-                }
-            }
-
-            await getCurrentUser()
-            await loadPatientProfile()
-            return true
-        }
-
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
+            print("[CloudDebug][performSync] starting isCloudAuthenticated(before)=\(isCloudAuthenticated) tokenLen=\(cloudAccessToken?.count ?? 0)")
             if healthKitService.isAuthorized {
                 // Run HealthKit import in background; cloud sync can proceed immediately.
                 Task(priority: .utility) { [weak self] in
@@ -815,6 +848,12 @@ class MobileEngineSessionStore: ObservableObject {
             let result = try await engine.performSync()
 
             if result.success {
+                // Ask the engine whether cloud auth is actually ready (token store is in-memory).
+                // Sync can report success in local-only mode.
+                let status = (try? await engine.getCloudAuthStatus()) ?? false
+                print("[CloudDebug][performSync] engine.performSync success; engine.getCloudAuthStatus=\(status)")
+                isCloudAuthenticated = status
+                hasCloudProfile = status
                 if healthKitService.isAuthorized {
                     await writeVitalsToHealthKit()
                 }
@@ -824,12 +863,30 @@ class MobileEngineSessionStore: ObservableObject {
                 warmCachesAfterSyncInBackground()
                 return true
             } else {
-                errorMessage = result.error ?? "Sync failed"
-                return false
+                // If cloud isn't configured or token is missing/expired, treat as local-only.
+                // Keep the UI responsive, but correctly reflect cloud unavailability.
+                let err = (result.error ?? "Sync failed").lowercased()
+                print("[CloudDebug][performSync] engine.performSync failed err=\(result.error ?? "nil")")
+                if err.contains("not authenticated") || err.contains("not authorized") || err.contains("unauthorized") {
+                    isCloudAuthenticated = false
+                    cloudAccessToken = nil
+                }
+
+                await getCurrentUser()
+                await loadPatientProfile()
+                return true
             }
         } catch {
-            errorMessage = "Sync failed: \(error.localizedDescription)"
-            return false
+            let msg = error.localizedDescription.lowercased()
+            print("[CloudDebug][performSync] exception \(error.localizedDescription)")
+            if msg.contains("not authenticated") || msg.contains("unauthorized") {
+                isCloudAuthenticated = false
+                cloudAccessToken = nil
+            }
+
+            await getCurrentUser()
+            await loadPatientProfile()
+            return true
         }
     }
 

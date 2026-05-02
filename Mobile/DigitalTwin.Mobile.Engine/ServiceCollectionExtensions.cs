@@ -34,7 +34,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDoctorPatientAssignmentRepository, DoctorPatientAssignmentRepository>();
         services.AddScoped<ITypedCacheStore, SqliteTypedCacheStore>();
         services.AddScoped<ILocalDataResetService, LocalDataResetService>();
-        services.AddSingleton<IAccessTokenStore, InMemoryAccessTokenStore>();
+        services.AddSingleton<IAccessTokenStore, SqliteAccessTokenStore>();
 
         // ── HTTP Clients ─────────────────────────────────────────────────────
         services.AddHttpClient<ICloudSyncService, CloudSyncService>(client =>
@@ -184,6 +184,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MedicationApplicationService>();
         services.AddScoped<EnvironmentApplicationService>();
         services.AddScoped<EcgApplicationService>();
+        services.AddScoped<NotificationApplicationService>();
         services.AddScoped<PatientAiContextBuilder>();
         services.AddScoped<ChatBotApplicationService>();
         services.AddScoped<CoachingApplicationService>();

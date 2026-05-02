@@ -47,6 +47,17 @@ struct EcgEvaluationResult: Codable {
     var isCritical: Bool { triageResult == 2 }
     var isWarning:  Bool { triageResult == 1 }
 
+    /// For UI / notifications: map integer triage to levels.
+    enum TriageLevel: Int, Sendable {
+        case normal = 0
+        case warning = 1
+        case critical = 2
+    }
+
+    var triageLevel: TriageLevel {
+        TriageLevel(rawValue: triageResult) ?? .normal
+    }
+
     /// Human-readable ML label with confidence, e.g. "AF (87%)"
     var mlSummary: String {
         guard let label = mlTopLabel, let conf = mlConfidence else { return "Analyzing..." }

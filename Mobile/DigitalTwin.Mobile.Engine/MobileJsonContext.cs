@@ -27,6 +27,11 @@ public sealed record EcgEvaluationResult
     public CriticalAlertDto? Alert { get; init; }
 }
 
+public sealed record CloudAuthStatusDto
+{
+    public bool IsAuthenticated { get; init; }
+}
+
 // Vault operation inputs/outputs for NativeBridge
 public sealed record VaultInitInput
 {
@@ -105,6 +110,7 @@ public sealed record MlAuditSummaryDto
 [JsonSerializable(typeof(EcgFrameDto))]
 [JsonSerializable(typeof(CriticalAlertDto))]
 [JsonSerializable(typeof(EcgEvaluationResult))]
+[JsonSerializable(typeof(CloudAuthStatusDto))]
 [JsonSerializable(typeof(Dictionary<string, double>))]
 // Chat
 [JsonSerializable(typeof(ChatMessageDto))]
@@ -165,4 +171,9 @@ public sealed record MlAuditSummaryDto
 [JsonSerializable(typeof(EnvironmentAnalyticsDto))]
 [JsonSerializable(typeof(HourlyDataPoint))]
 [JsonSerializable(typeof(HourlyDataPoint[]), TypeInfoPropertyName = "HourlyDataPointArray")]
+// Notifications
+[JsonSerializable(typeof(NotificationItem))]
+[JsonSerializable(typeof(NotificationItem[]), TypeInfoPropertyName = "NotificationItemArray")]
+[JsonSerializable(typeof(DigitalTwin.Mobile.Application.DTOs.NotificationItemDto))]
+[JsonSerializable(typeof(DigitalTwin.Mobile.Application.DTOs.NotificationItemDto[]), TypeInfoPropertyName = "NotificationItemDtoArray")]
 public partial class MobileJsonContext : JsonSerializerContext;

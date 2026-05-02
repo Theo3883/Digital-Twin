@@ -47,6 +47,13 @@ protocol MobileEngineClient: Sendable {
     // MARK: - Doctor Assignment
     func getAssignedDoctors() async throws -> [AssignedDoctorInfo]
 
+    // MARK: - Notifications
+    func getNotifications(limit: Int, unreadOnly: Bool) async throws -> [NotificationInfo]
+
+    // MARK: - Cloud session restore
+    func setCloudAccessToken(_ token: String) async throws -> OperationResult
+    func getCloudAuthStatus() async throws -> Bool
+
     // MARK: - Local Data Reset
     func resetLocalData() async throws -> OperationResult
 

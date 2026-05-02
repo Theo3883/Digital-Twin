@@ -40,42 +40,52 @@ public class CloudSyncService : ICloudSyncService
         {
             if (_isOffline) return new CloudAuthResult { Success = false, ErrorMessage = "Offline mode" };
 
+            // Google-only mode: we will use the Google ID token as the Bearer token for all API calls.
+            // We still call the bootstrap endpoint to verify the token and hydrate initial state.
+            _tokenStore.AccessToken = googleIdToken;
+            _httpClient.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Bearer", _tokenStore.AccessToken);
+
             var request = new GoogleAuthRequest
             {
                 GoogleIdToken = googleIdToken,
             };
 
-            using var content = JsonContent.Create(request, InfrastructureJsonContext.Default.GoogleAuthRequest);
-            var response = await _httpClient.PostAsync("/api/mobile/auth/google", content);
+            // Verify the token by calling a Google-protected endpoint.
+            // This avoids server-minted JWTs entirely (Google-only mode).
+            var response = await _httpClient.GetAsync("/api/mobile/auth/me");
             
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogError("[CloudSync] Authentication failed: {StatusCode}", response.StatusCode);
+                _tokenStore.Clear();
                 return new CloudAuthResult { Success = false, ErrorMessage = $"HTTP {(int)response.StatusCode}" };
             }
 
             await using var stream = await response.Content.ReadAsStreamAsync();
-            var result = await JsonSerializer.DeserializeAsync(stream, InfrastructureJsonContext.Default.AuthResponse);
-            if (result?.Success == true && !string.IsNullOrEmpty(result.AccessToken))
+            var me = await JsonSerializer.DeserializeAsync(stream, InfrastructureJsonContext.Default.UserProfileResponse);
+            _logger.LogInformation(
+                "[CloudDebug][CloudSync] Google token accepted by server. meEmail={Email}",
+                me?.User?.Email ?? "nil");
+            if (!string.IsNullOrWhiteSpace(me?.User?.Email))
             {
-                _tokenStore.AccessToken = result.AccessToken;
-                _httpClient.DefaultRequestHeaders.Authorization = 
-                    new AuthenticationHeaderValue("Bearer", _tokenStore.AccessToken);
-                
-                _logger.LogInformation("[CloudSync] Authentication successful");
+                _logger.LogInformation("[CloudSync] Google token accepted by server");
                 return new CloudAuthResult
                 {
                     Success = true,
-                    AccessToken = result.AccessToken,
-                    Bootstrap = MapBootstrap(result.Bootstrap),
+                    // For UI/state in Swift: treat the Google ID token as the "access token".
+                    AccessToken = googleIdToken,
+                    Bootstrap = null,
                 };
             }
 
-            return new CloudAuthResult { Success = false, ErrorMessage = result?.ErrorMessage ?? "Authentication failed" };
+            _tokenStore.Clear();
+            return new CloudAuthResult { Success = false, ErrorMessage = "Authentication failed" };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[CloudSync] Authentication exception");
+            _tokenStore.Clear();
             return new CloudAuthResult { Success = false, ErrorMessage = ex.Message };
         }
     }
@@ -680,7 +690,7 @@ public class CloudSyncService : ICloudSyncService
     private void EnsureAuthenticated()
     {
         if (string.IsNullOrEmpty(_tokenStore.AccessToken))
-            throw new InvalidOperationException("Not authenticated. Call AuthenticateAsync first.");
+            throw new InvalidOperationException("Not authenticated. Call AuthenticateAsync first (Google token missing).");
 
         // Each typed client gets its own HttpClient instance; ensure header is applied.
         if (_httpClient.DefaultRequestHeaders.Authorization?.Parameter != _tokenStore.AccessToken)
@@ -728,5 +738,117 @@ public class CloudSyncService : ICloudSyncService
             AssignedAt = d.AssignedAt,
             Notes = d.Notes
         }) ?? [];
+    }
+
+    // ── Notifications (read-only from cloud) ──────────────────────────────────
+
+    public async Task<IEnumerable<DigitalTwin.Mobile.Domain.Models.NotificationItem>> GetNotificationsAsync(int limit = 50, bool unreadOnly = false)
+    {
+        if (_isOffline) return [];
+
+        _logger.LogInformation("[CloudDebug][CloudSync] GetNotificationsAsync start limit={Limit} unreadOnly={UnreadOnly} tokenPresent={TokenPresent}",
+            limit, unreadOnly, !string.IsNullOrEmpty(_tokenStore.AccessToken));
+        EnsureAuthenticated();
+
+        var queryParams = new List<string> { $"limit={limit}" };
+        if (unreadOnly)
+            queryParams.Add("unreadOnly=true");
+
+        var queryString = "?" + string.Join("&", queryParams);
+        var response = await _httpClient.GetAsync($"/api/notifications{queryString}");
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("[CloudSync] Notifications fetch failed with status {StatusCode}", response.StatusCode);
+            return [];
+        }
+
+        await using var stream = await response.Content.ReadAsStreamAsync();
+        // WebAPI returns a JSON array (not a wrapped object).
+        var items = await JsonSerializer.DeserializeAsync(stream, InfrastructureJsonContext.Default.ListCloudNotificationItemDto);
+        if (items == null) return [];
+
+        return items.Select(n => new DigitalTwin.Mobile.Domain.Models.NotificationItem
+        {
+            Id = n.Id,
+            Title = n.Title,
+            Body = n.Body,
+            Type = n.Type,
+            Severity = n.Severity,
+            RecipientUserId = n.RecipientUserId,
+            ActorUserId = n.ActorUserId,
+            ActorName = n.ActorName,
+            CreatedAt = n.CreatedAt,
+            ReadAt = n.ReadAt
+        });
+    }
+
+    public async Task<int> GetUnreadNotificationCountAsync()
+    {
+        if (_isOffline) return 0;
+
+        try
+        {
+            EnsureAuthenticated();
+            var response = await _httpClient.GetAsync("/api/notifications/unread-count");
+            
+            if (!response.IsSuccessStatusCode)
+                return 0;
+
+            await using var stream = await response.Content.ReadAsStreamAsync();
+            var result = await JsonSerializer.DeserializeAsync(stream, InfrastructureJsonContext.Default.UnreadCountResponse);
+            return result?.Count ?? 0;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[CloudSync] Failed to get unread count");
+            return 0;
+        }
+    }
+
+    public async Task<bool> SendCriticalAlertAsync(CriticalAlertEvent alert)
+    {
+        if (_isOffline) return false;
+
+        try
+        {
+            _logger.LogInformation("[CloudDebug][CloudSync] SendCriticalAlertAsync start rule={Rule} tokenPresent={TokenPresent}",
+                alert.RuleName, !string.IsNullOrEmpty(_tokenStore.AccessToken));
+            EnsureAuthenticated();
+
+            var request = new DeviceRequestEnvelope<CriticalAlertSyncItem>
+            {
+                DeviceId = GetDeviceId(),
+                RequestId = Guid.NewGuid().ToString(),
+                Items =
+                [
+                    new CriticalAlertSyncItem
+                    {
+                        RuleName = alert.RuleName,
+                        Message = alert.Message,
+                        Timestamp = alert.Timestamp
+                    }
+                ]
+            };
+
+            using var content = JsonContent.Create(
+                request,
+                InfrastructureJsonContext.Default.DeviceRequestEnvelopeCriticalAlertSyncItem);
+
+            var response = await _httpClient.PostAsync("/api/mobile/alerts/ecg", content);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("[CloudSync] Critical alert post failed with status {StatusCode}", response.StatusCode);
+                return false;
+            }
+
+            _logger.LogInformation("[CloudDebug][CloudSync] SendCriticalAlertAsync ok status={Status}", response.StatusCode);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[CloudSync] Failed to post critical alert");
+            return false;
+        }
     }
 }

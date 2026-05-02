@@ -86,6 +86,29 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                 });
 
             migrationBuilder.CreateTable(
+                name: "Notifications",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    RecipientUserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    RecipientRole = table.Column<int>(type: "integer", nullable: false),
+                    Title = table.Column<string>(type: "text", nullable: false),
+                    Body = table.Column<string>(type: "text", nullable: false),
+                    Type = table.Column<int>(type: "integer", nullable: false),
+                    Severity = table.Column<int>(type: "integer", nullable: false),
+                    PatientId = table.Column<Guid>(type: "uuid", nullable: true),
+                    ActorUserId = table.Column<Guid>(type: "uuid", nullable: true),
+                    ActorName = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ReadAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Notifications", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "OcrDocuments",
                 columns: table => new
                 {
@@ -319,6 +342,16 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
                 column: "PatientId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Notifications_RecipientUserId_CreatedAt",
+                table: "Notifications",
+                columns: new[] { "RecipientUserId", "CreatedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Notifications_RecipientUserId_ReadAt",
+                table: "Notifications",
+                columns: new[] { "RecipientUserId", "ReadAt" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_OcrDocuments_IsDirty",
                 table: "OcrDocuments",
                 column: "IsDirty");
@@ -370,6 +403,9 @@ namespace DigitalTwin.Infrastructure.Migrations.Cloud
 
             migrationBuilder.DropTable(
                 name: "Medications");
+
+            migrationBuilder.DropTable(
+                name: "Notifications");
 
             migrationBuilder.DropTable(
                 name: "OcrDocuments");

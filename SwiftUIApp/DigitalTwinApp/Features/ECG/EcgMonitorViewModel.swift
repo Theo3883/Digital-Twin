@@ -17,6 +17,7 @@ final class EcgMonitorViewModel: ObservableObject {
     private let repository: EcgRepository
     private let evaluate: EvaluateEcgFrameUseCase
     let classifier: ECGClassifierProtocol
+    private let triageNotifications = TriageNotificationService.shared
 
     // MARK: - Init
 
@@ -93,6 +94,8 @@ final class EcgMonitorViewModel: ObservableObject {
         latestResult = result
         isTriageActive = true
         frameCount += 1
+
+        await triageNotifications.evaluateAndNotify(result: result)
     }
 
     // MARK: - Connection State

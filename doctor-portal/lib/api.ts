@@ -171,6 +171,31 @@ export class ApiClient {
       body: JSON.stringify({ rxCuis }),
     });
   }
+
+  // ── Notifications ────────────────────────────────────────────────────────
+
+  async getNotifications(limit = 50, unreadOnly = false) {
+    const qs = new URLSearchParams();
+    qs.set("limit", String(limit));
+    qs.set("unreadOnly", unreadOnly ? "true" : "false");
+    return this.request<NotificationItem[]>(`/api/notifications?${qs.toString()}`);
+  }
+
+  async getUnreadNotificationsCount() {
+    return this.request<{ count: number }>("/api/notifications/unread-count");
+  }
+
+  async markNotificationRead(id: string) {
+    return this.request<void>(`/api/notifications/${id}/read`, { method: "POST" });
+  }
+
+  async markAllNotificationsRead() {
+    return this.request<void>("/api/notifications/read-all", { method: "POST" });
+  }
+
+  async deleteNotification(id: string) {
+    return this.request<void>(`/api/notifications/${id}`, { method: "DELETE" });
+  }
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -236,6 +261,19 @@ export interface SleepSession {
   endTime: string;
   durationMinutes: number;
   qualityScore: number;
+}
+
+export interface NotificationItem {
+  id: string;
+  title: string;
+  body: string;
+  type: number;
+  severity: number;
+  patientId: string | null;
+  actorUserId: string | null;
+  actorName: string | null;
+  createdAt: string;
+  readAt: string | null;
 }
 
 export interface VitalsParams {

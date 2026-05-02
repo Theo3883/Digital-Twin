@@ -312,6 +312,45 @@ public static class NativeBridge
         => PushLocalChanges_Impl();
 
     // ═══════════════════════════════════════════════════════════════════════════
+    //  Cloud session restore (set token from iOS)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    internal static IntPtr SetCloudAccessToken_Impl(IntPtr tokenPtr)
+    {
+        try
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            var token = Marshal.PtrToStringUTF8(tokenPtr) ?? throw new ArgumentNullException(nameof(tokenPtr));
+            return AllocateString(_engine.SetCloudAccessToken(token));
+        }
+        catch (Exception ex)
+        {
+            return AllocateString(JsonSerializer.Serialize(
+                new OperationResultDto { Success = false, Error = ex.Message },
+                MobileJsonContext.Default.OperationResultDto));
+        }
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_set_cloud_access_token")]
+    public static IntPtr SetCloudAccessToken(IntPtr tokenPtr) => SetCloudAccessToken_Impl(tokenPtr);
+
+    internal static IntPtr GetCloudAuthStatus_Impl()
+    {
+        try
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            return AllocateString(_engine.GetCloudAuthStatus());
+        }
+        catch
+        {
+            return AllocateString("{\"isAuthenticated\":false}");
+        }
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_cloud_auth_status")]
+    public static IntPtr GetCloudAuthStatus() => GetCloudAuthStatus_Impl();
+
+    // ═══════════════════════════════════════════════════════════════════════════
     //  Medications
     // ═══════════════════════════════════════════════════════════════════════════
 
@@ -853,6 +892,22 @@ public static class NativeBridge
 
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_assigned_doctors")]
     public static IntPtr GetAssignedDoctors() => GetAssignedDoctors_Impl();
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  Notifications
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    internal static IntPtr GetNotifications_Impl(int limit, bool unreadOnly)
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            return await _engine.GetNotificationsAsync(limit, unreadOnly);
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_notifications")]
+    public static IntPtr GetNotifications(int limit, bool unreadOnly) => GetNotifications_Impl(limit, unreadOnly);
 
     // ═══════════════════════════════════════════════════════════════════════════
     //  Local Data Reset

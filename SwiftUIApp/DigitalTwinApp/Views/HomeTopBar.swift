@@ -56,20 +56,7 @@ struct HomeTopBar: View {
 
             Spacer()
 
-            // Notification bell
-            Button(action: {}) {
-                ZStack(alignment: .topTrailing) {
-                    Image(systemName: "bell.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(.white)
-
-                    Circle()
-                        .fill(LiquidGlass.redCritical)
-                        .frame(width: 8, height: 8)
-                        .offset(x: 2, y: -2)
-                }
-            }
-            .glassPill()
+            NotificationsMenuButton()
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -98,4 +85,5 @@ struct HomeTopBar: View {
         }
     }
 }
+
 

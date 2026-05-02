@@ -75,6 +75,16 @@ public static class NativeExports
     public static IntPtr PushLocalChanges()
         => NativeBridge.PushLocalChanges_Impl();
 
+    // ── Cloud session restore ────────────────────────────────────────────────
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_set_cloud_access_token")]
+    public static IntPtr SetCloudAccessToken(IntPtr tokenPtr)
+        => NativeBridge.SetCloudAccessToken_Impl(tokenPtr);
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_cloud_auth_status")]
+    public static IntPtr GetCloudAuthStatus()
+        => NativeBridge.GetCloudAuthStatus_Impl();
+
     // ── Medications ───────────────────────────────────────────────────────────
 
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_medications")]
@@ -244,6 +254,12 @@ public static class NativeExports
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_assigned_doctors")]
     public static IntPtr GetAssignedDoctors()
         => NativeBridge.GetAssignedDoctors_Impl();
+
+    // ── Notifications ─────────────────────────────────────────────────────────
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_notifications")]
+    public static IntPtr GetNotifications(int limit, bool unreadOnly)
+        => NativeBridge.GetNotifications_Impl(limit, unreadOnly);
 
     // ── Local Data Reset ──────────────────────────────────────────────────────
 
