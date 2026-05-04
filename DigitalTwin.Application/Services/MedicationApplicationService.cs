@@ -24,12 +24,10 @@ public class MedicationApplicationService : IMedicationApplicationService
     private readonly IMedicationService              _medicationService;
     private readonly IMedicationManagementService    _medications;
     private readonly IDomainEventDispatcher          _events;
-    private readonly IHealthDataSyncService?         _sync;
     private readonly IPreferencesJsonCache?            _prefs;
     private readonly AppDebugLogger<MedicationApplicationService>? _logger;
 
     public sealed record OptionalDependencies(
-        IHealthDataSyncService? Sync = null,
         IPreferencesJsonCache? Prefs = null,
         AppDebugLogger<MedicationApplicationService>? Logger = null);
 
@@ -50,7 +48,6 @@ public class MedicationApplicationService : IMedicationApplicationService
         _medicationService   = medicationService;
         _medications         = medications;
         _events              = events;
-        _sync                = optional?.Sync;
         _prefs               = optional?.Prefs;
         _logger              = optional?.Logger;
     }
@@ -174,15 +171,6 @@ public class MedicationApplicationService : IMedicationApplicationService
 
     private async Task<MedicationListCache> LoadFullAndPersistAsync(Guid patientId)
     {
-        if (_sync is not null)
-        {
-            try { await _sync.PushToCloudAsync().ConfigureAwait(false); }
-            catch (Exception ex)
-            {
-                _logger?.Warn(ex, "[Medications] Background cloud pull failed — using local data for cache.");
-            }
-        }
-
         var medications = await _medications.GetByPatientAsync(patientId).ConfigureAwait(false);
         var medDtos = medications.Select(ToDto).ToList();
         var auto = await ComputeAutoInteractionsAsync(medDtos).ConfigureAwait(false);

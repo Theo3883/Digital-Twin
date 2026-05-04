@@ -25,7 +25,7 @@ public interface IMedicationApplicationService
         string query, int maxResults = 8, CancellationToken ct = default);
 
     /// <summary>
-    /// Gets medications and auto-interaction data. Uses preferences cache when valid (MAUI);
+    /// Gets medications and auto-interaction data. Uses preferences cache when valid (mobile client);
     /// skips cloud sync until TTL expires unless <paramref name="forceRefresh"/> is true.
     /// </summary>
     Task<MedicationListCache> GetMyMedicationsAsync(Guid patientId, bool forceRefresh = false);

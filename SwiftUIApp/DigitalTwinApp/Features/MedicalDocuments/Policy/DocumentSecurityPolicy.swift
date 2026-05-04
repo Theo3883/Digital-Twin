@@ -1,6 +1,6 @@
 import Foundation
 
-/// Pure functions mirroring [`DocumentSecurityPolicy`](DigitalTwin.OCR/Policies/DocumentSecurityPolicy.cs).
+/// Pure functions mirroring [`DocumentSecurityPolicy`](Mobile/DigitalTwin.Mobile.OCR/Policies/DocumentSecurityPolicy.cs).
 enum DocumentSecurityPolicy {
     static func requiredOcrRowsSatisfied(_ posture: OcrSecurityPosture) -> Bool {
         if !posture.isVaultInitialized || !posture.isVaultUnlocked {

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Root overlay mirroring [`OcrSheet.razor`](DigitalTwin.OCR/Components/OcrSheet.razor).
+/// Root overlay; SwiftUI equivalent of the former Blazor `OcrSheet` (removed with MAUI).
 struct OcrSheetView: View {
     @ObservedObject var controller: OcrSessionController
     let repository: OcrRepository

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Mirrors `DigitalTwin.OCR.Models.Enums.SecurityMode`.
+/// Mirrors `DigitalTwin.Mobile.OCR.Models.Enums.SecurityMode`.
 enum OcrSecurityMode: String, Sendable {
     case strict
     case relaxedDebug

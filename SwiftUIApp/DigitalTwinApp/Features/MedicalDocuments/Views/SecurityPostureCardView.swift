@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-/// Mirrors [`SecurityPostureCard.razor`](DigitalTwin.OCR/Components/Shared/SecurityPostureCard.razor).
+/// SwiftUI equivalent of the former Blazor `SecurityPostureCard` (removed with MAUI).
 struct SecurityPostureCardView: View {
     let posture: OcrSecurityPosture
     let onUnlock: () -> Void

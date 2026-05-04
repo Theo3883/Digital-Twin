@@ -1,6 +1,6 @@
 import Foundation
 
-/// Mirrors `DigitalTwin.OCR.Models.SecurityPosture` record.
+/// Mirrors `DigitalTwin.Mobile.OCR.Models.SecurityPosture` record.
 struct OcrSecurityPosture: Sendable {
     var isPasscodeSet: Bool
     var isBiometryAvailable: Bool

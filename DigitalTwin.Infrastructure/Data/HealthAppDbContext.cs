@@ -12,8 +12,7 @@ public class HealthAppDbContext : DbContext
     /// <summary>
     /// Converts typed <see cref="DbContextOptions{TContext}"/> for a subclass into the base
     /// <see cref="DbContextOptions{HealthAppDbContext}"/> required by this constructor.
-    /// Both <see cref="LocalDbContext"/> and <see cref="CloudDbContext"/> call this helper
-    /// instead of duplicating the extension-copying logic.
+    /// <see cref="CloudDbContext"/> uses this helper instead of duplicating the extension-copying logic.
     /// </summary>
     internal static DbContextOptions<HealthAppDbContext> ConvertOptions<TContext>(
         DbContextOptions<TContext> options) where TContext : DbContext

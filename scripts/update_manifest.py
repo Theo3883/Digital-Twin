@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 update_manifest.py — Writes models/manifest.json with SHA-256 checksums
-for every artifact bundled in the app under DigitalTwin.OCR/Resources/Models/.
+for every artifact bundled in the app under Mobile/DigitalTwin.Mobile.OCR/Resources/Models/.
 
 The MSBuild integrity check target compares these checksums at build time.
 
@@ -15,7 +15,7 @@ import json
 import pathlib
 import sys
 
-ARTIFACTS_DIR = pathlib.Path("DigitalTwin.OCR/Resources/Models")
+ARTIFACTS_DIR = pathlib.Path("Mobile/DigitalTwin.Mobile.OCR/Resources/Models")
 MANIFEST_FILE = pathlib.Path("models/manifest.json")
 
 

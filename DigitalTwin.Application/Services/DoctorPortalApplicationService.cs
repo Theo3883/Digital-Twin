@@ -19,7 +19,6 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
 {
     private readonly IDoctorPortalDomainService              _domain;
     private readonly IRxCuiLookupProvider                    _rxCuiLookup;
-    private readonly IVitalSignService                       _vitalSignService;
     private readonly IMedicalHistoryEntryRepository          _history;
     private readonly IMedicationInteractionProvider          _interactionsProvider;
     private readonly AppDebugLogger<DoctorPortalApplicationService> _logger;
@@ -30,14 +29,12 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
     public DoctorPortalApplicationService(
         IDoctorPortalDomainService domain,
         IRxCuiLookupProvider rxCuiLookup,
-        IVitalSignService vitalSignService,
         IMedicalHistoryEntryRepository history,
         IMedicationInteractionProvider interactionsProvider,
         AppDebugLogger<DoctorPortalApplicationService> logger)
     {
         _domain            = domain;
         _rxCuiLookup       = rxCuiLookup;
-        _vitalSignService  = vitalSignService;
         _history           = history;
         _interactionsProvider = interactionsProvider;
         _logger            = logger;
@@ -139,7 +136,9 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
         try { await _domain.RequireAuthorizedDoctorIdAsync(doctorEmail, patientId); }
         catch (UnauthorizedException) { return []; }
 
-        VitalSignType? parsedType = _vitalSignService.TryParseType(type, out var t) ? t : null;
+        VitalSignType? parsedType =
+            string.IsNullOrWhiteSpace(type) ? null :
+            Enum.TryParse<VitalSignType>(type, ignoreCase: true, out var t) ? t : null;
 
         var vitals = await _domain.GetPatientVitalsAsync(patientId, parsedType, from, to);
         return vitals.Select(v => VitalSignMapper.ToDto(v));

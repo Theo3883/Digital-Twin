@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Mirrors [`ImportPage.razor`](DigitalTwin.OCR/Components/Pages/ImportPage.razor).
+/// SwiftUI equivalent of the former Blazor `ImportPage` (removed with MAUI).
 struct ImportPageView: View {
     @ObservedObject var controller: OcrSessionController
     let repository: OcrRepository

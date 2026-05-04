@@ -21,7 +21,7 @@ var envFile = Path.Combine(Directory.GetCurrentDirectory(), ".env.local");
 if (File.Exists(envFile))
     DotNetEnv.Env.Load(envFile);
 
-// ── Application config (same source as MAUI — reads env vars set above) ──────
+// ── Application config (reads env vars set above) ────────────────────────────
 var appConfig = EnvConfig.FromEnvironment();
 
 var builder = WebApplication.CreateBuilder(args);

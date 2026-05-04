@@ -80,7 +80,7 @@ public class EnvConfig
 
     /// <summary>
     /// Gets or sets a fallback latitude when the app cannot use GPS or a user-entered city
-    /// (simulator, denied permission, or non-mobile host). The MAUI app normally uses device location or manual geocoding instead.
+    /// (simulator, denied permission, or non-mobile host). The mobile app normally uses device location or manual geocoding instead.
     /// </summary>
     public double Latitude { get; set; } = 48.8566;
 
