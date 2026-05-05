@@ -60,6 +60,7 @@ public class VitalSignsService
             var rawTimestamp = input.Timestamp ?? DateTime.UtcNow;
             var timestamp = NormalizeTimestampForStorage(input.Type, rawTimestamp);
             var existingId = await _vitalSignRepository.GetIdByKeyAsync(patient.Id, input.Type, timestamp, input.Source);
+            var existing = existingId.HasValue ? await _vitalSignRepository.GetByIdAsync(existingId.Value) : null;
 
             var vitalSign = new VitalSign
             {
@@ -72,7 +73,7 @@ public class VitalSignsService
                 Unit = input.Unit,
                 Source = input.Source,
                 Timestamp = timestamp,
-                IsSynced = false
+                IsSynced = existing?.IsSynced ?? false
             };
 
             await _vitalSignRepository.SaveAsync(vitalSign);
@@ -176,7 +177,7 @@ public class VitalSignsService
                     Unit = input.Unit,
                     Source = input.Source,
                     Timestamp = ts,
-                    IsSynced = false
+                    IsSynced = existingVital?.IsSynced ?? false
                 };
             })
             .ToList();

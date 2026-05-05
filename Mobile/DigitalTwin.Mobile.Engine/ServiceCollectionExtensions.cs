@@ -202,6 +202,16 @@ public static class ServiceCollectionExtensions
         services.AddScoped<EnvironmentAnalyticsApplicationService>();
 
         // ── Infrastructure Services ──────────────────────────────────────────
+        // Preferences service for persisting app state
+        var preferencesPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "digitaltwin_preferences.json");
+        services.AddSingleton<IPreferencesService>(sp =>
+            new PreferencesService(preferencesPath, sp.GetRequiredService<ILogger<PreferencesService>>()));
+
+        // Sync state service for incremental sync checkpoints
+        services.AddScoped<ISyncStateService, SyncStateService>();
+
         services.AddScoped<DatabaseInitializer>();
 
         // ── Logging ───────────────────────────────────────────────────────────

@@ -43,6 +43,12 @@ final class DashboardViewModel: ObservableObject {
         await load()
     }
 
+    /// Refresh snapshot after external event (e.g. sync completed)
+    func refresh() async {
+        let fromDate = Calendar.current.date(byAdding: .day, value: -7, to: Date())
+        snapshot = await getSnapshot(from: fromDate, to: Date())
+    }
+
     func refreshCoachingAdvice(using engine: MobileEngineWrapper, forceRefresh: Bool = false) async {
         guard snapshot?.patientProfile != nil else { return }
 

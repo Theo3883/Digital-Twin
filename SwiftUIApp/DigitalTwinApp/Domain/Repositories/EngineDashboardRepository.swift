@@ -26,7 +26,9 @@ final class EngineDashboardRepository: DashboardRepository {
 
         // Sleep for Home: load all sessions and select latest in presentation layer.
         // This avoids accidental empty cards when the latest session is outside a short range window.
-        await engine.loadSleepSessionsFromLocalStoreOnly(from: nil, to: nil)
+        if engine.sleepSessions.isEmpty {
+            await engine.loadSleepSessionsFromLocalStoreOnly(from: nil, to: nil)
+        }
 
         let sleepSessions = engine.sleepSessions.sorted { $0.endTime > $1.endTime }
 

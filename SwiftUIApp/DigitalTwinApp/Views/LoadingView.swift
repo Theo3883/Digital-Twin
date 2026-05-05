@@ -236,11 +236,11 @@ private struct HeartbeatIconRing: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(LiquidGlass.redCritical.opacity(0.12))
+                .fill(LiquidGlass.tealPrimary.opacity(0.12))
                 .frame(width: 80, height: 80)
 
             Circle()
-                .stroke(LiquidGlass.redCritical.opacity(0.25), lineWidth: 1)
+                .stroke(LiquidGlass.tealPrimary.opacity(0.25), lineWidth: 1)
                 .frame(width: 80, height: 80)
 
             Circle()
@@ -250,10 +250,13 @@ private struct HeartbeatIconRing: View {
                 .opacity(glowPulse ? 0 : 1)
                 .animation(.easeInOut(duration: 2).repeatForever(autoreverses: false), value: glowPulse)
 
-            Image(systemName: "heart.fill")
-                .font(.system(size: 34, weight: .semibold, design: .rounded))
-                .foregroundStyle(LiquidGlass.redCritical)
-                .scaleEffect(heartbeatPulse ? 1.22 : 1)
+            Image("human")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 44, height: 44)
+                .clipShape(Circle())
+                .shadow(color: LiquidGlass.tealPrimary.opacity(0.5), radius: 8)
+                .scaleEffect(heartbeatPulse ? 1.1 : 1)
                 .animation(.timingCurve(0.34, 1.56, 0.64, 1, duration: 0.83).repeatForever(autoreverses: true), value: heartbeatPulse)
         }
         .onAppear {

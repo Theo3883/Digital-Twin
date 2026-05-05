@@ -183,6 +183,14 @@ struct DashboardView: View {
                 await viewModel.refreshCoachingAdvice(using: container.engine, forceRefresh: true)
             }
         }
+        .onChange(of: container.engine.lastSyncCompletedAt) { oldValue, newValue in
+            // Refresh dashboard snapshot when sync completes
+            if newValue != nil {
+                Task {
+                    await viewModel.refresh()
+                }
+            }
+        }
     }
 }
 

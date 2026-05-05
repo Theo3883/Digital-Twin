@@ -20,17 +20,14 @@ struct SyncGateView: View {
             stage = .auth
             try? await Task.sleep(for: .milliseconds(180))
 
-            stage = .pull
-            let _ = await engineWrapper.pushLocalChanges()
-
-            let _ = await engineWrapper.performSync()
             stage = .merge
 
-            engineWrapper.warmCachesAfterSyncInBackground()
+            // Keep the loading screen visible until push/pull and cache hydration complete.
+            await engineWrapper.bootstrapAppDataForLaunch()
 
             stage = .ready
 
-            try? await Task.sleep(for: .milliseconds(600))
+            try? await Task.sleep(for: .milliseconds(250))
             withAnimation(.easeOut(duration: 0.3)) {
                 opacity = 0
             }

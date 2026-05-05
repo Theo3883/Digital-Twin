@@ -17,6 +17,7 @@ class MobileEngineSessionStore: ObservableObject {
     @Published var hasCloudProfile = false
     @Published var isCloudAuthenticated = false
     @Published var cloudAccessToken: String?
+    @Published var lastSyncCompletedAt: Date? // Notifies views that sync has completed
 
     // MARK: - Feature State
 
@@ -59,13 +60,19 @@ class MobileEngineSessionStore: ObservableObject {
     private var cacheWarmupTask: Task<Void, Never>?
     private var lastHealthKitSleepImportAt: Date?
     private var lastHealthKitSleepPulledThrough: Date?
+    private var lastHealthKitVitalsImportAt: Date?
+    private var lastHealthKitVitalsPulledThrough: Date?
 
     private let healthKitSleepImportCooldownSeconds: TimeInterval = 5 * 60
     private let healthKitSleepImportWindowDays = 14
     private let healthKitSleepIncrementalOverlapHours = 12
+    private let healthKitVitalsImportCooldownSeconds: TimeInterval = 2 * 60
+    private let healthKitVitalsImportWindowDays = 7
+    private let healthKitVitalsIncrementalOverlapHours = 6
 
     private enum PersistedKeys {
         static let lastHealthKitSleepPulledThroughIso = "healthkit.sleep.lastPulledThrough.iso"
+        static let lastHealthKitVitalsPulledThroughIso = "healthkit.vitals.lastPulledThrough.iso"
     }
 
     init() {
@@ -93,6 +100,11 @@ class MobileEngineSessionStore: ObservableObject {
         if let iso = UserDefaults.standard.string(forKey: PersistedKeys.lastHealthKitSleepPulledThroughIso),
            let date = ISO8601DateFormatter().date(from: iso) {
             lastHealthKitSleepPulledThrough = date
+        }
+
+        if let iso = UserDefaults.standard.string(forKey: PersistedKeys.lastHealthKitVitalsPulledThroughIso),
+           let date = ISO8601DateFormatter().date(from: iso) {
+            lastHealthKitVitalsPulledThrough = date
         }
     }
 
@@ -185,14 +197,6 @@ class MobileEngineSessionStore: ObservableObject {
                 print("[CloudDebug][restoreCachedSession] engine.getCloudAuthStatus=\(status)")
                 isCloudAuthenticated = status
                 hasCloudProfile = status
-
-                // Kick a sync probe in the background so cloud-dependent UI (Notifications)
-                // doesn't incorrectly show "Cloud unavailable" on cold start.
-                Task(priority: .utility) { [weak self] in
-                    print("[CloudDebug][restoreCachedSession] performSync probe start")
-                    _ = await self?.performSync()
-                    print("[CloudDebug][restoreCachedSession] performSync probe done isCloudAuthenticated=\(self?.isCloudAuthenticated ?? false)")
-                }
             }
         } catch {}
     }
@@ -228,6 +232,33 @@ class MobileEngineSessionStore: ObservableObject {
 
     func enableBackgroundSync(_ enabled: Bool) {
         backgroundSyncService.setBackgroundSyncEnabled(enabled)
+    }
+
+    /// Load the first-screen data set before dismissing the loading gate.
+    func bootstrapAppDataForLaunch() async {
+        guard isInitialized else { return }
+
+        _ = await performSync(waitForHealthKitImport: true, skipCacheWarmup: true)
+
+        async let medicationsTask = loadMedications(waitForInteractions: true)
+        async let sleepTask = loadSleepSessions()
+        async let medicalHistoryTask = loadMedicalHistory()
+        async let ocrTask = loadOcrDocuments()
+        async let chatTask = loadChatHistory()
+        async let environmentTask = refreshEnvironmentForPreferredLocation()
+        async let coachingTask = fetchCoachingAdvice(forceRefresh: true)
+
+        let _ = await (
+            medicationsTask,
+            sleepTask,
+            medicalHistoryTask,
+            ocrTask,
+            chatTask,
+            environmentTask,
+            coachingTask
+        )
+
+        lastSyncCompletedAt = Date()
     }
 
     func performManualSync() async -> Bool {
@@ -406,11 +437,15 @@ class MobileEngineSessionStore: ObservableObject {
 
     // MARK: - Medications
 
-    func loadMedications() async {
+    func loadMedications(waitForInteractions: Bool = false) async {
         guard let engine else { return }
         do {
             medications = try await engine.getMedications()
-            refreshMedicationInteractionsCacheInBackground()
+            if waitForInteractions {
+                await refreshMedicationInteractionsCache()
+            } else {
+                refreshMedicationInteractionsCacheInBackground()
+            }
         } catch {}
     }
 
@@ -503,8 +538,11 @@ class MobileEngineSessionStore: ObservableObject {
 
         cacheWarmupTask = Task(priority: .utility) { [weak self] in
             guard let self else { return }
-            await self.loadMedications()
-            await self.refreshEnvironmentForPreferredLocation()
+            // Load medications, sleep sessions, and environment in parallel
+            async let med = self.loadMedications()
+            async let sleep = self.loadSleepSessions()
+            async let env = self.refreshEnvironmentForPreferredLocation()
+            let _ = await (med, sleep, env)
         }
     }
 
@@ -829,7 +867,7 @@ class MobileEngineSessionStore: ObservableObject {
 
     // MARK: - Synchronization
 
-    func performSync() async -> Bool {
+    func performSync(waitForHealthKitImport: Bool = false, skipCacheWarmup: Bool = false) async -> Bool {
         guard let engine else { return false }
 
         isLoading = true
@@ -839,9 +877,13 @@ class MobileEngineSessionStore: ObservableObject {
         do {
             print("[CloudDebug][performSync] starting isCloudAuthenticated(before)=\(isCloudAuthenticated) tokenLen=\(cloudAccessToken?.count ?? 0)")
             if healthKitService.isAuthorized {
-                // Run HealthKit import in background; cloud sync can proceed immediately.
-                Task(priority: .utility) { [weak self] in
-                    await self?.syncHealthKitData(reason: "performSync-cloud")
+                if waitForHealthKitImport {
+                    await syncHealthKitData(reason: "performSync-cloud")
+                } else {
+                    // Run HealthKit import in background; cloud sync can proceed immediately.
+                    Task(priority: .utility) { [weak self] in
+                        await self?.syncHealthKitData(reason: "performSync-cloud")
+                    }
                 }
             }
 
@@ -860,7 +902,12 @@ class MobileEngineSessionStore: ObservableObject {
 
                 await getCurrentUser()
                 await loadPatientProfile()
-                warmCachesAfterSyncInBackground()
+                if !skipCacheWarmup {
+                    warmCachesAfterSyncInBackground()
+                }
+                
+                // Notify views that sync completed so they can refresh
+                lastSyncCompletedAt = Date()
                 return true
             } else {
                 // If cloud isn't configured or token is missing/expired, treat as local-only.
@@ -874,6 +921,7 @@ class MobileEngineSessionStore: ObservableObject {
 
                 await getCurrentUser()
                 await loadPatientProfile()
+                lastSyncCompletedAt = Date()
                 return true
             }
         } catch {
@@ -886,14 +934,27 @@ class MobileEngineSessionStore: ObservableObject {
 
             await getCurrentUser()
             await loadPatientProfile()
+            lastSyncCompletedAt = Date()
             return true
         }
     }
 
     private func syncHealthKitData(reason: String) async {
         do {
+            if let lastImport = lastHealthKitVitalsImportAt,
+               Date().timeIntervalSince(lastImport) < healthKitVitalsImportCooldownSeconds {
+                return
+            }
+
             let endDate = Date()
-            let startDate = Calendar.current.date(byAdding: .day, value: -7, to: endDate) ?? endDate
+            let windowFloor = Calendar.current.date(byAdding: .day, value: -healthKitVitalsImportWindowDays, to: endDate) ?? endDate
+            let incrementalStart: Date? = {
+                guard let lastPulledThrough = lastHealthKitVitalsPulledThrough else { return nil }
+                let overlap = TimeInterval(healthKitVitalsIncrementalOverlapHours) * 60 * 60
+                return lastPulledThrough.addingTimeInterval(-overlap)
+            }()
+
+            let startDate = max(windowFloor, incrementalStart ?? windowFloor)
 
             let healthKitVitals = try await healthKitService.readVitalSigns(from: startDate, to: endDate)
 
@@ -910,6 +971,13 @@ class MobileEngineSessionStore: ObservableObject {
             let recordedCount = await recordVitalSigns(vitalInputs)
 
             let estimatedSleepInserted = await importHealthKitSleepIfNeeded(reason: "syncHealthKitData", force: true)
+
+            lastHealthKitVitalsImportAt = Date()
+            lastHealthKitVitalsPulledThrough = endDate
+            UserDefaults.standard.set(
+                ISO8601DateFormatter().string(from: endDate),
+                forKey: PersistedKeys.lastHealthKitVitalsPulledThroughIso
+            )
 
         } catch {
 

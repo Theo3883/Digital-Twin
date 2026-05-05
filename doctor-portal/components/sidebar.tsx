@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { LayoutDashboard, Users, LogOut, Bell } from "lucide-react";
@@ -28,8 +29,8 @@ export function Sidebar() {
     <aside className="flex h-screen w-64 flex-col border-r border-white/10 bg-white/10 backdrop-blur-2xl p-6 z-20 shadow-2xl relative">
       {/* Brand */}
       <div className="flex items-center gap-3 mb-10">
-        <div className="w-10 h-10 rounded-xl bg-[#007AFF] text-white flex items-center justify-center font-bold text-xl shadow-md select-none">
-          DT
+        <div className="w-10 h-10 flex items-center justify-center select-none rounded-full shadow-[0_0_15px_rgba(0,122,255,0.5)] bg-[#0F2340]">
+          <Image src="/human.svg" alt="App Logo" width={40} height={40} className="rounded-full" />
         </div>
         <span className="font-bold text-lg tracking-tight text-white">
           Digital Twin

@@ -67,7 +67,17 @@ final class TriageNotificationService {
         // If the .NET engine provided an alert message, prefer it verbatim so the in-app
         // Notifications tab (cloud-backed) matches the banner 1:1.
         if let engineAlert = result.alerts.first, !engineAlert.isEmpty {
-            content.body = engineAlert
+            // Filter out technical/signal quality alerts - only notify on clinical alerts
+            let isTechnicalAlert = engineAlert.lowercased().contains("signal lost") || 
+                                 engineAlert.lowercased().contains("flatline") ||
+                                 engineAlert.lowercased().contains("electrode")
+            
+            if !isTechnicalAlert {
+                content.body = engineAlert
+            } else {
+                // Signal quality issue - skip notification but keep in UI log
+                return
+            }
         } else {
         if let ml = result.mlTopLabel, let conf = result.mlConfidence {
             bodyParts.append("\(ml) (\(Int(conf * 100))%)")
@@ -84,7 +94,12 @@ final class TriageNotificationService {
         }
 
         if !result.alerts.isEmpty {
-            bodyParts.append(contentsOf: result.alerts.prefix(2))
+            // Filter out signal quality alerts
+            let clinicalAlerts = result.alerts.filter { alert in
+                let lower = alert.lowercased()
+                return !lower.contains("signal lost") && !lower.contains("flatline") && !lower.contains("electrode")
+            }
+            bodyParts.append(contentsOf: clinicalAlerts.prefix(2))
         }
 
         if bodyParts.isEmpty {
