@@ -12,8 +12,7 @@ public class HealthAppDbContext : DbContext
     /// <summary>
     /// Converts typed <see cref="DbContextOptions{TContext}"/> for a subclass into the base
     /// <see cref="DbContextOptions{HealthAppDbContext}"/> required by this constructor.
-    /// Both <see cref="LocalDbContext"/> and <see cref="CloudDbContext"/> call this helper
-    /// instead of duplicating the extension-copying logic.
+    /// <see cref="CloudDbContext"/> uses this helper instead of duplicating the extension-copying logic.
     /// </summary>
     internal static DbContextOptions<HealthAppDbContext> ConvertOptions<TContext>(
         DbContextOptions<TContext> options) where TContext : DbContext
@@ -34,6 +33,7 @@ public class HealthAppDbContext : DbContext
     public DbSet<SleepSessionEntity> SleepSessions => Set<SleepSessionEntity>();
     public DbSet<OcrDocumentEntity> OcrDocuments => Set<OcrDocumentEntity>();
     public DbSet<MedicalHistoryEntryEntity> MedicalHistoryEntries => Set<MedicalHistoryEntryEntity>();
+    public DbSet<NotificationEntity> Notifications => Set<NotificationEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -171,6 +171,14 @@ public class HealthAppDbContext : DbContext
             e.Property(x => x.Summary).IsRequired();
             e.Property(x => x.Confidence).HasPrecision(5, 4);
             e.HasQueryFilter(x => x.DeletedAt == null);
+        });
+
+        modelBuilder.Entity<NotificationEntity>(e =>
+        {
+            e.HasKey(n => n.Id);
+            e.HasIndex(n => new { n.RecipientUserId, n.CreatedAt });
+            e.HasIndex(n => new { n.RecipientUserId, n.ReadAt });
+            e.HasQueryFilter(n => n.DeletedAt == null);
         });
     }
 }

@@ -1,7 +1,7 @@
 namespace DigitalTwin.Application.Interfaces;
 
 /// <summary>
-/// Keyed JSON persistence in app preferences (MAUI <see cref="Microsoft.Maui.Storage.Preferences"/>).
+/// Keyed JSON persistence in app preferences (platform-specific implementation on mobile).
 /// </summary>
 public interface IPreferencesJsonCache
 {

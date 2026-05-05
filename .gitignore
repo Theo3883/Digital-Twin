@@ -7,6 +7,16 @@
 .env
 .env.local
 
+# SwiftUI iOS generated interop artifacts
+SwiftUIApp/DigitalTwinApp/Interop/_nativeaot/
+SwiftUIApp/DigitalTwinApp/Interop/_frameworks/
+SwiftUIApp/**/*.framework/
+SwiftUIApp/**/*.xcframework/
+SwiftUIApp/**/*.xcworkspace/xcshareddata/swiftpm/
+SwiftUIApp/**/*.xcuserdatad/
+SwiftUIApp/**/*.xcuserstate
+"Mobile/DigitalTwin.Mobile.Infrastructure/bin\\Debug/"
+
 # User-specific files
 *.rsuser
 *.suo
@@ -492,6 +502,8 @@ digital-twin-health/
 .sonarqube
 
 build-secrets.env
+# Generated at build time from .env (NativeAOT engine config)
+Mobile/DigitalTwin.Mobile.Engine/Generated/EngineBuildConfig.g.cs
 # ML training pipeline — temp build artefacts (never committed)
 models/output/
 
@@ -503,3 +515,15 @@ __pycache__/
 # Python virtual environments
 .venv/
 venv/
+
+# Native iOS interop artifacts
+SwiftUIApp/DigitalTwinApp/Interop/_nativeaot/
+SwiftUIApp/DigitalTwinApp/Interop/_frameworks/
+SwiftUIApp/**/*.framework/
+SwiftUIApp/**/*.xcframework/
+
+Secrets.xcconfig
+
+build/
+
+build/Debug/

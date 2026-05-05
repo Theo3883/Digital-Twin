@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace DigitalTwin.WebAPI.Controllers;
 
 /// <summary>
-/// Drug search for RxCUI autocomplete (used by doctor portal and MAUI).
+/// Drug search for RxCUI autocomplete (used by doctor portal and mobile clients).
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]

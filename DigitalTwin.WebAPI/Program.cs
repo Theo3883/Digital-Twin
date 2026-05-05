@@ -9,17 +9,19 @@ using DigitalTwin.Domain.Interfaces.Services;
 using DigitalTwin.Integrations.AI;
 using DigitalTwin.Integrations.Medication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using DigitalTwin.WebAPI.Middleware;
+using DigitalTwin.WebAPI.Auth;
 
 // ── Load .env.local before the host builder reads configuration ───────────────
 var envFile = Path.Combine(Directory.GetCurrentDirectory(), ".env.local");
 if (File.Exists(envFile))
     DotNetEnv.Env.Load(envFile);
 
-// ── Application config (same source as MAUI — reads env vars set above) ──────
+// ── Application config (reads env vars set above) ────────────────────────────
 var appConfig = EnvConfig.FromEnvironment();
 
 var builder = WebApplication.CreateBuilder(args);
@@ -44,6 +46,12 @@ builder.Services
         };
     });
 
+// ── Google ID token auth (mobile) ────────────────────────────────────────────
+builder.Services.AddAuthentication()
+    .AddScheme<AuthenticationSchemeOptions, GoogleBearerAuthenticationHandler>(
+        "Google",
+        _ => { });
+
 builder.Services.AddAuthorization();
 
 // ── CORS ─────────────────────────────────────────────────────────────────────
@@ -60,6 +68,7 @@ var cloudConn = builder.Configuration.GetConnectionString("CloudDb")
 builder.Services.AddDigitalTwinForWebApi(cloudConn);
 
 // ── Medication providers ──────────────────────────────────────────────────────
+builder.Services.AddSingleton(new MedicationApiOptions());
 builder.Services.AddHttpClient<IDrugSearchProvider, RxNavDrugSearchProvider>();
 builder.Services.AddHttpClient<IMedicationInteractionProvider, OpenFdaMedicationInteractionProvider>();
 builder.Services.AddHttpClient<RxNavRxCuiResolver>();

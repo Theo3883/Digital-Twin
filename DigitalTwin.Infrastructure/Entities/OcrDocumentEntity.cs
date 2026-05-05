@@ -6,6 +6,7 @@ public class OcrDocumentEntity
     public Guid PatientId { get; set; }
     public string OpaqueInternalName { get; set; } = string.Empty;
     public string MimeType { get; set; } = string.Empty;
+    public string DocumentType { get; set; } = "Unknown";
     public int PageCount { get; set; }
     public string Sha256OfNormalized { get; set; } = string.Empty;
     public string SanitizedOcrPreview { get; set; } = string.Empty;

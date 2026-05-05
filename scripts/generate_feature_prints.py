@@ -3,7 +3,7 @@
 generate_feature_prints.py — Step D (optional visual fallback).
 
 Runs VNGenerateImageFeaturePrintRequest on each reference photo and serialises
-the feature vectors to DigitalTwin.OCR/Resources/Models/reference_feature_prints.json.
+the feature vectors to Mobile/DigitalTwin.Mobile.OCR/Resources/Models/reference_feature_prints.json.
 
 These vectors are loaded at runtime by FeaturePrintDocumentClassifier.cs for
 nearest-neighbour visual classification (cosine distance). No model training required.
@@ -23,7 +23,7 @@ import struct
 import sys
 
 REFERENCE_DIR  = pathlib.Path("models/reference_photos")
-OUTPUT_FILE    = pathlib.Path("DigitalTwin.OCR/Resources/Models/reference_feature_prints.json")
+OUTPUT_FILE    = pathlib.Path("Mobile/DigitalTwin.Mobile.OCR/Resources/Models/reference_feature_prints.json")
 
 ALLOWED_LABELS: set[str] = {
     "Prescription",

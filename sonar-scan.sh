@@ -1,7 +1,7 @@
 #!/bin/bash
 # SonarQube analysis script for DigitalTwin
 # Prerequisites: SonarQube running on localhost:9000, valid token with "Execute Analysis" permission
-# Excludes Android build (MAUI) when Android SDK not installed - use ExcludeAndroidBuild=true
+# Optional: pass MSBuild properties to dotnet build if needed (e.g. -p:MyProp=value).
 
 set -e
 cd "$(dirname "$0")"
@@ -17,8 +17,8 @@ dotnet sonarscanner begin /k:"$PROJECT_KEY" \
   /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" \
   /d:sonar.exclusions="**/Migrations/**,doctor-portal/app/globals.css"
 
-echo "=== 2. Building solution (MAUI without Android) ==="
-dotnet build -p:ExcludeAndroidBuild=true
+echo "=== 2. Building solution ==="
+dotnet build
 
 echo "=== 3. Running tests with code coverage ==="
 dotnet test \

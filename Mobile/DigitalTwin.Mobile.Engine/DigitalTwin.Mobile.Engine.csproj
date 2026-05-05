@@ -1,0 +1,73 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>DigitalTwin.Mobile.Engine</PackageId>
+    <Version>1.0.0</Version>
+    <Description>Embedded .NET engine for DigitalTwin iOS mobile app</Description>
+
+    <!--
+      NativeAOT for iOS-like platforms:
+      - We intentionally keep TargetFramework as net10.0 (non OS-specific) and use runtime packs.
+      - Publish with: -r ios-arm64 / iossimulator-arm64 and -p:NativeLib=Static (or Shared).
+      Docs: https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/ios-like-platforms/
+    -->
+    <PublishAot>true</PublishAot>
+    <PublishAotUsingRuntimePack>true</PublishAotUsingRuntimePack>
+    <StripSymbols>true</StripSymbols>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <!--
+    Build-time config injection (NativeAOT-safe):
+    - We generate a small source file from environment variables at compile time.
+    - The engine build script loads `.env` before invoking `dotnet publish`, so values flow in.
+  -->
+  <PropertyGroup>
+    <!-- Prefer explicit MSBuild property, fallback to environment var API_BASE_URL -->
+    <EngineDefaultApiBaseUrl Condition="'$(EngineDefaultApiBaseUrl)' == ''">$(API_BASE_URL)</EngineDefaultApiBaseUrl>
+  </PropertyGroup>
+
+  <Target Name="GenerateEngineBuildConfig" BeforeTargets="BeforeCompile">
+    <MakeDir Directories="$(MSBuildProjectDirectory)/Generated" />
+    <WriteLinesToFile
+      File="$(MSBuildProjectDirectory)/Generated/EngineBuildConfig.g.cs"
+      Overwrite="true"
+      Lines="/* This file is generated at build time. Do not edit. */
+namespace DigitalTwin.Mobile.Engine
+{
+    internal static class EngineBuildConfig
+    {
+        internal const string DefaultApiBaseUrl = &quot;$(EngineDefaultApiBaseUrl)&quot;%3B
+    }
+}" />
+  </Target>
+
+  <!-- Native compilation can't generate NuGet packages -->
+  <PropertyGroup Condition="'$(PublishAot)' == 'true'">
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(NativeLib)'==''">
+    <!-- Default to a static native library for iOS embedding -->
+    <NativeLib>Static</NativeLib>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DigitalTwin.Mobile.Domain\DigitalTwin.Mobile.Domain.csproj" />
+    <ProjectReference Include="..\DigitalTwin.Mobile.Application\DigitalTwin.Mobile.Application.csproj" />
+    <ProjectReference Include="..\DigitalTwin.Mobile.Infrastructure\DigitalTwin.Mobile.Infrastructure.csproj" />
+    <ProjectReference Include="..\DigitalTwin.Mobile.OCR\DigitalTwin.Mobile.OCR.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.3" />
+    <PackageReference Include="System.Text.Json" Version="10.0.3" />
+  </ItemGroup>
+
+</Project>

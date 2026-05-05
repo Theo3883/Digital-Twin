@@ -1,0 +1,134 @@
+import SwiftUI
+
+struct ContentView: View {
+    @EnvironmentObject private var container: AppContainer
+    @EnvironmentObject var engineWrapper: MobileEngineWrapper
+    @EnvironmentObject private var ble: BLEManager
+    @State private var selectedTab = 0
+    @State private var showSyncGate = true
+    @State private var didAutoPresentProfileSetup = false
+    @State private var shouldOpenPatientSetupAfterUserSave = false
+    @AppStorage("permissionsOnboardingShown") private var permissionsShown = false
+    
+    var body: some View {
+        ZStack {
+            MeshGradientBackground()
+            
+            Group {
+                if !engineWrapper.isInitialized {
+                    LoadingView(stage: .connecting)
+                } else if !permissionsShown {
+                    PermissionsOnboardingView(onDone: { permissionsShown = true })
+                } else if !engineWrapper.isAuthenticated {
+                    AuthenticationView()
+                } else if engineWrapper.isHydratingAfterAuth {
+                    LoadingView(stage: .pull)
+                } else if engineWrapper.patientProfile == nil {
+                    ProfileSetupGateView()
+                        .onAppear {
+                            guard !didAutoPresentProfileSetup else { return }
+                            didAutoPresentProfileSetup = true
+
+                            if engineWrapper.hasCloudProfile {
+                                container.shouldPresentPatientProfileEdit = true
+                            } else {
+                                container.shouldPresentUserProfileEdit = true
+                            }
+                        }
+                        .sheet(isPresented: $container.shouldPresentUserProfileEdit) {
+                            ProfileEditSheet(
+                                viewModel: ProfileEditSheetViewModel(
+                                    repository: EngineProfileRepository(engine: engineWrapper),
+                                    user: engineWrapper.currentUser
+                                ),
+                                isMandatorySetup: true,
+                                onCancel: {
+                                    let _ = await engineWrapper.resetLocalData()
+                                    await engineWrapper.signOut()
+                                    container.shouldPresentUserProfileEdit = false
+                                    container.shouldPresentPatientProfileEdit = false
+                                    shouldOpenPatientSetupAfterUserSave = false
+                                },
+                                onSave: {
+                                    shouldOpenPatientSetupAfterUserSave = true
+                                }
+                            )
+                        }
+                        .sheet(isPresented: $container.shouldPresentPatientProfileEdit) {
+                            PatientProfileEditSheet(
+                                viewModel: PatientProfileEditSheetViewModel(
+                                    repository: EngineProfileRepository(engine: engineWrapper),
+                                    patient: engineWrapper.patientProfile
+                                ),
+                                isMandatorySetup: true,
+                                onCancel: {
+                                    let _ = await engineWrapper.resetLocalData()
+                                    await engineWrapper.signOut()
+                                    container.shouldPresentUserProfileEdit = false
+                                    container.shouldPresentPatientProfileEdit = false
+                                    shouldOpenPatientSetupAfterUserSave = false
+                                }
+                            )
+                        }
+                        .onChange(of: container.shouldPresentUserProfileEdit) { _, isPresented in
+                            guard !isPresented else { return }
+                            guard shouldOpenPatientSetupAfterUserSave else { return }
+                            guard engineWrapper.patientProfile == nil else {
+                                shouldOpenPatientSetupAfterUserSave = false
+                                return
+                            }
+
+                            shouldOpenPatientSetupAfterUserSave = false
+                            container.shouldPresentPatientProfileEdit = true
+                        }
+                } else {
+                    MainTabView(selectedTab: $selectedTab)
+                }
+            }
+            
+            // Sync Gate overlay
+            if showSyncGate
+                && engineWrapper.isInitialized
+                && permissionsShown
+                && engineWrapper.isAuthenticated
+                && !engineWrapper.isHydratingAfterAuth
+                && engineWrapper.patientProfile != nil {
+                SyncGateView(isVisible: $showSyncGate)
+            }
+        }
+        .alert("Error", isPresented: .constant(engineWrapper.errorMessage != nil)) {
+            Button("OK") {
+                engineWrapper.errorMessage = nil
+            }
+        } message: {
+            Text(engineWrapper.errorMessage ?? "")
+        }
+        .onChange(of: engineWrapper.isAuthenticated) { _, isAuthenticated in
+            if isAuthenticated {
+                showSyncGate = true
+            }
+
+            if !isAuthenticated {
+                showSyncGate = true
+                didAutoPresentProfileSetup = false
+                shouldOpenPatientSetupAfterUserSave = false
+                container.shouldPresentUserProfileEdit = false
+                container.shouldPresentPatientProfileEdit = false
+            }
+        }
+        .onChange(of: engineWrapper.patientProfile != nil) { _, hasPatientProfile in
+            if hasPatientProfile {
+                didAutoPresentProfileSetup = false
+                shouldOpenPatientSetupAfterUserSave = false
+                container.shouldPresentUserProfileEdit = false
+                container.shouldPresentPatientProfileEdit = false
+            }
+        }
+        .onChange(of: showSyncGate) { _, isShowing in
+            // The loading/sync page is fully dropped, the home page is now active.
+            if !isShowing && engineWrapper.isAuthenticated && engineWrapper.patientProfile != nil {
+                ble.startScanning()
+            }
+        }
+    }
+}

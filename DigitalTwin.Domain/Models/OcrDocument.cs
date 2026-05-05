@@ -13,6 +13,7 @@ public class OcrDocument
     public string OpaqueInternalName { get; set; } = string.Empty;
 
     public string MimeType { get; set; } = string.Empty;
+    public string DocumentType { get; set; } = "Unknown";
     public int PageCount { get; set; }
 
     /// <summary>SHA-256 of the normalised (pre-encryption) document bytes for integrity verification.</summary>

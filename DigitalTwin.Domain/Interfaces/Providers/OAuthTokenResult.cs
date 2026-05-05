@@ -1,8 +1,7 @@
 namespace DigitalTwin.Domain.Interfaces.Providers;
 
 /// <summary>
-/// Immutable result returned by <see cref="IOAuthTokenProvider"/> after a successful
-/// OAuth flow. All properties are set at construction time.
+/// Immutable result of an OAuth token exchange (e.g. Google). Used when creating users via <see cref="IUserService.CreateUserAsync"/>.
 /// </summary>
 public record OAuthTokenResult
 {

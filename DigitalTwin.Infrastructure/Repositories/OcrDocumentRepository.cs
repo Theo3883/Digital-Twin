@@ -125,6 +125,7 @@ public sealed class OcrDocumentRepository : IOcrDocumentRepository
         PatientId = e.PatientId,
         OpaqueInternalName = e.OpaqueInternalName,
         MimeType = e.MimeType,
+        DocumentType = e.DocumentType,
         PageCount = e.PageCount,
         Sha256OfNormalized = e.Sha256OfNormalized,
         SanitizedOcrPreview = e.SanitizedOcrPreview,
@@ -143,6 +144,7 @@ public sealed class OcrDocumentRepository : IOcrDocumentRepository
         PatientId = d.PatientId,
         OpaqueInternalName = d.OpaqueInternalName,
         MimeType = d.MimeType,
+        DocumentType = d.DocumentType,
         PageCount = d.PageCount,
         Sha256OfNormalized = d.Sha256OfNormalized,
         SanitizedOcrPreview = d.SanitizedOcrPreview,
@@ -154,4 +156,5 @@ public sealed class OcrDocumentRepository : IOcrDocumentRepository
         SyncedAt = d.SyncedAt,
         DeletedAt = d.DeletedAt
     };
+
 }
