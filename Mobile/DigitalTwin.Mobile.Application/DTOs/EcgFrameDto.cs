@@ -1,5 +1,3 @@
-using DigitalTwin.Mobile.Domain.Enums;
-
 namespace DigitalTwin.Mobile.Application.DTOs;
 
 public record EcgFrameDto
