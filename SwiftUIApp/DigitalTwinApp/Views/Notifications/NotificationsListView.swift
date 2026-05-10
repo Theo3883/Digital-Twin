@@ -132,7 +132,7 @@ final class NotificationsViewModel: ObservableObject {
     @Published var unreadCount: Int = 0
     @Published var isLoading = false
 
-    private let service = NotificationService()
+    private let service = NotificationService.shared
     private var engine: MobileEngineClient?
     private var lastRefreshAt: Date?
 
@@ -155,11 +155,10 @@ final class NotificationsViewModel: ObservableObject {
 
         do {
             print("[CloudDebug][Notifications] refresh start isCloudAuthenticated=\(wrapper.isCloudAuthenticated)")
-            let list = try await service.fetchNotifications(engine: client, limit: 100, unreadOnly: false)
-            let count = try await service.fetchUnreadCount(engine: client)
+            let list = try await service.fetchNotifications(engine: client, limit: 1000, unreadOnly: false)
             items = list
-            unreadCount = count
-            print("[CloudDebug][Notifications] refresh ok items=\(list.count) unread=\(count)")
+            unreadCount = list.filter { $0.readAt == nil }.count
+            print("[CloudDebug][Notifications] refresh ok items=\(list.count) unread=\(unreadCount)")
         } catch {
             print("[CloudDebug][Notifications] refresh failed \(error.localizedDescription)")
             items = []

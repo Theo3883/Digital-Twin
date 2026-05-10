@@ -85,6 +85,10 @@ public static class NativeExports
     public static IntPtr GetCloudAuthStatus()
         => NativeBridge.GetCloudAuthStatus_Impl();
 
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_is_cloud_reachable")]
+    public static IntPtr IsCloudReachable()
+        => NativeBridge.IsCloudReachable_Impl();
+
     // ── Medications ───────────────────────────────────────────────────────────
 
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_medications")]

@@ -118,6 +118,9 @@ class DotNetBridge {
 
     @_silgen_name("mobile_engine_get_cloud_auth_status")
     private static func mobile_engine_get_cloud_auth_status() -> UnsafePointer<CChar>?
+
+    @_silgen_name("mobile_engine_is_cloud_reachable")
+    private static func mobile_engine_is_cloud_reachable() -> UnsafePointer<CChar>?
     
     // Local Data Reset
     @_silgen_name("mobile_engine_reset_local_data")
@@ -532,6 +535,12 @@ class DotNetBridge {
         let parsed = try parseResult(result, as: CloudAuthStatus.self)
         return parsed.isAuthenticated
     }
+
+    func isCloudReachable() throws -> Bool {
+        let result = Self.mobile_engine_is_cloud_reachable()
+        let parsed = try parseResult(result, as: OperationResult.self)
+        return parsed.success
+    }
     
     // MARK: - Local Data Reset
     
@@ -790,6 +799,9 @@ class DotNetBridge {
         return try jsonDecoder.decode(T.self, from: jsonData)
     }
 }
+
+// Allow using the bridge from background tasks when we ensure calls are thread-safe.
+extension DotNetBridge: @unchecked Sendable { }
 
 // MARK: - Bridge Errors
 

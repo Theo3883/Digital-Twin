@@ -52,8 +52,7 @@ struct SettingsView: View {
     }
     
     private func signOut() {
-        // Sign out logic would go here
-        print("Signing out...")
+        Task { await engineWrapper.signOut() }
     }
 }
 
@@ -101,6 +100,16 @@ struct SyncDataSection: View {
     @Binding var healthKitEnabled: Bool
     @State private var lastSyncDate: Date?
     @State private var isSyncing = false
+    
+    private var backgroundSyncBindingWithEngine: Binding<Bool> {
+        Binding(
+            get: { backgroundSyncEnabled },
+            set: { newValue in
+                backgroundSyncEnabled = newValue
+                engineWrapper.enableBackgroundSync(newValue)
+            }
+        )
+    }
     
     var body: some View {
         Section("Sync & Data") {
@@ -155,7 +164,7 @@ struct SyncDataSection: View {
                 
                 Spacer()
                 
-                Toggle("", isOn: $backgroundSyncEnabled)
+                Toggle("", isOn: backgroundSyncBindingWithEngine)
             }
             
             // HealthKit Integration

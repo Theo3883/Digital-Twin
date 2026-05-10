@@ -6,65 +6,53 @@ namespace DigitalTwin.Mobile.Application.Services;
 
 public class DoctorAssignmentApplicationService
 {
-    private readonly ICloudSyncService _cloudSync;
-    private readonly IDoctorPatientAssignmentRepository _assignmentRepository;
+    private readonly IDoctorPatientAssignmentRepository _localRepo;
     private readonly IUserRepository _userRepository;
+    private readonly ICloudSyncService _cloudSyncService;
     private readonly ILogger<DoctorAssignmentApplicationService> _logger;
 
     public DoctorAssignmentApplicationService(
-        ICloudSyncService cloudSync,
-        IDoctorPatientAssignmentRepository assignmentRepository,
+        IDoctorPatientAssignmentRepository localRepo,
         IUserRepository userRepository,
+        ICloudSyncService cloudSyncService,
         ILogger<DoctorAssignmentApplicationService> logger)
     {
-        _cloudSync = cloudSync;
-        _assignmentRepository = assignmentRepository;
+        _localRepo = localRepo;
         _userRepository = userRepository;
+        _cloudSyncService = cloudSyncService;
         _logger = logger;
     }
 
     public async Task<AssignedDoctorDto[]> GetAssignedDoctorsAsync()
     {
-        try
+        var currentUser = await _userRepository.GetCurrentUserAsync();
+        if (currentUser == null)
         {
-            var currentUser = await _userRepository.GetCurrentUserAsync();
-            if (currentUser == null)
-            {
-                _logger.LogDebug("[DoctorAssignment] No current user in local DB; returning empty list.");
-                return [];
-            }
-
-            var localDoctors = await _assignmentRepository.GetByUserIdAsync(currentUser.Id);
-
-            if (!_cloudSync.IsAuthenticated)
-            {
-                _logger.LogDebug("[DoctorAssignment] Cloud auth not ready; returning local doctor assignments cache.");
-                return Map(localDoctors);
-            }
-
-            var cloudDoctors = (await _cloudSync.GetAssignedDoctorsAsync()).ToArray();
-            await _assignmentRepository.ReplaceForUserAsync(currentUser.Id, cloudDoctors);
-
-            return Map(cloudDoctors);
+            _logger.LogDebug("[DoctorAssignment] No current user — returning empty");
+            return Array.Empty<AssignedDoctorDto>();
         }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "[DoctorAssignment] Failed to refresh from cloud. Falling back to local cache.");
 
-            var currentUser = await _userRepository.GetCurrentUserAsync();
-            if (currentUser == null)
-            {
-                return [];
-            }
+        // ── STEP 1: Always read from LOCAL DB first (instant) ──
+        var localDoctors = await _localRepo.GetByUserIdAsync(currentUser.Id);
 
-            var localDoctors = await _assignmentRepository.GetByUserIdAsync(currentUser.Id);
-            return Map(localDoctors);
-        }
-    }
+        _logger.LogDebug(
+            "[DoctorAssignment] Retrieved {Count} assigned doctors from local DB for user {UserId}",
+            localDoctors.Count, currentUser.Id);
 
-    private static AssignedDoctorDto[] Map(IEnumerable<DigitalTwin.Mobile.Domain.Models.AssignedDoctor> doctors)
-    {
-        return doctors.Select(d => new AssignedDoctorDto
+        _logger.LogDebug(
+            "[DoctorAssignment] Local doctor data is {Status}",
+            localDoctors.Any() ? "available" : "empty");
+
+        
+        _logger.LogInformation(
+            "[DoctorAssignment] Loaded {Count} assigned doctors from local DB", 
+            localDoctors.Count);
+
+        // ── STEP 2: Background refresh from cloud (non-blocking) ──
+        _ = RefreshFromCloudAsync(currentUser.Id);
+
+        // ── STEP 3: Return local data immediately ──
+        return localDoctors.Select(d => new AssignedDoctorDto
         {
             DoctorId = d.DoctorId,
             FullName = d.FullName,
@@ -73,5 +61,35 @@ public class DoctorAssignmentApplicationService
             AssignedAt = d.AssignedAt,
             Notes = d.Notes
         }).ToArray();
+    }
+
+    /// <summary>
+    /// Fire-and-forget cloud refresh. Updates local DB silently.
+    /// Next time GetAssignedDoctorsAsync is called, fresh data will be there.
+    /// </summary>
+    private async Task RefreshFromCloudAsync(Guid userId)
+    {
+        try
+        {
+            if (!_cloudSyncService.IsAuthenticated)
+                return;
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var cloudDoctors = await _cloudSyncService.GetAssignedDoctorsAsync();
+
+            if (cloudDoctors?.Any() == true)
+            {
+                await _localRepo.ReplaceForUserAsync(userId, cloudDoctors);
+                _logger.LogInformation(
+                    "[DoctorAssignment] Cloud refresh: updated {Count} doctors in local DB",
+                    cloudDoctors.Count());
+            }
+        }
+        catch (Exception ex)
+        {
+            // Non-critical — local data is already displayed
+            _logger.LogDebug(ex, 
+                "[DoctorAssignment] Cloud refresh failed — local data still valid");
+        }
     }
 }

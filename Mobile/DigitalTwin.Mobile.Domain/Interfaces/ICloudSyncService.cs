@@ -9,6 +9,8 @@ public interface ICloudSyncService
 {
     bool IsAuthenticated { get; }
 
+    Task<bool> IsCloudReachableAsync(CancellationToken ct = default);
+
     // Authentication
     Task<CloudAuthResult> AuthenticateAsync(string googleIdToken);
     Task<User?> GetCurrentUserProfileAsync();

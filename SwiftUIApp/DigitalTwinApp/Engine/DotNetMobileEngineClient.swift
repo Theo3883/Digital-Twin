@@ -66,6 +66,7 @@ actor DotNetMobileEngineClient: MobileEngineClient {
     func getNotifications(limit: Int, unreadOnly: Bool) async throws -> [NotificationInfo] { try await handle.getNotifications(limit: limit, unreadOnly: unreadOnly) }
     func setCloudAccessToken(_ token: String) async throws -> OperationResult { try await handle.setCloudAccessToken(token) }
     func getCloudAuthStatus() async throws -> Bool { try await handle.getCloudAuthStatus() }
+    func isCloudReachable() async throws -> Bool { try await handle.isCloudReachable() }
     func resetLocalData() async throws -> OperationResult { try await handle.resetLocalData() }
     func getEnvironmentAnalytics() async throws -> EnvironmentAnalyticsInfo { try await handle.getEnvironmentAnalytics() }
     func getEnvironmentAdvice() async throws -> CoachingAdviceInfo { try await handle.getEnvironmentAdvice() }

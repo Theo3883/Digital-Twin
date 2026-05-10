@@ -11,6 +11,7 @@ namespace DigitalTwin.Mobile.Infrastructure.Services;
 public class OpenFdaInteractionService : IMedicationInteractionProvider
 {
     private const int OpenFdaLimit = 20;
+    private static readonly TimeSpan OpenFdaHardTimeout = TimeSpan.FromSeconds(3);
 
     private static readonly string[] HighRiskSignals =
     [
@@ -55,6 +56,11 @@ public class OpenFdaInteractionService : IMedicationInteractionProvider
             var corpora = await BuildCorporaAsync(resolved, ct);
             return DetectPairwiseInteractions(resolved, corpora);
         }
+        catch (OpenFdaTimeoutException)
+        {
+            _logger.LogWarning("[DDI] OpenFDA call timed out after 3s; returning empty interactions.");
+            return [];
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[OpenFDA] Interaction check failed");
@@ -64,33 +70,37 @@ public class OpenFdaInteractionService : IMedicationInteractionProvider
 
     private async Task<List<ResolvedDrug>> ResolveDrugsAsync(List<string> requested, CancellationToken ct)
     {
-        var resolved = new List<ResolvedDrug>(requested.Count);
-        foreach (var rxCui in requested)
+        var resolutionTasks = requested.Select(rxCui => ResolveDrugAsync(rxCui, ct));
+        var resolved = await Task.WhenAll(resolutionTasks);
+        return resolved
+            .Where(r => r != null)
+            .Cast<ResolvedDrug>()
+            .ToList();
+    }
+
+    private async Task<ResolvedDrug?> ResolveDrugAsync(string rxCui, CancellationToken ct)
+    {
+        var ingredientRxCui = await TryResolveIngredientRxCuiAsync(rxCui, ct);
+        if (ingredientRxCui == null)
         {
-            var ingredient = await ResolveToIngredientAsync(rxCui, ct);
-            var name = await ResolveNameAsync(ingredient, ct);
-            if (string.IsNullOrWhiteSpace(name) &&
-                !ingredient.Equals(rxCui, StringComparison.OrdinalIgnoreCase))
-            {
-                name = await ResolveNameAsync(rxCui, ct);
-            }
-
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                _logger.LogWarning(
-                    "[DDI] Name resolution failed for RxCUI {OriginalRxCui} (ingredient {IngredientRxCui}); skipping drug.",
-                    rxCui, ingredient);
-                continue;
-            }
-
-            _logger.LogInformation(
-                "[DDI] Resolved RxCUI {OriginalRxCui} -> ingredient {IngredientRxCui} -> name '{DrugName}'.",
-                rxCui, ingredient, name);
-
-            resolved.Add(new ResolvedDrug(rxCui, ingredient, NormalizeDrugName(name)));
+            _logger.LogWarning("[DDI] No ingredient mapping for RxCUI {RxCui}; skipping drug.", rxCui);
+            return null;
         }
 
-        return resolved;
+        var name = await ResolveNameAsync(ingredientRxCui, ct);
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            _logger.LogWarning(
+                "[DDI] Name resolution failed for RxCUI {OriginalRxCui} (ingredient {IngredientRxCui}); skipping drug.",
+                rxCui, ingredientRxCui);
+            return null;
+        }
+
+        _logger.LogInformation(
+            "[DDI] Resolved RxCUI {OriginalRxCui} -> ingredient {IngredientRxCui} -> name '{DrugName}'.",
+            rxCui, ingredientRxCui, name);
+
+        return new ResolvedDrug(rxCui, ingredientRxCui, NormalizeDrugName(name));
     }
 
     private async Task<Dictionary<string, string>> BuildCorporaAsync(List<ResolvedDrug> resolved, CancellationToken ct)
@@ -172,7 +182,7 @@ public class OpenFdaInteractionService : IMedicationInteractionProvider
         return results;
     }
 
-    private async Task<string> ResolveToIngredientAsync(string rxCui, CancellationToken ct)
+    private async Task<string?> TryResolveIngredientRxCuiAsync(string rxCui, CancellationToken ct)
     {
         try
         {
@@ -185,17 +195,11 @@ public class OpenFdaInteractionService : IMedicationInteractionProvider
                 .Select(p => p.Rxcui)
                 .FirstOrDefault(r => !string.IsNullOrWhiteSpace(r));
 
-            if (string.IsNullOrWhiteSpace(ingredient))
-            {
-                _logger.LogWarning("[DDI] No ingredient mapping for RxCUI {RxCui}; using original.", rxCui);
-                return rxCui;
-            }
-
-            return ingredient;
+            return string.IsNullOrWhiteSpace(ingredient) ? null : ingredient;
         }
         catch
         {
-            return rxCui;
+            return null;
         }
     }
 
@@ -220,7 +224,9 @@ public class OpenFdaInteractionService : IMedicationInteractionProvider
         {
             var encodedName = Uri.EscapeDataString($"\"{ToAsciiUpper(normalizedDrugName)}\"");
             var url = $"?search=openfda.substance_name:{encodedName}&limit={OpenFdaLimit}";
-            await using var stream = await _openFdaClient.GetStreamAsync(url, ct);
+            using var fdaCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            fdaCts.CancelAfter(OpenFdaHardTimeout);
+            await using var stream = await _openFdaClient.GetStreamAsync(url, fdaCts.Token);
             var response = await JsonSerializer.DeserializeAsync(stream, IntegrationJsonContext.Default.OpenFdaResponse, ct);
 
             if (response?.Results == null)
@@ -236,6 +242,10 @@ public class OpenFdaInteractionService : IMedicationInteractionProvider
             }
 
             return builder.ToString();
+        }
+        catch (OperationCanceledException)
+        {
+            throw new OpenFdaTimeoutException();
         }
         catch
         {
@@ -352,6 +362,8 @@ public class OpenFdaInteractionService : IMedicationInteractionProvider
         string.Compare(a, b, StringComparison.OrdinalIgnoreCase) <= 0 ? $"{a}|{b}" : $"{b}|{a}";
 
     private sealed record ResolvedDrug(string OriginalRxCui, string IngredientRxCui, string NormalizedName);
+
+    private sealed class OpenFdaTimeoutException : Exception;
 }
 
 // RxNav properties response

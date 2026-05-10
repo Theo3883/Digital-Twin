@@ -17,6 +17,7 @@ public class SyncService
     private readonly ICloudSyncService _cloudSyncService;
     private readonly ISyncStateService _syncStateService;
     private readonly ILogger<SyncService> _logger;
+    private bool _cloudReachable = true;
 
     private const string SyncEntity_Patient = "Patient";
     private const string SyncEntity_VitalSigns = "VitalSigns";
@@ -52,13 +53,19 @@ public class SyncService
             if (!CanSyncWithCloud())
                 return true;
 
+            _cloudReachable = await _cloudSyncService.IsCloudReachableAsync();
+            if (!_cloudReachable)
+            {
+                _logger.LogWarning("[SyncService] Cloud health check failed — skipping sync, using local data.");
+                return true;
+            }
+
             _logger.LogInformation("[SyncService] Starting full sync");
 
-            // Run push and pull in parallel instead of sequential
-            await Task.WhenAll(
-                PushLocalChangesAsync(),
-                PullCloudUpdatesAsync()
-            );
+            // Push local changes FIRST, then pull cloud updates
+            // This avoids write-write race conditions where push and pull operate on same rows simultaneously
+            await PushLocalChangesAsync();
+            await PullCloudUpdatesAsync();
 
             _logger.LogInformation("[SyncService] Full sync completed successfully");
             return true;
@@ -193,33 +200,80 @@ public class SyncService
         _logger.LogInformation("[SyncService] Starting incremental pull - Patient: {PatientFrom}, Vitals: {VitalsFrom}, Assignments: {AssignmentsFrom}",
             patientFromDate, vitalsFromDate, assignmentsFromDate);
 
-        // Fetch all cloud data in parallel (independent HTTP calls)
-        var patientTask = _cloudSyncService.GetPatientProfileAsync();
-        var vitalsTask = _cloudSyncService.GetVitalSignsAsync(vitalsFromDate);
-        var assignmentsTask = _cloudSyncService.GetAssignedDoctorsAsync();
+        // Fetch each independently — one failure shouldn't block saving other entities.
+        var cloudPatient = await SafeFetchNullableAsync(
+            () => _cloudSyncService.GetPatientProfileAsync(),
+            "Patient");
 
-        await Task.WhenAll(patientTask, vitalsTask, assignmentsTask);
+        var cloudVitals = await SafeFetchEnumerableAsync(
+            () => _cloudSyncService.GetVitalSignsAsync(vitalsFromDate),
+            "VitalSigns");
 
-        var cloudPatient = await patientTask;
-        var cloudVitals = await vitalsTask;
-        var cloudAssignments = await assignmentsTask;
+        var cloudAssignments = await SafeFetchEnumerableAsync(
+            () => _cloudSyncService.GetAssignedDoctorsAsync(),
+            "DoctorAssignments");
 
-        // Merge cloud data into local (can be done in parallel too)
-        await Task.WhenAll(
-            MergePatientDataAsync(currentPatient, cloudPatient),
-            MergeVitalSignsAsync(currentPatient, cloudVitals, vitalsFromDate),
-            MergeDoctorAssignmentsAsync(currentUser, cloudAssignments)
-        );
-
-        // Update checkpoints for next sync
+        // Merge & checkpoint independently — persist partial results.
         var now = DateTime.UtcNow;
-        await Task.WhenAll(
-            _syncStateService.SetLastSyncTimeAsync(SyncEntity_Patient, now),
-            _syncStateService.SetLastSyncTimeAsync(SyncEntity_VitalSigns, now),
-            _syncStateService.SetLastSyncTimeAsync(SyncEntity_DoctorAssignments, now)
-        );
+
+        if (cloudPatient != null)
+        {
+            await MergePatientDataAsync(currentPatient, cloudPatient);
+            await _syncStateService.SetLastSyncTimeAsync(SyncEntity_Patient, now);
+        }
+
+        if (cloudVitals != null)
+        {
+            await MergeVitalSignsAsync(currentPatient, cloudVitals, vitalsFromDate);
+            await _syncStateService.SetLastSyncTimeAsync(SyncEntity_VitalSigns, now);
+        }
+
+        if (cloudAssignments != null)
+        {
+            await MergeDoctorAssignmentsAsync(currentUser, cloudAssignments);
+            await _syncStateService.SetLastSyncTimeAsync(SyncEntity_DoctorAssignments, now);
+        }
 
         _logger.LogInformation("[SyncService] Incremental pull completed and checkpoints updated");
+    }
+
+    /// <summary>
+    /// Fetches data from cloud with independent error handling.
+    /// Returns null on failure instead of throwing — so other fetches can still proceed.
+    /// </summary>
+    private async Task<T?> SafeFetchNullableAsync<T>(Func<Task<T?>> fetchFunc, string entityName) where T : class
+    {
+        try
+        {
+            return await fetchFunc();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "[SyncService] Failed to pull {Entity} from cloud — local data preserved",
+                entityName);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Overload for enumerable results — returns null on failure.
+    /// </summary>
+    private async Task<IEnumerable<T>?> SafeFetchEnumerableAsync<T>(
+        Func<Task<IEnumerable<T>>> fetchFunc,
+        string entityName)
+    {
+        try
+        {
+            return await fetchFunc();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "[SyncService] Failed to pull {Entity} from cloud — local data preserved",
+                entityName);
+            return null;
+        }
     }
 
     private async Task MergePatientDataAsync(Models.Patient localPatient, Patient? cloudPatient)

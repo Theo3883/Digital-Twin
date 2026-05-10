@@ -38,7 +38,7 @@ struct NotificationsMenuButton: View {
 @MainActor
 final class NotificationsBellViewModel: ObservableObject {
     @Published var unreadCount: Int = 0
-    private let service = NotificationService()
+    private let service = NotificationService.shared
     private var lastRefreshAt: Date?
 
     func refresh(using wrapper: MobileEngineWrapper) async {
@@ -54,7 +54,8 @@ final class NotificationsBellViewModel: ObservableObject {
             return
         }
         do {
-            unreadCount = try await service.fetchUnreadCount(engine: client)
+            let list = try await service.fetchNotifications(engine: client, limit: 1000, unreadOnly: false)
+            unreadCount = list.filter { $0.readAt == nil }.count
         } catch {
             unreadCount = 0
         }

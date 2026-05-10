@@ -44,16 +44,12 @@ public class PatientRepository : IPatientRepository
         await using var conn = _db.CreateConnection();
         await conn.OpenAsync();
 
-        var userCount = await CountAsync(conn, "SELECT COUNT(1) FROM Users");
-        var patientCount = await CountAsync(conn, "SELECT COUNT(1) FROM Patients");
-
         // Get first user
         await using var userCmd = conn.CreateCommand();
         userCmd.CommandText = "SELECT Id FROM Users ORDER BY CreatedAt LIMIT 1";
         var userIdObj = await userCmd.ExecuteScalarAsync();
         if (userIdObj is not string userIdStr)
         {
-            _logger.LogWarning("[SleepDebug][PatientRepo] No current user found. users={UserCount} patients={PatientCount}", userCount, patientCount);
             return null;
         }
 
@@ -68,7 +64,6 @@ public class PatientRepository : IPatientRepository
             return patient;
         }
 
-        _logger.LogWarning("[SleepDebug][PatientRepo] No patient row for current user userId={UserId}", userIdStr);
         return null;
     }
 

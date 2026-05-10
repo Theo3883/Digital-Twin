@@ -41,7 +41,7 @@ public static class ServiceCollectionExtensions
         {
             if (TryGetValidAbsoluteHttpBaseUri(apiBaseUrl, out var uri))
                 client.BaseAddress = uri;
-            client.Timeout = TimeSpan.FromSeconds(30);
+            client.Timeout = TimeSpan.FromSeconds(10);
         });
 
         // RxNav (public API, no key)
@@ -60,7 +60,7 @@ public static class ServiceCollectionExtensions
         services.AddHttpClient("OpenFda", client =>
         {
             client.BaseAddress = new Uri("https://api.fda.gov/drug/label.json");
-            client.Timeout = TimeSpan.FromSeconds(15);
+            client.Timeout = TimeSpan.FromSeconds(5);
         });
         services.AddScoped<IMedicationInteractionProvider, OpenFdaInteractionService>();
 

@@ -23,6 +23,8 @@ final class OcrSessionController: ObservableObject {
     @Published var showScanner = false
     @Published var showPhotoPicker = false
     @Published var showFilePicker = false
+    
+    private var processingTask: Task<Void, Never>?
 
     @Published var isLoadingVault = false
     @Published var statusMessage: String?
@@ -43,6 +45,10 @@ final class OcrSessionController: ObservableObject {
     }()
 
     private var securityMode: OcrSecurityMode = .strict
+    // Cache LAContext checks to avoid creating a new LAContext on every SwiftUI render pass.
+    private var cachedPasscodeSet: Bool?
+    private var cachedBioAvailable: Bool?
+    private var cachedBioLabel: String?
 
     /// Call when the OCR sheet is presented: lock engine vault so user must unlock again (MAUI parity).
     func onOcrSheetAppear(repository: OcrRepository) async {
@@ -58,23 +64,26 @@ final class OcrSessionController: ObservableObject {
     }
 
     func currentPosture() -> OcrSecurityPosture {
-        let ctx = LAContext()
-        let passcodeSet = ctx.canEvaluatePolicy(.deviceOwnerAuthentication, error: nil)
-        var bioErr: NSError?
-        let bioAvailable = ctx.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &bioErr)
-        let bioType = ctx.biometryType
-        let bioLabel: String = switch bioType {
-        case .faceID: "FaceID"
-        case .touchID: "TouchID"
-        case .opticID: "OpticID"
-        case .none: "None"
-        @unknown default: "None"
+        if cachedPasscodeSet == nil {
+            // Compute once and cache until explicitly refreshed
+            let ctx = LAContext()
+            cachedPasscodeSet = ctx.canEvaluatePolicy(.deviceOwnerAuthentication, error: nil)
+            var bioErr: NSError?
+            cachedBioAvailable = ctx.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &bioErr)
+            let bioType = ctx.biometryType
+            switch bioType {
+            case .faceID: cachedBioLabel = "FaceID"
+            case .touchID: cachedBioLabel = "TouchID"
+            case .opticID: cachedBioLabel = "OpticID"
+            case .none: cachedBioLabel = "None"
+            @unknown default: cachedBioLabel = "None"
+            }
         }
 
         return OcrSecurityPosture(
-            isPasscodeSet: passcodeSet,
-            isBiometryAvailable: bioAvailable,
-            biometryTypeLabel: bioLabel,
+            isPasscodeSet: cachedPasscodeSet ?? false,
+            isBiometryAvailable: cachedBioAvailable ?? false,
+            biometryTypeLabel: cachedBioLabel ?? "None",
             isVaultInitialized: keychainService.keyExists,
             isVaultUnlocked: ocrSessionVaultUnlocked,
             activeMode: securityMode
@@ -82,6 +91,18 @@ final class OcrSessionController: ObservableObject {
     }
 
     private func refreshDevicePosture() {
+        // Re-evaluate LAContext policies once and notify observers.
+        let ctx = LAContext()
+        cachedPasscodeSet = ctx.canEvaluatePolicy(.deviceOwnerAuthentication, error: nil)
+        cachedBioAvailable = ctx.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
+        switch ctx.biometryType {
+        case .faceID: cachedBioLabel = "FaceID"
+        case .touchID: cachedBioLabel = "TouchID"
+        case .opticID: cachedBioLabel = "OpticID"
+        case .none: cachedBioLabel = "None"
+        @unknown default: cachedBioLabel = "None"
+        }
+
         objectWillChange.send()
     }
 
@@ -264,17 +285,20 @@ final class OcrSessionController: ObservableObject {
 
     func handleScannedImages(_ images: [UIImage], repository: OcrRepository) {
         showScanner = false
-        Task { await processImages(images, mimeType: "image/jpeg", repository: repository) }
+        processingTask?.cancel()
+        processingTask = Task { await processImages(images, mimeType: "image/jpeg", repository: repository) }
     }
 
     func handlePickedPhoto(_ image: UIImage, _: Data, repository: OcrRepository) {
         showPhotoPicker = false
-        Task { await processImages([image], mimeType: "image/jpeg", repository: repository) }
+        processingTask?.cancel()
+        processingTask = Task { await processImages([image], mimeType: "image/jpeg", repository: repository) }
     }
 
     func handleImportedFile(_ result: ImportedFileResult, repository: OcrRepository) {
         showFilePicker = false
-        Task { await processFileImport(result, repository: repository) }
+        processingTask?.cancel()
+        processingTask = Task { await processFileImport(result, repository: repository) }
     }
 
     // MARK: - Pipeline (from legacy coordinator)

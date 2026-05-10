@@ -4,28 +4,80 @@ struct MainTabView: View {
     @Binding var selectedTab: Int
     @EnvironmentObject var engineWrapper: MobileEngineWrapper
     
-    private var chatRepository: EngineChatRepository {
-        EngineChatRepository(engine: engineWrapper)
-    }
+    // Create repositories once and reuse them — DO NOT recreate on every render
+    @State private var chatRepository: EngineChatRepository?
+    @State private var environmentRepository: EngineEnvironmentRepository?
+    @State private var medicationRepository: EngineMedicationRepository?
+    @State private var profileRepository: EngineProfileRepository?
+    @State private var ocrRepository: EngineOcrRepository?
+    @State private var doctorRepository: EngineDoctorRepository?
     
-    private var environmentRepository: EngineEnvironmentRepository {
-        EngineEnvironmentRepository(engine: engineWrapper)
-    }
+    // Create ViewModels as @State so they're created once and reused
+    @State private var dashboardViewModel: DashboardViewModel?
+    @State private var medicalAssistantViewModel: MedicalAssistantViewModel?
+    @State private var environmentViewModel: EnvironmentViewModel?
+    @State private var profileViewModel: ProfileViewModel?
+    @State private var medicationsViewModel: MedicationsViewModel?
+    @State private var addMedicationSheetViewModel: AddMedicationSheetViewModel?
+    @State private var checkInteractionsSheetViewModel: CheckInteractionsSheetViewModel?
     
-    private var medicationRepository: EngineMedicationRepository {
-        EngineMedicationRepository(engine: engineWrapper)
-    }
-    
-    private var profileRepository: EngineProfileRepository {
-        EngineProfileRepository(engine: engineWrapper)
-    }
-    
-    private var ocrRepository: EngineOcrRepository {
-        EngineOcrRepository(engine: engineWrapper)
-    }
-    
-    private var doctorRepository: EngineDoctorRepository {
-        EngineDoctorRepository(engine: engineWrapper)
+    private func initializeViewModelsIfNeeded() {
+        guard chatRepository == nil else { return }
+        
+        // Initialize all repositories
+        self.chatRepository = EngineChatRepository(engine: engineWrapper)
+        self.environmentRepository = EngineEnvironmentRepository(engine: engineWrapper)
+        self.medicationRepository = EngineMedicationRepository(engine: engineWrapper)
+        self.profileRepository = EngineProfileRepository(engine: engineWrapper)
+        self.ocrRepository = EngineOcrRepository(engine: engineWrapper)
+        self.doctorRepository = EngineDoctorRepository(engine: engineWrapper)
+        
+        // Initialize all ViewModels using the repositories
+        let chatRepo = self.chatRepository!
+        self.medicalAssistantViewModel = MedicalAssistantViewModel(
+            loadHistory: LoadChatHistoryUseCase(repository: chatRepo),
+            sendMessage: SendChatMessageUseCase(repository: chatRepo),
+            clear: ClearChatHistoryUseCase(repository: chatRepo)
+        )
+        
+        let envRepo = self.environmentRepository!
+        self.environmentViewModel = EnvironmentViewModel(
+            loadLatest: LoadLatestEnvironmentReadingUseCase(repository: envRepo),
+            fetchReading: FetchEnvironmentReadingUseCase(repository: envRepo),
+            repository: envRepo
+        )
+        
+        let profRepo = self.profileRepository!
+        let docRepo = self.doctorRepository!
+        self.profileViewModel = ProfileViewModel(
+            repository: profRepo,
+            getDoctors: GetAssignedDoctorsUseCase(repository: docRepo)
+        )
+        
+        let medRepo = self.medicationRepository!
+        self.medicationsViewModel = MedicationsViewModel(
+            loadMedications: LoadMedicationsUseCase(repository: medRepo),
+            checkInteractions: CheckMedicationInteractionsUseCase(repository: medRepo),
+            discontinue: DiscontinueMedicationUseCase(repository: medRepo),
+            preloadedMedications: engineWrapper.medications,
+            preloadedInteractions: engineWrapper.medicationInteractions
+        )
+        
+        self.addMedicationSheetViewModel = AddMedicationSheetViewModel(
+            searchDrugs: SearchDrugsUseCase(repository: medRepo),
+            addMedication: AddMedicationUseCase(repository: medRepo)
+        )
+        
+        self.checkInteractionsSheetViewModel = CheckInteractionsSheetViewModel(
+            searchDrugs: SearchDrugsUseCase(repository: medRepo),
+            checkInteractions: CheckMedicationInteractionsUseCase(repository: medRepo)
+        )
+        
+        self.dashboardViewModel = DashboardViewModel(
+            getSnapshot: GetDashboardSnapshotUseCase(
+                repository: EngineDashboardRepository(engine: engineWrapper)
+            )
+        )
     }
 
     var body: some View {
@@ -33,14 +85,12 @@ struct MainTabView: View {
             Tab("Home", systemImage: "house.fill", value: 0) {
                 ZStack {
                     MeshGradientBackground()
-                    DashboardView(
-                        selectedTab: $selectedTab,
-                        viewModel: DashboardViewModel(
-                            getSnapshot: GetDashboardSnapshotUseCase(
-                                repository: EngineDashboardRepository(engine: engineWrapper)
-                            )
+                    if let vm = dashboardViewModel {
+                        DashboardView(
+                            selectedTab: $selectedTab,
+                            viewModel: vm
                         )
-                    )
+                    }
                 }
             }
             Tab("ECG", systemImage: "waveform.path.ecg", value: 1) {
@@ -67,56 +117,43 @@ struct MainTabView: View {
             Tab("Assistant", systemImage: "brain.head.profile", value: 2) {
                 ZStack {
                     MeshGradientBackground()
-                    MedicalAssistantView(
-                        viewModel: MedicalAssistantViewModel(
-                            loadHistory: LoadChatHistoryUseCase(repository: chatRepository),
-                            sendMessage: SendChatMessageUseCase(repository: chatRepository),
-                            clear: ClearChatHistoryUseCase(repository: chatRepository)
-                        )
-                    )
+                    if let vm = medicalAssistantViewModel {
+                        MedicalAssistantView(viewModel: vm)
+                    }
                 }
             }
             Tab("Air", systemImage: "aqi.medium", value: 3) {
                 ZStack {
                     MeshGradientBackground()
-                    EnvironmentView(
-                        viewModel: EnvironmentViewModel(
-                            loadLatest: LoadLatestEnvironmentReadingUseCase(repository: environmentRepository),
-                            fetchReading: FetchEnvironmentReadingUseCase(repository: environmentRepository),
-                            repository: environmentRepository
-                        )
-                    )
+                    if let vm = environmentViewModel {
+                        EnvironmentView(viewModel: vm)
+                    }
                 }
             }
             Tab("Patient", systemImage: "person.text.rectangle", value: 4) {
                 ZStack {
-                    PatientView(
-                        profileVM: ProfileViewModel(
-                            repository: profileRepository,
-                            getDoctors: GetAssignedDoctorsUseCase(repository: doctorRepository)
-                        ),
-                        medsVM: MedicationsViewModel(
-                            loadMedications: LoadMedicationsUseCase(repository: medicationRepository),
-                            checkInteractions: CheckMedicationInteractionsUseCase(repository: medicationRepository),
-                            discontinue: DiscontinueMedicationUseCase(repository: medicationRepository),
-                            preloadedMedications: engineWrapper.medications,
-                            preloadedInteractions: engineWrapper.medicationInteractions
-                        ),
-                        addSheetViewModel: AddMedicationSheetViewModel(
-                            searchDrugs: SearchDrugsUseCase(repository: medicationRepository),
-                            addMedication: AddMedicationUseCase(repository: medicationRepository)
-                        ),
-                        checkSheetViewModel: CheckInteractionsSheetViewModel(
-                            searchDrugs: SearchDrugsUseCase(repository: medicationRepository),
-                            checkInteractions: CheckMedicationInteractionsUseCase(repository: medicationRepository)
-                        ),
-                        profileRepository: profileRepository,
-                        ocrRepository: ocrRepository
-                    )
+                    if let profileVM = profileViewModel,
+                       let medsVM = medicationsViewModel,
+                       let addVM = addMedicationSheetViewModel,
+                       let checkVM = checkInteractionsSheetViewModel,
+                       let profRepo = profileRepository,
+                       let ocrRepo = ocrRepository {
+                        PatientView(
+                            profileVM: profileVM,
+                            medsVM: medsVM,
+                            addSheetViewModel: addVM,
+                            checkSheetViewModel: checkVM,
+                            profileRepository: profRepo,
+                            ocrRepository: ocrRepo
+                        )
+                    }
                 }
             }
         }
         .tint(LiquidGlass.tealPrimary)
+        .onAppear {
+            initializeViewModelsIfNeeded()
+        }
     }
 }
 

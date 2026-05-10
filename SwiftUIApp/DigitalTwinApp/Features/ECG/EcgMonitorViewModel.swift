@@ -21,6 +21,8 @@ final class EcgMonitorViewModel: ObservableObject {
 
     // MARK: - Init
 
+    private var classifierLoadTask: Task<Void, Never>?
+
     init(repository: EcgRepository,
          evaluate: EvaluateEcgFrameUseCase,
          classifier: ECGClassifierProtocol = ECGClassifierService.shared) {
@@ -28,7 +30,11 @@ final class EcgMonitorViewModel: ObservableObject {
         self.evaluate = evaluate
         self.classifier = classifier
 
-        Task { await self.loadClassifier() }
+        classifierLoadTask = Task { await self.loadClassifier() }
+    }
+
+    deinit {
+        classifierLoadTask?.cancel()
     }
 
     /// Loads the ONNX model on a background thread to avoid blocking the UI.

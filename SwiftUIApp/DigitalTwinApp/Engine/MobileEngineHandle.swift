@@ -177,6 +177,10 @@ actor MobileEngineHandle {
         try bridge.getCloudAuthStatus()
     }
 
+    func isCloudReachable() async throws -> Bool {
+        try bridge.isCloudReachable()
+    }
+
     // MARK: - Local Data Reset
 
     func resetLocalData() async throws -> OperationResult {
@@ -210,15 +214,21 @@ actor MobileEngineHandle {
     }
 
     func processFullOcr(_ ocrText: String) async throws -> OcrProcessingResult {
-        try bridge.processFullOcr(ocrText)
+        return try await Task.detached(priority: .userInitiated) { [self] in
+            try bridge.processFullOcr(ocrText)
+        }.value
     }
 
     func processFullOcrRawJson(_ ocrText: String) async throws -> String {
-        try bridge.processFullOcrRawJson(ocrText)
+        return try await Task.detached(priority: .userInitiated) { [self] in
+            try bridge.processFullOcrRawJson(ocrText)
+        }.value
     }
 
     func saveOcrDocument(_ input: SaveOcrDocumentInput) async throws -> OcrDocumentInfo {
-        try bridge.saveOcrDocument(input)
+        return try await Task.detached(priority: .userInitiated) { [self] in
+            try bridge.saveOcrDocument(input)
+        }.value
     }
 
     func sanitizeText(_ text: String) async -> String {
@@ -228,31 +238,45 @@ actor MobileEngineHandle {
     // MARK: - Advanced OCR — Vault
 
     func vaultInitialize(_ input: VaultInitInput) async throws -> VaultResultInfo {
-        try bridge.vaultInitialize(input)
+        return try await Task.detached(priority: .userInitiated) { [self] in
+            try bridge.vaultInitialize(input)
+        }.value
     }
 
     func vaultUnlock(masterKeyBase64: String) async throws -> VaultResultInfo {
-        try bridge.vaultUnlock(masterKeyBase64: masterKeyBase64)
+        return try await Task.detached(priority: .userInitiated) { [self] in
+            try bridge.vaultUnlock(masterKeyBase64: masterKeyBase64)
+        }.value
     }
 
     func vaultLock() async throws -> VaultResultInfo {
-        try bridge.vaultLock()
+        return try await Task.detached(priority: .userInitiated) { [self] in
+            try bridge.vaultLock()
+        }.value
     }
 
     func vaultStoreDocument(_ input: VaultStoreDocumentInput) async throws -> VaultResultInfo {
-        try bridge.vaultStoreDocument(input)
+        return try await Task.detached(priority: .userInitiated) { [self] in
+            try bridge.vaultStoreDocument(input)
+        }.value
     }
 
     func vaultRetrieveDocument(documentId: String) async throws -> String {
-        try bridge.vaultRetrieveDocument(documentId: documentId)
+        return try await Task.detached(priority: .userInitiated) { [self] in
+            try bridge.vaultRetrieveDocument(documentId: documentId)
+        }.value
     }
 
     func vaultDeleteDocument(documentId: String) async throws -> VaultResultInfo {
-        try bridge.vaultDeleteDocument(documentId: documentId)
+        return try await Task.detached(priority: .userInitiated) { [self] in
+            try bridge.vaultDeleteDocument(documentId: documentId)
+        }.value
     }
 
     func vaultWipe() async throws -> VaultResultInfo {
-        try bridge.vaultWipe()
+        return try await Task.detached(priority: .userInitiated) { [self] in
+            try bridge.vaultWipe()
+        }.value
     }
 
     // MARK: - Advanced OCR — Classification & Structured

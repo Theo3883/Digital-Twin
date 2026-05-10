@@ -9,6 +9,11 @@ final class EngineProfileRepository: ProfileRepository {
     }
 
     func loadCurrentUser() async -> UserInfo? {
+        // Check if already cached from auth/restoreCachedSession
+        if engine.currentUser != nil {
+            return engine.currentUser
+        }
+        // Only fetch if cache is cold
         await engine.getCurrentUser()
         return engine.currentUser
     }

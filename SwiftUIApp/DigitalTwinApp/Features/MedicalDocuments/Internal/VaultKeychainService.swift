@@ -54,7 +54,8 @@ final class VaultKeychainService: ObservableObject {
     func retrieveMasterKey(reason: String = "Unlock document vault") async -> String? {
         let context = LAContext()
         context.localizedReason = reason
-        context.touchIDAuthenticationAllowableReuseDuration = 0
+        // Allow credential reuse for 10 seconds so the biometric auth is reused by SecItemCopyMatching
+        context.touchIDAuthenticationAllowableReuseDuration = 10
 
         var authError: NSError?
         guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &authError) else {

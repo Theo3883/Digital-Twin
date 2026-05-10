@@ -365,6 +365,25 @@ public class MobileEngine : IDisposable
         }
     }
 
+    public async Task<string> IsCloudReachableAsync()
+    {
+        try
+        {
+            var cloud = _scope.ServiceProvider.GetRequiredService<ICloudSyncService>();
+            var reachable = await cloud.IsCloudReachableAsync();
+            return JsonSerializer.Serialize(
+                new NativeBridge.OperationResultDto { Success = reachable, Error = reachable ? null : "Cloud unreachable" },
+                MobileJsonContext.Default.OperationResultDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "[MobileEngine] Cloud reachability check failed");
+            return JsonSerializer.Serialize(
+                new NativeBridge.OperationResultDto { Success = false, Error = ex.Message },
+                MobileJsonContext.Default.OperationResultDto);
+        }
+    }
+
     /// <summary>
     /// Pushes local changes to cloud (one-way sync)
     /// </summary>
@@ -1179,9 +1198,17 @@ public class MobileEngine : IDisposable
     {
         try
         {
+            var vault = _scope.ServiceProvider.GetRequiredService<OCR.Services.VaultService>();
+            if (!vault.IsUnlocked)
+            {
+                _logger.LogWarning("[MobileEngine] VaultStoreDocument called but vault is locked");
+                return JsonSerializer.Serialize(
+                    new VaultResultDto { Success = false, Error = "Vault is locked. Please unlock with biometrics first." },
+                    MobileJsonContext.Default.VaultResultDto);
+            }
+
             var input = JsonSerializer.Deserialize(inputJson, MobileJsonContext.Default.VaultStoreInput)
                         ?? throw new ArgumentException("Invalid input JSON");
-            var vault = _scope.ServiceProvider.GetRequiredService<OCR.Services.VaultService>();
             var docBytes = Convert.FromBase64String(input.DocumentBase64);
             var docId = Guid.Parse(input.DocumentId);
             var result = await vault.StoreDocumentAsync(docBytes, input.MimeType, input.PageCount, docId);

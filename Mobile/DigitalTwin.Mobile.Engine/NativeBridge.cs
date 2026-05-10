@@ -350,6 +350,18 @@ public static class NativeBridge
     [UnmanagedCallersOnly(EntryPoint = "mobile_engine_get_cloud_auth_status")]
     public static IntPtr GetCloudAuthStatus() => GetCloudAuthStatus_Impl();
 
+    internal static IntPtr IsCloudReachable_Impl()
+    {
+        return ExecuteAsync(async () =>
+        {
+            if (_engine == null) throw new InvalidOperationException("Engine not initialized");
+            return await _engine.IsCloudReachableAsync();
+        });
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "mobile_engine_is_cloud_reachable")]
+    public static IntPtr IsCloudReachable() => IsCloudReachable_Impl();
+
     // ═══════════════════════════════════════════════════════════════════════════
     //  Medications
     // ═══════════════════════════════════════════════════════════════════════════

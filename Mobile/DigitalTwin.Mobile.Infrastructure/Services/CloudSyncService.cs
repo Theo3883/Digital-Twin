@@ -17,6 +17,9 @@ public class CloudSyncService : ICloudSyncService
     private readonly ILogger<CloudSyncService> _logger;
     private readonly IAccessTokenStore _tokenStore;
     private readonly bool _isOffline;
+    private DateTime _circuitOpenUntilUtc = DateTime.MinValue;
+    private static readonly TimeSpan CircuitCooldown = TimeSpan.FromSeconds(30);
+    private bool IsCircuitOpen => DateTime.UtcNow < _circuitOpenUntilUtc;
 
     public bool IsAuthenticated => !_isOffline && !string.IsNullOrEmpty(_tokenStore.AccessToken);
 
@@ -29,6 +32,33 @@ public class CloudSyncService : ICloudSyncService
         if (_isOffline)
         {
             _logger.LogWarning("[CloudSync] Offline mode: HttpClient BaseAddress is not configured");
+        }
+    }
+
+    private void TripCircuit(string reason)
+    {
+        _circuitOpenUntilUtc = DateTime.UtcNow + CircuitCooldown;
+        _logger.LogWarning(
+            "[CloudSync] Circuit breaker tripped ({Reason}) — skipping cloud calls for {Seconds}s",
+            reason,
+            CircuitCooldown.TotalSeconds);
+    }
+
+    public async Task<bool> IsCloudReachableAsync(CancellationToken ct = default)
+    {
+        if (_isOffline) return false;
+
+        try
+        {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromSeconds(3));
+
+            var response = await _httpClient.GetAsync("/api/health", cts.Token);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
         }
     }
 
@@ -371,12 +401,16 @@ public class CloudSyncService : ICloudSyncService
 
     public async Task<Patient?> GetPatientProfileAsync()
     {
+        if (IsCircuitOpen)
+            return null;
+
         try
         {
             if (_isOffline) return null;
             EnsureAuthenticated();
-            
-            var response = await _httpClient.GetAsync("/api/mobile/sync/patients/profile");
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            var response = await _httpClient.GetAsync("/api/mobile/sync/patients/profile", cts.Token);
             if (!response.IsSuccessStatusCode) return null;
 
             await using var stream = await response.Content.ReadAsStreamAsync();
@@ -395,6 +429,16 @@ public class CloudSyncService : ICloudSyncService
                 Cholesterol = result.Patient.Cholesterol,
                 Cnp = result.Patient.Cnp
             };
+        }
+        catch (TaskCanceledException)
+        {
+            TripCircuit("timeout");
+            return null;
+        }
+        catch (HttpRequestException)
+        {
+            TripCircuit("network");
+            return null;
         }
         catch (Exception ex)
         {
@@ -711,76 +755,114 @@ public class CloudSyncService : ICloudSyncService
 
     public async Task<IEnumerable<Domain.Models.AssignedDoctor>> GetAssignedDoctorsAsync()
     {
+        if (IsCircuitOpen)
+            return [];
+
         if (_isOffline) return [];
 
-        EnsureAuthenticated();
-
-        var response = await _httpClient.GetAsync("/api/mobile/doctors/assigned");
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            throw new HttpRequestException($"Doctor assignments fetch failed with status {(int)response.StatusCode} ({response.StatusCode}).");
+            EnsureAuthenticated();
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            var response = await _httpClient.GetAsync("/api/mobile/doctors/assigned", cts.Token);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException($"Doctor assignments fetch failed with status {(int)response.StatusCode} ({response.StatusCode}).");
+            }
+
+            await using var stream = await response.Content.ReadAsStreamAsync();
+            var result = await JsonSerializer.DeserializeAsync(stream, InfrastructureJsonContext.Default.AssignedDoctorsResponse);
+
+            if (result == null)
+            {
+                throw new InvalidOperationException("Doctor assignments response payload was empty.");
+            }
+
+            return result.Doctors?.Select(d => new Domain.Models.AssignedDoctor
+            {
+                DoctorId = d.DoctorId,
+                FullName = d.FullName ?? string.Empty,
+                Email = d.Email ?? string.Empty,
+                PhotoUrl = d.PhotoUrl,
+                AssignedAt = d.AssignedAt,
+                Notes = d.Notes
+            }) ?? [];
         }
-
-        await using var stream = await response.Content.ReadAsStreamAsync();
-        var result = await JsonSerializer.DeserializeAsync(stream, InfrastructureJsonContext.Default.AssignedDoctorsResponse);
-
-        if (result == null)
+        catch (TaskCanceledException)
         {
-            throw new InvalidOperationException("Doctor assignments response payload was empty.");
+            TripCircuit("timeout");
+            return [];
         }
-
-        return result.Doctors?.Select(d => new Domain.Models.AssignedDoctor
+        catch (HttpRequestException)
         {
-            DoctorId = d.DoctorId,
-            FullName = d.FullName ?? string.Empty,
-            Email = d.Email ?? string.Empty,
-            PhotoUrl = d.PhotoUrl,
-            AssignedAt = d.AssignedAt,
-            Notes = d.Notes
-        }) ?? [];
+            TripCircuit("network");
+            return [];
+        }
     }
 
     // ── Notifications (read-only from cloud) ──────────────────────────────────
 
     public async Task<IEnumerable<DigitalTwin.Mobile.Domain.Models.NotificationItem>> GetNotificationsAsync(int limit = 50, bool unreadOnly = false)
     {
+        if (IsCircuitOpen)
+        {
+            _logger.LogDebug("[CloudSync] Circuit open — returning empty notifications");
+            return [];
+        }
+
         if (_isOffline) return [];
 
         _logger.LogInformation("[CloudDebug][CloudSync] GetNotificationsAsync start limit={Limit} unreadOnly={UnreadOnly} tokenPresent={TokenPresent}",
             limit, unreadOnly, !string.IsNullOrEmpty(_tokenStore.AccessToken));
-        EnsureAuthenticated();
-
-        var queryParams = new List<string> { $"limit={limit}" };
-        if (unreadOnly)
-            queryParams.Add("unreadOnly=true");
-
-        var queryString = "?" + string.Join("&", queryParams);
-        var response = await _httpClient.GetAsync($"/api/notifications{queryString}");
-        
-        if (!response.IsSuccessStatusCode)
+        try
         {
-            _logger.LogWarning("[CloudSync] Notifications fetch failed with status {StatusCode}", response.StatusCode);
+            EnsureAuthenticated();
+
+            var queryParams = new List<string> { $"limit={limit}" };
+            if (unreadOnly)
+                queryParams.Add("unreadOnly=true");
+
+            var queryString = "?" + string.Join("&", queryParams);
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            var response = await _httpClient.GetAsync($"/api/notifications{queryString}", cts.Token);
+        
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("[CloudSync] Notifications fetch failed with status {StatusCode}", response.StatusCode);
+                return [];
+            }
+
+            await using var stream = await response.Content.ReadAsStreamAsync();
+            // WebAPI returns a JSON array (not a wrapped object).
+            var items = await JsonSerializer.DeserializeAsync(stream, InfrastructureJsonContext.Default.ListCloudNotificationItemDto);
+            if (items == null) return [];
+
+            return items.Select(n => new DigitalTwin.Mobile.Domain.Models.NotificationItem
+            {
+                Id = n.Id,
+                Title = n.Title,
+                Body = n.Body,
+                Type = n.Type,
+                Severity = n.Severity,
+                RecipientUserId = n.RecipientUserId,
+                ActorUserId = n.ActorUserId,
+                ActorName = n.ActorName,
+                CreatedAt = n.CreatedAt,
+                ReadAt = n.ReadAt
+            });
+        }
+        catch (TaskCanceledException)
+        {
+            TripCircuit("timeout");
             return [];
         }
-
-        await using var stream = await response.Content.ReadAsStreamAsync();
-        // WebAPI returns a JSON array (not a wrapped object).
-        var items = await JsonSerializer.DeserializeAsync(stream, InfrastructureJsonContext.Default.ListCloudNotificationItemDto);
-        if (items == null) return [];
-
-        return items.Select(n => new DigitalTwin.Mobile.Domain.Models.NotificationItem
+        catch (HttpRequestException)
         {
-            Id = n.Id,
-            Title = n.Title,
-            Body = n.Body,
-            Type = n.Type,
-            Severity = n.Severity,
-            RecipientUserId = n.RecipientUserId,
-            ActorUserId = n.ActorUserId,
-            ActorName = n.ActorName,
-            CreatedAt = n.CreatedAt,
-            ReadAt = n.ReadAt
-        });
+            TripCircuit("network");
+            return [];
+        }
     }
 
     public async Task<int> GetUnreadNotificationCountAsync()
@@ -789,8 +871,12 @@ public class CloudSyncService : ICloudSyncService
 
         try
         {
+            if (IsCircuitOpen)
+                return 0;
+
             EnsureAuthenticated();
-            var response = await _httpClient.GetAsync("/api/notifications/unread-count");
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            var response = await _httpClient.GetAsync("/api/notifications/unread-count", cts.Token);
             
             if (!response.IsSuccessStatusCode)
                 return 0;
@@ -798,6 +884,16 @@ public class CloudSyncService : ICloudSyncService
             await using var stream = await response.Content.ReadAsStreamAsync();
             var result = await JsonSerializer.DeserializeAsync(stream, InfrastructureJsonContext.Default.UnreadCountResponse);
             return result?.Count ?? 0;
+        }
+        catch (TaskCanceledException)
+        {
+            TripCircuit("timeout");
+            return 0;
+        }
+        catch (HttpRequestException)
+        {
+            TripCircuit("network");
+            return 0;
         }
         catch (Exception ex)
         {

@@ -53,6 +53,7 @@ protocol MobileEngineClient: Sendable {
     // MARK: - Cloud session restore
     func setCloudAccessToken(_ token: String) async throws -> OperationResult
     func getCloudAuthStatus() async throws -> Bool
+    func isCloudReachable() async throws -> Bool
 
     // MARK: - Local Data Reset
     func resetLocalData() async throws -> OperationResult

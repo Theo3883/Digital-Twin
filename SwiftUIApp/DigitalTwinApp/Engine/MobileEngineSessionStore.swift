@@ -238,27 +238,36 @@ class MobileEngineSessionStore: ObservableObject {
     func bootstrapAppDataForLaunch() async {
         guard isInitialized else { return }
 
-        _ = await performSync(waitForHealthKitImport: true, skipCacheWarmup: true)
+        if isCloudAuthenticated {
+            let reachable = (try? await engine?.isCloudReachable()) ?? false
+            if !reachable {
+                print("[CloudDebug] Cloud unreachable — proceeding with local data")
+                async let medsTask = loadMedications(waitForInteractions: false)
+                async let sleepTask = loadSleepSessionsFromLocalStoreOnly()
+                async let envTask = loadLatestEnvironmentReading()
+                async let medicalHistoryTask = loadMedicalHistory()
+                async let ocrTask = loadOcrDocuments()
+                async let chatTask = loadChatHistory()
+                let _ = await (medsTask, sleepTask, envTask, medicalHistoryTask, ocrTask, chatTask)
+                return
+            }
+        }
 
-        async let medicationsTask = loadMedications(waitForInteractions: true)
-        async let sleepTask = loadSleepSessions()
+        // performSync already loads currentUser, patientProfile, and runs warmCachesAfterSyncInBackground
+        // (which loads medications, sleep, and environment). Just call performSync once.
+        let syncSuccess = await performSync(waitForHealthKitImport: true, skipCacheWarmup: false)
+
+        // Only load items that performSync doesn't cover: medical history, OCR documents, and chat.
+        // Everything else is already loaded by performSync and warmCachesAfterSyncInBackground.
         async let medicalHistoryTask = loadMedicalHistory()
         async let ocrTask = loadOcrDocuments()
         async let chatTask = loadChatHistory()
-        async let environmentTask = refreshEnvironmentForPreferredLocation()
-        async let coachingTask = fetchCoachingAdvice(forceRefresh: true)
 
         let _ = await (
-            medicationsTask,
-            sleepTask,
             medicalHistoryTask,
             ocrTask,
-            chatTask,
-            environmentTask,
-            coachingTask
+            chatTask
         )
-
-        lastSyncCompletedAt = Date()
     }
 
     func performManualSync() async -> Bool {
@@ -921,8 +930,11 @@ class MobileEngineSessionStore: ObservableObject {
 
                 await getCurrentUser()
                 await loadPatientProfile()
+                if !skipCacheWarmup {
+                    warmCachesAfterSyncInBackground()
+                }
                 lastSyncCompletedAt = Date()
-                return true
+                return false
             }
         } catch {
             let msg = error.localizedDescription.lowercased()
@@ -935,7 +947,7 @@ class MobileEngineSessionStore: ObservableObject {
             await getCurrentUser()
             await loadPatientProfile()
             lastSyncCompletedAt = Date()
-            return true
+            return false
         }
     }
 
