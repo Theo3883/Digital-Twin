@@ -58,6 +58,7 @@ class MobileEngineSessionStore: ObservableObject {
     private let googleOAuthClientId: String?
     private var medicationInteractionRefreshTask: Task<Void, Never>?
     private var cacheWarmupTask: Task<Void, Never>?
+    private var syncLoopTask: Task<Void, Never>?
     private var lastHealthKitSleepImportAt: Date?
     private var lastHealthKitSleepPulledThrough: Date?
     private var lastHealthKitVitalsImportAt: Date?
@@ -123,6 +124,7 @@ class MobileEngineSessionStore: ObservableObject {
     deinit {
         medicationInteractionRefreshTask?.cancel()
         cacheWarmupTask?.cancel()
+        syncLoopTask?.cancel()
 
         // We can't `await` in deinit; fire-and-forget cleanup.
         if let engine = engine {
@@ -197,8 +199,24 @@ class MobileEngineSessionStore: ObservableObject {
                 print("[CloudDebug][restoreCachedSession] engine.getCloudAuthStatus=\(status)")
                 isCloudAuthenticated = status
                 hasCloudProfile = status
+
+                startPeriodicSync()
             }
         } catch {}
+    }
+
+    private func startPeriodicSync() {
+        syncLoopTask?.cancel()
+        syncLoopTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 7_000_000_000)
+                guard let self = self, !Task.isCancelled else { break }
+                print("[SyncLoop] Periodic sync tick")
+                // Use isCloudAuthenticated (from .NET) instead of Swift's cloudAccessToken
+                let _ = await self.performSync(waitForHealthKitImport: self.isCloudAuthenticated,
+                                                skipCacheWarmup: true)
+            }
+        }
     }
 
     // MARK: - Native Services Integration
@@ -242,32 +260,29 @@ class MobileEngineSessionStore: ObservableObject {
             let reachable = (try? await engine?.isCloudReachable()) ?? false
             if !reachable {
                 print("[CloudDebug] Cloud unreachable — proceeding with local data")
-                async let medsTask = loadMedications(waitForInteractions: false)
-                async let sleepTask = loadSleepSessionsFromLocalStoreOnly()
-                async let envTask = loadLatestEnvironmentReading()
-                async let medicalHistoryTask = loadMedicalHistory()
-                async let ocrTask = loadOcrDocuments()
-                async let chatTask = loadChatHistory()
-                let _ = await (medsTask, sleepTask, envTask, medicalHistoryTask, ocrTask, chatTask)
+                await withTaskGroup(of: Void.self) { group in
+                    group.addTask { await self.loadMedications(waitForInteractions: false) }
+                    group.addTask { await self.loadSleepSessionsFromLocalStoreOnly() }
+                    group.addTask { await self.loadLatestEnvironmentReading() }
+                    group.addTask { await self.loadMedicalHistory() }
+                    group.addTask { await self.loadOcrDocuments() }
+                    group.addTask { await self.loadChatHistory() }
+                }
                 return
             }
         }
 
         // performSync already loads currentUser, patientProfile, and runs warmCachesAfterSyncInBackground
         // (which loads medications, sleep, and environment). Just call performSync once.
-        let syncSuccess = await performSync(waitForHealthKitImport: true, skipCacheWarmup: false)
+        let _ = await performSync(waitForHealthKitImport: true, skipCacheWarmup: false)
 
         // Only load items that performSync doesn't cover: medical history, OCR documents, and chat.
         // Everything else is already loaded by performSync and warmCachesAfterSyncInBackground.
-        async let medicalHistoryTask = loadMedicalHistory()
-        async let ocrTask = loadOcrDocuments()
-        async let chatTask = loadChatHistory()
-
-        let _ = await (
-            medicalHistoryTask,
-            ocrTask,
-            chatTask
-        )
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { await self.loadMedicalHistory() }
+            group.addTask { await self.loadOcrDocuments() }
+            group.addTask { await self.loadChatHistory() }
+        }
     }
 
     func performManualSync() async -> Bool {
@@ -402,6 +417,7 @@ class MobileEngineSessionStore: ObservableObject {
     func signOut() async {
         medicationInteractionRefreshTask?.cancel()
         cacheWarmupTask?.cancel()
+        syncLoopTask?.cancel()
 
         isAuthenticated = false
         currentUser = nil

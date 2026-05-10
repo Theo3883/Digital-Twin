@@ -23,7 +23,7 @@ final class Esp32MinuteVitalsPersistenceService: ObservableObject {
     private var heartRateSamples: [Double] = []
     private var spO2Samples: [Double] = []
 
-    private let minimumSamplesToPersist = 5
+    private let minimumSamplesToPersist = 2
 
     private init() {}
 
@@ -94,18 +94,21 @@ final class Esp32MinuteVitalsPersistenceService: ObservableObject {
         }
 
         let heartRate = Double(ble.heartRate)
+        let spO2 = Double(ble.spO2)
+        print("[ESP32Vitals] Raw BLE heartRate=\(heartRate) spO2=\(spO2)")
+        
         if isValidHeartRate(heartRate) {
             latestLiveHeartRate = heartRate
             heartRateSamples.append(heartRate)
         }
 
-        let spO2 = Double(ble.spO2)
         if isValidSpO2(spO2) {
             latestLiveSpO2 = spO2
             spO2Samples.append(spO2)
         }
 
-        if let start = bucketStart, now.timeIntervalSince(start) >= 60 {
+        if let start = bucketStart, now.timeIntervalSince(start) >= 5 {
+            print("[ESP32Vitals] Flushing bucket: HR samples=\(heartRateSamples.count) SpO2 samples=\(spO2Samples.count)")
             flushBucket(triggeredAt: now)
         }
     }
@@ -149,8 +152,10 @@ final class Esp32MinuteVitalsPersistenceService: ObservableObject {
         timestamp: Date
     ) async {
         guard let engine else {
+            print("[ESP32Vitals] ⚠️ engine is nil — vitals dropped!")
             return
         }
+        print("[ESP32Vitals] Persisting HR=\(heartRateAverage ?? -1) SpO2=\(spO2Average ?? -1)")
 
         var wroteAnyAverage = false
 

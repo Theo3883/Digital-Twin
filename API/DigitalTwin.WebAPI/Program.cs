@@ -145,6 +145,9 @@ app.Use(async (ctx, next) =>
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapGet("/api/health", () => Results.Ok(new { status = "healthy" }));
+
 app.MapControllers();
 
 await app.RunAsync();
