@@ -33,7 +33,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { ArrowLeft, Heart, Moon, TrendingUp, Pill, Trash2, StopCircle } from "lucide-react";
+import { ArrowLeft, Heart, Moon, TrendingUp, Pill, Trash2, StopCircle, RotateCw } from "lucide-react";
 import { format } from "date-fns";
 
 /* ── Helpers ─────────────────────────────────────── */
@@ -106,6 +106,7 @@ export default function PatientDetailPage() {
   const [historyEntries, setHistoryEntries] = useState<MedicalHistoryEntry[]>([]);
   const [autoInteractions, setAutoInteractions] = useState<MedicationInteraction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshingVitals, setRefreshingVitals] = useState(false);
   const [vitalType, setVitalType] = useState("HeartRate");
   const [activeTab, setActiveTab] = useState<"vitals" | "sleep" | "medications">("vitals");
 
@@ -152,6 +153,7 @@ export default function PatientDetailPage() {
       api.getPatientMedicationInteractions(patientId),
     ])
       .then(([p, v, s, m, h, interactions]) => {
+        console.log(`[VitalsDebug] Initial load: ${v.length} vitals. Latest: ${v.at(-1)?.timestamp} Source: ${v.at(-1)?.source}. All sources:`, v.map(x => ({ timestamp: x.timestamp, source: x.source, type: x.type })));
         setPatient(p); setVitals(v); setSleep(s);
         setMedications(m); setHistoryEntries(h); setAutoInteractions(interactions);
       })
@@ -161,7 +163,15 @@ export default function PatientDetailPage() {
 
   const loadVitals = (type: string) => {
     setVitalType(type);
-    api.getPatientVitals(patientId, { type }).then(setVitals).catch(console.error);
+    setRefreshingVitals(true);
+    api.getPatientVitals(patientId, { type }).then(v => {
+      console.log(`[VitalsDebug] Loaded ${type}: ${v.length} vitals. Latest: ${v.at(-1)?.timestamp} Source: ${v.at(-1)?.source}`);
+      setVitals(v);
+    }).catch(console.error).finally(() => setRefreshingVitals(false));
+  };
+
+  const handleRefreshVitals = () => {
+    loadVitals(vitalType);
   };
 
   const handleUnassign = async () => {
@@ -295,7 +305,7 @@ export default function PatientDetailPage() {
 
   const vitalChartData = [...vitals]
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-    .map((v) => ({ time: format(new Date(v.timestamp), "HH:mm"), value: v.value }));
+    .map((v) => ({ time: format(new Date(v.timestamp), "HH:mm"), value: v.value, source: v.source }));
 
   const sleepChartData = [...sleep]
     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
@@ -476,7 +486,10 @@ export default function PatientDetailPage() {
         <InfoCard label="Allergies" value={patient.allergies ?? "None"} />
         <InfoCard label="CNP" value={patient.cnp ?? "—"} />
         <InfoCard label="Member Since" value={format(new Date(patient.createdAt), "MMM d, yyyy")} />
-        <InfoCard label="Last Updated" value={format(new Date(patient.updatedAt), "MMM d, yyyy")} />
+        <InfoCard label="Last Updated" value={vitals.length > 0 ? (() => {
+          const latestVital = vitals.reduce((max, v) => new Date(v.timestamp) > new Date(max.timestamp) ? v : max);
+          return format(new Date(latestVital.timestamp), "MMM d, yyyy");
+        })() : format(new Date(patient.updatedAt), "MMM d, yyyy")} />
       </div>
 
       {/* ── Medical Notes ────────────────────────────── */}
@@ -543,8 +556,8 @@ export default function PatientDetailPage() {
 
         {activeTab === "vitals" && (
           <div className="space-y-6">
-            {/* Metric pills */}
-            <div className="flex flex-wrap gap-2">
+            {/* Metric pills + Refresh */}
+            <div className="flex flex-wrap gap-2 items-center">
               {vitalTypes.map((t) => (
                 <button
                   key={t}
@@ -558,6 +571,14 @@ export default function PatientDetailPage() {
                   {vitalMeta[t]?.label ?? t}
                 </button>
               ))}
+              <button
+                onClick={handleRefreshVitals}
+                disabled={refreshingVitals}
+                className="ml-auto p-2 rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-all disabled:opacity-50"
+                title="Refresh vitals"
+              >
+                <RotateCw className={`w-4 h-4 ${refreshingVitals ? 'animate-spin' : ''}`} />
+              </button>
             </div>
 
             {vitalChartData.length > 0 ? (
@@ -565,7 +586,10 @@ export default function PatientDetailPage() {
                 <h3 className="text-lg font-semibold text-white mb-1">{currentMeta.label}</h3>
                 <p className="text-sm text-white/50 mb-6">
                   {vitals.length} readings — latest{" "}
-                  {vitals.at(-1) ? format(new Date(vitals.at(-1)!.timestamp), "MMM d, HH:mm") : ""}
+                  {vitals.length > 0 ? (() => {
+                    const latestVital = vitals.reduce((max, v) => new Date(v.timestamp) > new Date(max.timestamp) ? v : max);
+                    return format(new Date(latestVital.timestamp), "MMM d, HH:mm");
+                  })() : ""}
                 </p>
                 <div className="h-[300px] w-full">
                   <ResponsiveContainer width="100%" height="100%">

@@ -31,4 +31,9 @@ public class VitalSignDto
     /// Gets or sets the UI trend indicator where 1 is rising, -1 is falling, and 0 is stable.
     /// </summary>
     public int Trend { get; set; }
+
+    /// <summary>
+    /// Gets or sets the source of the vital sign (e.g., "Mock", "ESP32_1M_AVG", "HealthKit").
+    /// </summary>
+    public string Source { get; set; } = string.Empty;
 }

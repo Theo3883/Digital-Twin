@@ -141,7 +141,15 @@ public class DoctorPortalApplicationService : IDoctorPortalApplicationService
             Enum.TryParse<VitalSignType>(type, ignoreCase: true, out var t) ? t : null;
 
         var vitals = await _domain.GetPatientVitalsAsync(patientId, parsedType, from, to);
-        return vitals.Select(v => VitalSignMapper.ToDto(v));
+        var vitalList = vitals.ToList();
+        _logger.Info("[DoctorPortal] GetPatientVitalsAsync: patientId={PatientId} type={Type} from={From} to={To} found={Count} vitals", 
+            patientId, parsedType?.ToString() ?? "null", from?.ToString("O") ?? "null", to?.ToString("O") ?? "null", vitalList.Count);
+        foreach (var v in vitalList)
+        {
+            _logger.Info("[DoctorPortal]   - Type={Type} Value={Value} Source={Source} Timestamp={Timestamp}", 
+                v.Type, v.Value, v.Source, v.Timestamp.ToString("O"));
+        }
+        return vitalList.Select(v => VitalSignMapper.ToDto(v));
     }
 
     /// <summary>

@@ -253,6 +253,7 @@ export interface VitalSign {
   value: number;
   unit: string;
   timestamp: string;
+  source: string;
   trend: number;
 }
 

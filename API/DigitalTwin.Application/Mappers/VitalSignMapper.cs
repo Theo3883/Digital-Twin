@@ -19,7 +19,8 @@ public static class VitalSignMapper
             Value = model.Value,
             Unit = model.Unit,
             Timestamp = model.Timestamp,
-            Trend = trend
+            Trend = trend,
+            Source = model.Source
         };
     }
 
