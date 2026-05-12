@@ -6,6 +6,19 @@ set -euo pipefail
 # Builds and redeploys only the DigitalTwin.WebAPI Container App
 ################################################################################
 
+# Prefer merged deploy env, then fall back to API-specific .env.local
+if [[ -f "./deploy-scripts/.env.local" ]]; then
+    # shellcheck disable=SC1091
+    set -a
+    source ./deploy-scripts/.env.local
+    set +a
+elif [[ -f "./API/DigitalTwin.WebAPI/.env.local" ]]; then
+    # shellcheck disable=SC1091
+    set -a
+    source ./API/DigitalTwin.WebAPI/.env.local
+    set +a
+fi
+
 # Configuration (override via env vars)
 readonly RG="${RG:-unibytes}"
 readonly LOC="${LOC:-germanywestcentral}"
@@ -24,19 +37,18 @@ readonly EU_REGION_CANDIDATES_DEFAULT="germanywestcentral,northeurope,westeurope
 readonly EU_REGION_CANDIDATES="${EU_REGION_CANDIDATES:-$EU_REGION_CANDIDATES_DEFAULT}"
 
 # Aiven / cloud PostgreSQL connection string (REQUIRED)
-# Expected .NET/Npgsql format (recommended):
-#   Host=...;Port=5432;Database=...;Username=...;Password=...;SSL Mode=Require;Trust Server Certificate=true
-# You may also pass any valid Npgsql connection string supported by your app.
-readonly CONNECTION_STRING="${CONNECTION_STRING:-}"
+# Port MUST be 12321 (Aiven's non-standard port) — NOT 5432.
+# Format: Host=...;Port=12321;Database=healthapp;Username=avnadmin;Password=...;sslmode=require
+readonly CONNECTION_STRING="${CONNECTION_STRING:-$CLOUD_DB_CONNECTION}"
 
 # Application configuration
 readonly JWT_ISSUER="${JWT_ISSUER:-DigitalTwin.WebAPI}"
 readonly JWT_AUDIENCE="${JWT_AUDIENCE:-DigitalTwin.DoctorPortal}"
-readonly JWT_KEY="${JWT_KEY:-}"
-readonly GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-}"
-readonly GOOGLE_MOBILE_CLIENT_ID="${GOOGLE_MOBILE_CLIENT_ID:-}"
-readonly DOCTOR_REGISTRATION_SECRET="${DOCTOR_REGISTRATION_SECRET:-change-me-registration-secret}"
-readonly GEMINI_API_KEY="${GEMINI_API_KEY:-}"
+readonly JWT_KEY="${JWT_KEY:-${Jwt__Key:-}}"
+readonly GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-${Google__ClientId:-}}"
+readonly GOOGLE_MOBILE_CLIENT_ID="${GOOGLE_MOBILE_CLIENT_ID:-${Google__MobileClientId:-}}"
+readonly DOCTOR_REGISTRATION_SECRET="${DOCTOR_REGISTRATION_SECRET:-${Doctor__RegistrationSecret:-change-me-registration-secret}}"
+readonly GEMINI_API_KEY="${GEMINI_API_KEY:-${GEMINI_API_KEY:-}}"
 
 # Colors
 readonly GREEN='\033[0;32m'

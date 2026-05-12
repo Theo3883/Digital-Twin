@@ -6,6 +6,19 @@ set -euo pipefail
 # Builds and redeploys only the doctor-portal Container App
 ################################################################################
 
+## Prefer merged deploy env, then fall back to doctor-portal/.env.local
+if [[ -f "./deploy-scripts/.env.local" ]]; then
+    # shellcheck disable=SC1091
+    set -a
+    source ./deploy-scripts/.env.local
+    set +a
+elif [[ -f "./doctor-portal/.env.local" ]]; then
+    # shellcheck disable=SC1091
+    set -a
+    source ./doctor-portal/.env.local
+    set +a
+fi
+
 # Configuration (override via env vars)
 readonly RG="${RG:-unibytes}"
 readonly LOC="${LOC:-germanywestcentral}"
@@ -25,12 +38,18 @@ readonly EU_REGION_CANDIDATES_DEFAULT="germanywestcentral,northeurope,westeurope
 readonly EU_REGION_CANDIDATES="${EU_REGION_CANDIDATES:-$EU_REGION_CANDIDATES_DEFAULT}"
 
 # Frontend auth configuration (REQUIRED)
-readonly GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-}"
-readonly GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET:-}"
+readonly GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-${Google__ClientId:-}}"
+readonly GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET:-${Google__ClientSecret:-}}"
 readonly AUTH_SECRET="${AUTH_SECRET:-$(openssl rand -base64 32)}"
 
+# API URLs (Prefer .env.local/env vars, otherwise auto-resolve from backend)
+API_BASE_URL="${API_BASE_URL:-${NEXT_PUBLIC_API_URL:-}}"
+NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-$API_BASE_URL}"
+export API_BASE_URL
+export NEXT_PUBLIC_API_URL
+
 # Optional doctor registration secret expected by portal env
-readonly DOCTOR_REGISTRATION_SECRET="${DOCTOR_REGISTRATION_SECRET:-change-me-registration-secret}"
+readonly DOCTOR_REGISTRATION_SECRET="${DOCTOR_REGISTRATION_SECRET:-${Doctor__RegistrationSecret:-change-me-registration-secret}}"
 
 # Colors
 readonly GREEN='\033[0;32m'
@@ -249,21 +268,27 @@ log_info "Getting ACR login server..."
 ACR_LOGIN_SERVER=$(az acr show --name "$ACR" --resource-group "$RG" --query loginServer -o tsv)
 log_success "ACR login server: $ACR_LOGIN_SERVER"
 
-# Resolve backend URL
-log_info "Resolving WebAPI URL..."
-webapi_url=$(az containerapp show --name "$APP_WEBAPI" --resource-group "$RG" --query properties.configuration.ingress.fqdn -o tsv 2>/dev/null || echo "")
+# Resolve backend URL if not explicitly provided
+if [[ -z "$API_BASE_URL" ]]; then
+    log_info "Resolving WebAPI URL from Azure..."
+    webapi_url=$(az containerapp show --name "$APP_WEBAPI" --resource-group "$RG" --query properties.configuration.ingress.fqdn -o tsv 2>/dev/null || echo "")
+    
+    if [[ -z "$webapi_url" ]]; then
+        if [[ -n "${BACKEND_URL:-}" ]]; then
+            webapi_url="${BACKEND_URL#https://}"
+            webapi_url="${webapi_url%/}"
+        fi
+    fi
 
-if [[ -z "$webapi_url" ]]; then
-    if [[ -n "${BACKEND_URL:-}" ]]; then
-        webapi_url="${BACKEND_URL#https://}"
-        webapi_url="${webapi_url%/}"
+    if [[ -n "$webapi_url" ]]; then
+        API_BASE_URL="https://$webapi_url"
+        NEXT_PUBLIC_API_URL="https://$webapi_url"
+        log_success "Resolved WebAPI URL: $API_BASE_URL"
     else
         log_warning "Could not resolve WebAPI URL. Frontend will be deployed without API URL vars."
     fi
-fi
-
-if [[ -n "$webapi_url" ]]; then
-    log_success "WebAPI URL: https://$webapi_url"
+else
+    log_info "Using provided API_BASE_URL: $API_BASE_URL"
 fi
 
 # Resolve portal URL for NEXTAUTH_URL
@@ -285,9 +310,9 @@ log_success "Buildx ready"
 
 # Build args
 build_args=""
-if [[ -n "$webapi_url" ]]; then
-    build_args="--build-arg NEXT_PUBLIC_API_URL=https://$webapi_url --build-arg API_BASE_URL=https://$webapi_url"
-    log_info "Building with API URL: https://$webapi_url"
+if [[ -n "$API_BASE_URL" ]]; then
+    build_args="--build-arg NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL --build-arg API_BASE_URL=$API_BASE_URL"
+    log_info "Building with API URL: $API_BASE_URL"
 else
     log_warning "Building without API URL build args"
 fi
@@ -325,14 +350,14 @@ if az containerapp show --name "$APP_PORTAL" --resource-group "$RG" >/dev/null 2
         --output none 2>/dev/null || true
 
     log_info "Updating doctor-portal Container App..."
-    if [[ -n "$webapi_url" && -n "$portal_url" ]]; then
+    if [[ -n "$API_BASE_URL" && -n "$portal_url" ]]; then
         az containerapp update \
             --name "$APP_PORTAL" \
             --resource-group "$RG" \
             --image "$full_image" \
             --set-env-vars \
-                "NEXT_PUBLIC_API_URL=https://$webapi_url" \
-                "API_BASE_URL=https://$webapi_url" \
+                "NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL" \
+                "API_BASE_URL=$API_BASE_URL" \
                 "NEXTAUTH_URL=https://$portal_url" \
                 "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" \
                 "GOOGLE_CLIENT_SECRET=secretref:google-client-secret" \
@@ -344,12 +369,14 @@ if az containerapp show --name "$APP_PORTAL" --resource-group "$RG" >/dev/null 2
                 log_warning "Update had issues, but may still have applied."
             }
     else
-        log_warning "Missing resolved URLs, updating image and auth env vars only..."
+        log_warning "Missing resolved URLs, updating image and env vars..."
         az containerapp update \
             --name "$APP_PORTAL" \
             --resource-group "$RG" \
             --image "$full_image" \
             --set-env-vars \
+                "NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL" \
+                "API_BASE_URL=$API_BASE_URL" \
                 "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" \
                 "GOOGLE_CLIENT_SECRET=secretref:google-client-secret" \
                 "AUTH_SECRET=secretref:auth-secret" \
@@ -371,9 +398,9 @@ else
         "Doctor__RegistrationSecret=secretref:doctor-registration-secret"
     )
 
-    if [[ -n "$webapi_url" ]]; then
-        create_env_vars+=("NEXT_PUBLIC_API_URL=https://$webapi_url")
-        create_env_vars+=("API_BASE_URL=https://$webapi_url")
+    if [[ -n "$API_BASE_URL" ]]; then
+        create_env_vars+=("NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL")
+        create_env_vars+=("API_BASE_URL=$API_BASE_URL")
     fi
 
     if [[ -n "$portal_url" ]]; then

@@ -1,7 +1,8 @@
-// Environment variables for the doctor portal
+// Resolve API URL from runtime environment variables.
+// Prefer explicit API_URL or API_BASE_URL, then NEXT_PUBLIC_API_URL, then localhost fallback.
+
 function normalizeApiUrl(u?: string | null) {
   if (!u) return undefined;
-  // prefer https, and strip trailing / if present
   try {
     const s = String(u).trim();
     return s.replace(/\/(?:api\/?$)?$/, "");
@@ -10,8 +11,9 @@ function normalizeApiUrl(u?: string | null) {
   }
 }
 
-// Prefer explicit runtime vars first (API_BASE_URL / API_URL), then NEXT_PUBLIC_API_URL.
-const resolvedApi = normalizeApiUrl(process.env.API_BASE_URL ?? process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL) ?? "http://localhost:5100";
+const resolvedApi =
+  normalizeApiUrl(process.env.API_URL ?? process.env.API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL) ??
+  "http://localhost:5003";
 
 export const env = {
   API_URL: resolvedApi,

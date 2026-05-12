@@ -21,5 +21,7 @@ RUN dotnet publish DigitalTwin.WebAPI/DigitalTwin.WebAPI.csproj -c Release -o /a
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 COPY --from=build /app .
+RUN apt-get update && apt-get install -y --no-install-recommends libgssapi-krb5-2 \
+	&& rm -rf /var/lib/apt/lists/*
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "DigitalTwin.WebAPI.dll"]
