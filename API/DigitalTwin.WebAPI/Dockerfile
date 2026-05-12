@@ -6,6 +6,7 @@ COPY DigitalTwin.Application/DigitalTwin.Application.csproj DigitalTwin.Applicat
 COPY DigitalTwin.Infrastructure/DigitalTwin.Infrastructure.csproj DigitalTwin.Infrastructure/
 COPY DigitalTwin.Composition/DigitalTwin.Composition.csproj DigitalTwin.Composition/
 COPY DigitalTwin.WebAPI/DigitalTwin.WebAPI.csproj DigitalTwin.WebAPI/
+COPY DigitalTwin.Integrations/DigitalTwin.Integrations.csproj DigitalTwin.Integrations/
 RUN dotnet restore DigitalTwin.WebAPI/DigitalTwin.WebAPI.csproj
 
 COPY DigitalTwin.Domain/ DigitalTwin.Domain/
@@ -13,6 +14,7 @@ COPY DigitalTwin.Application/ DigitalTwin.Application/
 COPY DigitalTwin.Infrastructure/ DigitalTwin.Infrastructure/
 COPY DigitalTwin.Composition/ DigitalTwin.Composition/
 COPY DigitalTwin.WebAPI/ DigitalTwin.WebAPI/
+COPY DigitalTwin.Integrations/ DigitalTwin.Integrations/
 
 RUN dotnet publish DigitalTwin.WebAPI/DigitalTwin.WebAPI.csproj -c Release -o /app
 

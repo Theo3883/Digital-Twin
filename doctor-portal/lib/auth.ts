@@ -27,7 +27,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       // On first sign-in, exchange the Google id_token for a .NET API JWT.
       if (account?.id_token) {
         try {
+          console.log('[NextAuth] Exchanging Google id_token for API token...');
           const result = await api.loginWithGoogle(account.id_token);
+          console.log('[NextAuth] Exchange result:', result);
 
           if (result.registrationRequired) {
             // Doctor not yet registered — store the Google id_token so the
@@ -42,7 +44,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             token.googleIdToken = undefined;
           }
         } catch (e) {
-          console.error("[NextAuth] Failed to exchange Google token:", e);
+            console.error("[NextAuth] Failed to exchange Google token:", e);
         }
       }
       return token;

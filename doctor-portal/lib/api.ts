@@ -14,19 +14,29 @@ export class ApiClient {
   }
 
   private async request<T>(path: string, options?: RequestInit): Promise<T> {
+    const url = `${this.baseUrl}${path}`;
     const headers: HeadersInit = {
       "Content-Type": "application/json",
       ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       ...options?.headers,
     };
 
-    const res = await fetch(`${this.baseUrl}${path}`, {
+    console.log(`[ApiClient] Request -> ${options?.method || "GET"} ${url}`, {
+      tokenPresent: !!this.token,
+      headersPreview: Object.keys(headers),
+    });
+
+    const res = await fetch(url, {
       ...options,
       headers,
     });
 
+    console.log(`[ApiClient] Response <- ${res.status} ${url}`);
+
     if (!res.ok) {
       const bodyText = await res.text().catch(() => "");
+
+      console.warn(`[ApiClient] Error response body for ${url}:`, bodyText);
 
       // Prefer a safe, user-facing error message; don't leak unknown server internals.
       let message = "";

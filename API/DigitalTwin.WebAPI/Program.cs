@@ -149,5 +149,7 @@ app.UseAuthorization();
 app.MapGet("/api/health", () => Results.Ok(new { status = "healthy" }));
 
 app.MapControllers();
+// Log an informational startup message so container logs show the app is ready.
+app.Logger.LogInformation(":WebAPI started");
 
 await app.RunAsync();
