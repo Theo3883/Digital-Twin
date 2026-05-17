@@ -1,29 +1,41 @@
 @startuml IOS Health App - C4 Infrastructure Layer
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
 
-title C4 Component Diagram - Infrastructure Layer (Database Only)
+title C4 Component Diagram - Infrastructure Layer (Database & Persistence)
 
 Container_Boundary(infrastructure, "Infrastructure Layer") {
-    Component(dbcontext, "HealthAppDbContext", "EF Core", "DbContext with DbSets for all entities")
+    Component(dbcontext_health, "HealthAppDbContext", "EF Core", "Local SQLite DbContext")
     
-    Component(entities, "EF Entities", "C#", "VitalSignEntity, PatientProfileEntity, MedicationEntity, EnvironmentReadingEntity, SleepSessionEntity, DoctorActionEntity, EcgFrameEntity")
+    Component(dbcontext_cloud, "CloudDbContext", "EF Core", "Cloud sync DbContext")
     
-    Component(repositories, "Repositories", "C#", "VitalSignRepository, PatientProfileRepository, MedicationRepository, DoctorActionRepository")
+    Component(entities, "EF Entities", "C#", "UserEntity, UserOAuthEntity, PatientEntity, DoctorPatientAssignmentEntity, VitalSignEntity, MedicationEntity, SleepSessionEntity, OcrDocumentEntity, MedicalHistoryEntryEntity, NotificationEntity, EnvironmentReadingEntity")
+    
+    Component(gateways, "Persistence Gateways", "C#", "EnvironmentReadingPersistenceGateway, MedicationManagementService")
     
     Component(migrations, "Migrations", "EF Core", "Schema versioning and updates")
 }
 
-ContainerDb_Ext(database, "Database", "SQLite", "Local persistence for health data")
+ContainerDb_Ext(database_local, "Database", "SQLite", "Local persistence for health data + synced entities")
+ContainerDb_Ext(database_cloud, "Cloud DB", "Cloud Storage", "Cloud sync metadata")
 
-Rel(repositories, dbcontext, "uses")
-Rel(repositories, entities, "maps EF ↔ Domain")
-Rel(dbcontext, entities, "DbSet")
-Rel(dbcontext, database, "Reads/Writes")
-Rel(migrations, database, "applies")
+Rel(gateways, dbcontext_health, "queries")
+Rel(gateways, dbcontext_cloud, "syncs")
+Rel(dbcontext_health, entities, "DbSet")
+Rel(dbcontext_cloud, entities, "DbSet (sync)")
+Rel(dbcontext_health, database_local, "Reads/Writes")
+Rel(dbcontext_cloud, database_cloud, "Reads/Writes")
+Rel(migrations, database_local, "applies")
 
-note right of repositories
-  Repositories implement
-  Domain IRepository interfaces
+note right of entities
+  All entities include:
+  - Sync tracking: IsDirty, SyncedAt
+  - Soft delete: DeletedAt
+  - Timestamps: CreatedAt, UpdatedAt
+end note
+
+note bottom of gateways
+  Gateways abstract data access
+  and implement business logic
 end note
 
 SHOW_LEGEND()

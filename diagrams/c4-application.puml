@@ -4,15 +4,15 @@
 title C4 Component Diagram - Application Layer
 
 Container_Boundary(application, "Application Layer") {
-    Component(dtos, "DTOs", "C#", "VitalSignDto, EnvironmentReadingDto, CoachingAdviceDto, EcgFrameDto, MedicationInteractionDto, AnomalyPredictionDto")
+    Component(dtos, "DTOs", "C#", "VitalSignDto, EnvironmentReadingDto, MedicationDto, SleepSessionDto, OcrDocumentDto, MedicalHistoryEntryDto, NotificationDto, PatientDto")
     
-    Component(mappers, "Mappers", "C#", "VitalSignMapper, EnvironmentReadingMapper, EcgFrameMapper, MedicationInteractionMapper")
+    Component(mappers, "Mappers", "C#", "VitalSignMapper, EnvironmentReadingMapper, MedicationMapper, OcrDocumentMapper, MedicalHistoryMapper, NotificationMapper, PatientMapper")
     
-    Component(validators, "Validators", "FluentValidation", "VitalSignDtoValidator, EnvironmentReadingDtoValidator, CoachingAdviceDtoValidator")
+    Component(validators, "Validators", "FluentValidation", "VitalSignDtoValidator, EnvironmentReadingDtoValidator, MedicationDtoValidator, OcrDocumentDtoValidator, PatientDtoValidator")
     
-    Component(app_services, "Application Services", "C#", "VitalsApplicationService, EnvironmentApplicationService, DocumentImportApplicationService, ReportApplicationService")
+    Component(app_services, "Application Services", "C#", "VitalsApplicationService, EnvironmentApplicationService, MedicationApplicationService, OcrDocumentApplicationService, MedicalHistoryApplicationService, NotificationApplicationService, PatientApplicationService")
     
-    Component(interfaces, "Interfaces", "C#", "IVitalsApplicationService, IEnvironmentApplicationService, IMedicalAssistantApplicationService")
+    Component(interfaces, "Interfaces", "C#", "IVitalsApplicationService, IEnvironmentApplicationService, IMedicationApplicationService, IOcrApplicationService, IPatientApplicationService")
 }
 
 Rel(app_services, dtos, "returns")
@@ -20,13 +20,12 @@ Rel(app_services, mappers, "uses")
 Rel(app_services, validators, "validates via")
 Rel(mappers, dtos, "Domain ↔ DTO")
 Rel(validators, dtos, "validates")
-
 Rel(app_services, interfaces, "implements")
 
 note right of app_services
   Application Services orchestrate
-  Domain services and call
-  providers (from Integrations)
+  Domain services, manage transactions,
+  and implement use cases
 end note
 
 SHOW_LEGEND()
