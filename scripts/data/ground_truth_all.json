@@ -1,0 +1,1427 @@
+[
+  {
+    "id": 1,
+    "stem": "doc_001_reteta",
+    "document_type": "reteta_medicala",
+    "image_file": "doc_001_reteta.png",
+    "ground_truth_file": "ground_truth/doc_001_reteta.json",
+    "ground_truth": {
+      "document_type": "reteta_medicala",
+      "patient_name": "Ion Stoica",
+      "patient_cnp": "1950222489146",
+      "date": "16.10.2025",
+      "doctor_name": "Dr. Paul Enache",
+      "doctor_specialty": "Medic Primar Medicină de Familie",
+      "doctor_unit": "CMI Dr. Paul Enache - Medicină de Familie",
+      "address": "Str. Muncii nr. 15, Brăila",
+      "diagnosis": "Fibrilație atrială paroxistică",
+      "diagnosis_code": "I48.0",
+      "medications": [
+        {
+          "name": "Apixaban",
+          "dose": "5 mg",
+          "frequency": "1 cp de 2 ori/zi"
+        },
+        {
+          "name": "Metoprolol",
+          "dose": "50 mg",
+          "frequency": "1 cp de 2 ori/zi"
+        },
+        {
+          "name": "Perindopril",
+          "dose": "5 mg",
+          "frequency": "1 cp dimineața"
+        }
+      ],
+      "lab_values": [],
+      "_source_file": "doc_001_reteta.json"
+    }
+  },
+  {
+    "id": 2,
+    "stem": "doc_002_reteta",
+    "document_type": "reteta_medicala",
+    "image_file": "doc_002_reteta.png",
+    "ground_truth_file": "ground_truth/doc_002_reteta.json",
+    "ground_truth": {
+      "document_type": "reteta_medicala",
+      "patient_name": "Ana Nistor",
+      "patient_cnp": "2601221455593",
+      "date": "12.08.2025",
+      "doctor_name": "Dr. Anca Dumitriu",
+      "doctor_specialty": "Medic Specialist Medicină de Familie",
+      "doctor_unit": "Cabinet Medical Individual Dr. Anca Dumitriu",
+      "address": "Str. Mărășești nr. 2, Focșani",
+      "diagnosis": "Cardiopatie ischemică cronică",
+      "diagnosis_code": "I25.9",
+      "medications": [
+        {
+          "name": "Rosuvastatină",
+          "dose": "20 mg",
+          "frequency": "1 cp seara"
+        },
+        {
+          "name": "Betaloc ZOK",
+          "dose": "50 mg",
+          "frequency": "1/2 cp dimineața"
+        },
+        {
+          "name": "Aspenter",
+          "dose": "75 mg",
+          "frequency": "1 cp/zi după masă"
+        }
+      ],
+      "lab_values": [],
+      "_source_file": "doc_002_reteta.json"
+    }
+  },
+  {
+    "id": 3,
+    "stem": "doc_003_reteta",
+    "document_type": "reteta_medicala",
+    "image_file": "doc_003_reteta.png",
+    "ground_truth_file": "ground_truth/doc_003_reteta.json",
+    "ground_truth": {
+      "document_type": "reteta_medicala",
+      "patient_name": "Mihai Preda",
+      "patient_cnp": "1610604063908",
+      "date": "28.02.2025",
+      "doctor_name": "Dr. Anca Dumitriu",
+      "doctor_specialty": "Medic Specialist Medicină de Familie",
+      "doctor_unit": "Cabinet Medical Individual Dr. Anca Dumitriu",
+      "address": "Str. Lalelelor nr. 18, Brăila",
+      "diagnosis": "Bronșită acută",
+      "diagnosis_code": "J20.9",
+      "medications": [
+        {
+          "name": "Paracetamol",
+          "dose": "500 mg",
+          "frequency": "1 cp la nevoie"
+        },
+        {
+          "name": "ACC",
+          "dose": "600 mg",
+          "frequency": "1 plic/zi"
+        },
+        {
+          "name": "Azitromicină",
+          "dose": "500 mg",
+          "frequency": "1 cp/zi 3 zile"
+        }
+      ],
+      "lab_values": [],
+      "_source_file": "doc_003_reteta.json"
+    }
+  },
+  {
+    "id": 4,
+    "stem": "doc_004_reteta",
+    "document_type": "reteta_medicala",
+    "image_file": "doc_004_reteta.png",
+    "ground_truth_file": "ground_truth/doc_004_reteta.json",
+    "ground_truth": {
+      "document_type": "reteta_medicala",
+      "patient_name": "Gabriel Stan",
+      "patient_cnp": "1661120245926",
+      "date": "18.04.2025",
+      "doctor_name": "Dr. Vasile Marin",
+      "doctor_specialty": "Medic Primar Medicină de Familie",
+      "doctor_unit": "CMI Dr. Vasile Marin - Medicină de Familie",
+      "address": "Str. Independenței nr. 6, Focșani",
+      "diagnosis": "Fibrilație atrială paroxistică",
+      "diagnosis_code": "I48.0",
+      "medications": [
+        {
+          "name": "Perindopril",
+          "dose": "5 mg",
+          "frequency": "1 cp dimineața"
+        },
+        {
+          "name": "Metoprolol",
+          "dose": "50 mg",
+          "frequency": "1 cp de 2 ori/zi"
+        },
+        {
+          "name": "Apixaban",
+          "dose": "5 mg",
+          "frequency": "1 cp de 2 ori/zi"
+        }
+      ],
+      "lab_values": [],
+      "_source_file": "doc_004_reteta.json"
+    }
+  },
+  {
+    "id": 5,
+    "stem": "doc_005_reteta",
+    "document_type": "reteta_medicala",
+    "image_file": "doc_005_reteta.png",
+    "ground_truth_file": "ground_truth/doc_005_reteta.json",
+    "ground_truth": {
+      "document_type": "reteta_medicala",
+      "patient_name": "George Tudor",
+      "patient_cnp": "1771127241674",
+      "date": "18.07.2025",
+      "doctor_name": "Dr. Vasile Marin",
+      "doctor_specialty": "Medic Primar Medicină de Familie",
+      "doctor_unit": "CMI Dr. Vasile Marin - Medicină de Familie",
+      "address": "Str. Florilor nr. 25, Tecuci",
+      "diagnosis": "Bronșită acută",
+      "diagnosis_code": "J20.9",
+      "medications": [
+        {
+          "name": "Paracetamol",
+          "dose": "500 mg",
+          "frequency": "1 cp la nevoie"
+        },
+        {
+          "name": "ACC",
+          "dose": "600 mg",
+          "frequency": "1 plic/zi"
+        },
+        {
+          "name": "Azitromicină",
+          "dose": "500 mg",
+          "frequency": "1 cp/zi 3 zile"
+        }
+      ],
+      "lab_values": [],
+      "_source_file": "doc_005_reteta.json"
+    }
+  },
+  {
+    "id": 6,
+    "stem": "doc_006_reteta",
+    "document_type": "reteta_medicala",
+    "image_file": "doc_006_reteta.png",
+    "ground_truth_file": "ground_truth/doc_006_reteta.json",
+    "ground_truth": {
+      "document_type": "reteta_medicala",
+      "patient_name": "Mihai Petrescu",
+      "patient_cnp": "1770709417053",
+      "date": "22.10.2025",
+      "doctor_name": "Dr. Paul Enache",
+      "doctor_specialty": "Medic Primar Medicină de Familie",
+      "doctor_unit": "CMI Dr. Paul Enache - Medicină de Familie",
+      "address": "Str. Crinilor nr. 16, Brăila",
+      "diagnosis": "Cardiopatie ischemică cronică",
+      "diagnosis_code": "I25.9",
+      "medications": [
+        {
+          "name": "Betaloc ZOK",
+          "dose": "50 mg",
+          "frequency": "1/2 cp dimineața"
+        },
+        {
+          "name": "Aspenter",
+          "dose": "75 mg",
+          "frequency": "1 cp/zi după masă"
+        },
+        {
+          "name": "Rosuvastatină",
+          "dose": "20 mg",
+          "frequency": "1 cp seara"
+        }
+      ],
+      "lab_values": [],
+      "_source_file": "doc_006_reteta.json"
+    }
+  },
+  {
+    "id": 7,
+    "stem": "doc_007_reteta",
+    "document_type": "reteta_medicala",
+    "image_file": "doc_007_reteta.png",
+    "ground_truth_file": "ground_truth/doc_007_reteta.json",
+    "ground_truth": {
+      "document_type": "reteta_medicala",
+      "patient_name": "Daniel Ilie",
+      "patient_cnp": "1611029463231",
+      "date": "28.04.2025",
+      "doctor_name": "Dr. Anca Dumitriu",
+      "doctor_specialty": "Medic Specialist Medicină de Familie",
+      "doctor_unit": "Cabinet Medical Individual Dr. Anca Dumitriu",
+      "address": "Str. Independenței nr. 18, Galați",
+      "diagnosis": "Boală de reflux gastro-esofagian",
+      "diagnosis_code": "K21.9",
+      "medications": [
+        {
+          "name": "Debridat",
+          "dose": "100 mg",
+          "frequency": "1 cp de 3 ori/zi"
+        },
+        {
+          "name": "Gaviscon",
+          "dose": "10 ml",
+          "frequency": "după mese"
+        },
+        {
+          "name": "Esomeprazol",
+          "dose": "40 mg",
+          "frequency": "1 cp dimineața"
+        }
+      ],
+      "lab_values": [],
+      "_source_file": "doc_007_reteta.json"
+    }
+  },
+  {
+    "id": 8,
+    "stem": "doc_008_reteta",
+    "document_type": "reteta_medicala",
+    "image_file": "doc_008_reteta.png",
+    "ground_truth_file": "ground_truth/doc_008_reteta.json",
+    "ground_truth": {
+      "document_type": "reteta_medicala",
+      "patient_name": "Ana Petrescu",
+      "patient_cnp": "2850729384091",
+      "date": "14.07.2025",
+      "doctor_name": "Dr. Vasile Marin",
+      "doctor_specialty": "Medic Primar Medicină de Familie",
+      "doctor_unit": "CMI Dr. Vasile Marin - Medicină de Familie",
+      "address": "Str. Salcâmilor nr. 17, Buzău",
+      "diagnosis": "Cardiopatie ischemică cronică",
+      "diagnosis_code": "I25.9",
+      "medications": [
+        {
+          "name": "Rosuvastatină",
+          "dose": "20 mg",
+          "frequency": "1 cp seara"
+        },
+        {
+          "name": "Betaloc ZOK",
+          "dose": "50 mg",
+          "frequency": "1/2 cp dimineața"
+        },
+        {
+          "name": "Aspenter",
+          "dose": "75 mg",
+          "frequency": "1 cp/zi după masă"
+        }
+      ],
+      "lab_values": [],
+      "_source_file": "doc_008_reteta.json"
+    }
+  },
+  {
+    "id": 9,
+    "stem": "doc_009_reteta",
+    "document_type": "reteta_medicala",
+    "image_file": "doc_009_reteta.png",
+    "ground_truth_file": "ground_truth/doc_009_reteta.json",
+    "ground_truth": {
+      "document_type": "reteta_medicala",
+      "patient_name": "George Stan",
+      "patient_cnp": "1751003253913",
+      "date": "11.11.2025",
+      "doctor_name": "Dr. Paul Enache",
+      "doctor_specialty": "Medic Primar Medicină de Familie",
+      "doctor_unit": "CMI Dr. Paul Enache - Medicină de Familie",
+      "address": "Str. Libertății nr. 11, Buzău",
+      "diagnosis": "Boală de reflux gastro-esofagian",
+      "diagnosis_code": "K21.9",
+      "medications": [
+        {
+          "name": "Gaviscon",
+          "dose": "10 ml",
+          "frequency": "după mese"
+        },
+        {
+          "name": "Esomeprazol",
+          "dose": "40 mg",
+          "frequency": "1 cp dimineața"
+        },
+        {
+          "name": "Debridat",
+          "dose": "100 mg",
+          "frequency": "1 cp de 3 ori/zi"
+        }
+      ],
+      "lab_values": [],
+      "_source_file": "doc_009_reteta.json"
+    }
+  },
+  {
+    "id": 10,
+    "stem": "doc_010_reteta",
+    "document_type": "reteta_medicala",
+    "image_file": "doc_010_reteta.png",
+    "ground_truth_file": "ground_truth/doc_010_reteta.json",
+    "ground_truth": {
+      "document_type": "reteta_medicala",
+      "patient_name": "Gabriel Stoica",
+      "patient_cnp": "1660706300048",
+      "date": "14.01.2026",
+      "doctor_name": "Dr. Paul Enache",
+      "doctor_specialty": "Medic Primar Medicină de Familie",
+      "doctor_unit": "CMI Dr. Paul Enache - Medicină de Familie",
+      "address": "Str. Unirii nr. 22, Galați",
+      "diagnosis": "Diabet zaharat tip 2",
+      "diagnosis_code": "E11.9",
+      "medications": [
+        {
+          "name": "Metformin",
+          "dose": "850 mg",
+          "frequency": "1 cp de 2 ori/zi"
+        },
+        {
+          "name": "Perindopril",
+          "dose": "5 mg",
+          "frequency": "1 cp/zi"
+        },
+        {
+          "name": "Gliclazidă",
+          "dose": "30 mg",
+          "frequency": "1 cp dimineața"
+        }
+      ],
+      "lab_values": [],
+      "_source_file": "doc_010_reteta.json"
+    }
+  },
+  {
+    "id": 11,
+    "stem": "doc_011_reteta",
+    "document_type": "reteta_medicala",
+    "image_file": "doc_011_reteta.png",
+    "ground_truth_file": "ground_truth/doc_011_reteta.json",
+    "ground_truth": {
+      "document_type": "reteta_medicala",
+      "patient_name": "Gabriel Neagu",
+      "patient_cnp": "1960318509452",
+      "date": "08.10.2025",
+      "doctor_name": "Dr. Paul Enache",
+      "doctor_specialty": "Medic Primar Medicină de Familie",
+      "doctor_unit": "CMI Dr. Paul Enache - Medicină de Familie",
+      "address": "Str. Muncii nr. 10, Tecuci",
+      "diagnosis": "Hipertensiune arterială esențială",
+      "diagnosis_code": "I10",
+      "medications": [
+        {
+          "name": "Amlodipină",
+          "dose": "5 mg",
+          "frequency": "1 cp seara"
+        },
+        {
+          "name": "Indapamidă",
+          "dose": "1.5 mg",
+          "frequency": "1 cp dimineața"
+        },
+        {
+          "name": "Perindopril",
+          "dose": "5 mg",
+          "frequency": "1 cp dimineața"
+        }
+      ],
+      "lab_values": [],
+      "_source_file": "doc_011_reteta.json"
+    }
+  },
+  {
+    "id": 12,
+    "stem": "doc_012_reteta",
+    "document_type": "reteta_medicala",
+    "image_file": "doc_012_reteta.png",
+    "ground_truth_file": "ground_truth/doc_012_reteta.json",
+    "ground_truth": {
+      "document_type": "reteta_medicala",
+      "patient_name": "Gabriela Barbu",
+      "patient_cnp": "6041031060884",
+      "date": "19.01.2026",
+      "doctor_name": "Dr. Vasile Marin",
+      "doctor_specialty": "Medic Primar Medicină de Familie",
+      "doctor_unit": "CMI Dr. Vasile Marin - Medicină de Familie",
+      "address": "Str. Muncii nr. 4, Brăila",
+      "diagnosis": "Boală de reflux gastro-esofagian",
+      "diagnosis_code": "K21.9",
+      "medications": [
+        {
+          "name": "Debridat",
+          "dose": "100 mg",
+          "frequency": "1 cp de 3 ori/zi"
+        },
+        {
+          "name": "Esomeprazol",
+          "dose": "40 mg",
+          "frequency": "1 cp dimineața"
+        },
+        {
+          "name": "Gaviscon",
+          "dose": "10 ml",
+          "frequency": "după mese"
+        }
+      ],
+      "lab_values": [],
+      "_source_file": "doc_012_reteta.json"
+    }
+  },
+  {
+    "id": 13,
+    "stem": "doc_013_reteta",
+    "document_type": "reteta_medicala",
+    "image_file": "doc_013_reteta.png",
+    "ground_truth_file": "ground_truth/doc_013_reteta.json",
+    "ground_truth": {
+      "document_type": "reteta_medicala",
+      "patient_name": "Gabriel Rusu",
+      "patient_cnp": "1750430357749",
+      "date": "18.01.2026",
+      "doctor_name": "Dr. Paul Enache",
+      "doctor_specialty": "Medic Primar Medicină de Familie",
+      "doctor_unit": "CMI Dr. Paul Enache - Medicină de Familie",
+      "address": "Str. Victoriei nr. 34, Focșani",
+      "diagnosis": "Cardiopatie ischemică cronică",
+      "diagnosis_code": "I25.9",
+      "medications": [
+        {
+          "name": "Betaloc ZOK",
+          "dose": "50 mg",
+          "frequency": "1/2 cp dimineața"
+        },
+        {
+          "name": "Rosuvastatină",
+          "dose": "20 mg",
+          "frequency": "1 cp seara"
+        },
+        {
+          "name": "Aspenter",
+          "dose": "75 mg",
+          "frequency": "1 cp/zi după masă"
+        }
+      ],
+      "lab_values": [],
+      "_source_file": "doc_013_reteta.json"
+    }
+  },
+  {
+    "id": 14,
+    "stem": "doc_014_reteta",
+    "document_type": "reteta_medicala",
+    "image_file": "doc_014_reteta.png",
+    "ground_truth_file": "ground_truth/doc_014_reteta.json",
+    "ground_truth": {
+      "document_type": "reteta_medicala",
+      "patient_name": "Larisa Sandu",
+      "patient_cnp": "2520601385681",
+      "date": "07.05.2025",
+      "doctor_name": "Dr. Vasile Marin",
+      "doctor_specialty": "Medic Primar Medicină de Familie",
+      "doctor_unit": "CMI Dr. Vasile Marin - Medicină de Familie",
+      "address": "Str. Florilor nr. 16, Brăila",
+      "diagnosis": "Lombosciatică",
+      "diagnosis_code": "M54.4",
+      "medications": [
+        {
+          "name": "Arcoxia",
+          "dose": "90 mg",
+          "frequency": "1 cp/zi 5 zile"
+        },
+        {
+          "name": "Diclofenac gel",
+          "dose": "local",
+          "frequency": "de 3 ori/zi"
+        },
+        {
+          "name": "Mydocalm",
+          "dose": "150 mg",
+          "frequency": "1 cp de 2 ori/zi"
+        }
+      ],
+      "lab_values": [],
+      "_source_file": "doc_014_reteta.json"
+    }
+  },
+  {
+    "id": 15,
+    "stem": "doc_015_reteta",
+    "document_type": "reteta_medicala",
+    "image_file": "doc_015_reteta.png",
+    "ground_truth_file": "ground_truth/doc_015_reteta.json",
+    "ground_truth": {
+      "document_type": "reteta_medicala",
+      "patient_name": "Bianca Ionescu",
+      "patient_cnp": "2630522322206",
+      "date": "13.10.2025",
+      "doctor_name": "Dr. Paul Enache",
+      "doctor_specialty": "Medic Primar Medicină de Familie",
+      "doctor_unit": "CMI Dr. Paul Enache - Medicină de Familie",
+      "address": "Str. Lalelelor nr. 5, Focșani",
+      "diagnosis": "Dislipidemie mixtă",
+      "diagnosis_code": "E78.2",
+      "medications": [
+        {
+          "name": "Aspenter",
+          "dose": "75 mg",
+          "frequency": "1 cp/zi"
+        },
+        {
+          "name": "Omega 3",
+          "dose": "1000 mg",
+          "frequency": "1 cps/zi"
+        },
+        {
+          "name": "Rosuvastatină",
+          "dose": "10 mg",
+          "frequency": "1 cp seara"
+        }
+      ],
+      "lab_values": [],
+      "_source_file": "doc_015_reteta.json"
+    }
+  },
+  {
+    "id": 16,
+    "stem": "doc_016_analize",
+    "document_type": "buletin_analize",
+    "image_file": "doc_016_analize.png",
+    "ground_truth_file": "ground_truth/doc_016_analize.json",
+    "ground_truth": {
+      "document_type": "buletin_analize",
+      "patient_name": "Daniel Preda",
+      "patient_cnp": "1900712284211",
+      "date": "06.09.2025",
+      "doctor_name": "Dr. Istrate Elena",
+      "doctor_specialty": "Medic Laborator",
+      "doctor_unit": "Laboratorul Biotest",
+      "address": "Str. Muncii nr. 7, Galați",
+      "diagnosis": "",
+      "medications": [],
+      "lab_values": [
+        {
+          "name": "Colesterol total",
+          "value": "37.0",
+          "unit": "mg/dL",
+          "reference_interval": "0 - 200"
+        },
+        {
+          "name": "LDL colesterol",
+          "value": "157.0",
+          "unit": "mg/dL",
+          "reference_interval": "0 - 130"
+        },
+        {
+          "name": "HDL colesterol",
+          "value": "29.0",
+          "unit": "mg/dL",
+          "reference_interval": "40 - 100"
+        },
+        {
+          "name": "Trigliceride",
+          "value": "0",
+          "unit": "mg/dL",
+          "reference_interval": "0 - 150"
+        }
+      ],
+      "_source_file": "doc_016_analize.json"
+    }
+  },
+  {
+    "id": 17,
+    "stem": "doc_017_analize",
+    "document_type": "buletin_analize",
+    "image_file": "doc_017_analize.png",
+    "ground_truth_file": "ground_truth/doc_017_analize.json",
+    "ground_truth": {
+      "document_type": "buletin_analize",
+      "patient_name": "Monica Petrescu",
+      "patient_cnp": "2580716312193",
+      "date": "28.03.2026",
+      "doctor_name": "Dr. Istrate Elena",
+      "doctor_specialty": "Medic Laborator",
+      "doctor_unit": "Laboratorul Biotest",
+      "address": "Str. Primăverii nr. 6, Brăila",
+      "diagnosis": "",
+      "medications": [],
+      "lab_values": [
+        {
+          "name": "Hemoglobină",
+          "value": "13.4",
+          "unit": "g/dL",
+          "reference_interval": "11.5 - 17.5"
+        },
+        {
+          "name": "Leucocite",
+          "value": "6.8",
+          "unit": "10^3/uL",
+          "reference_interval": "4.0 - 10.0"
+        },
+        {
+          "name": "Trombocite",
+          "value": "66.0",
+          "unit": "10^3/uL",
+          "reference_interval": "150 - 400"
+        },
+        {
+          "name": "VSH",
+          "value": "13.5",
+          "unit": "mm/h",
+          "reference_interval": "0 - 20"
+        }
+      ],
+      "_source_file": "doc_017_analize.json"
+    }
+  },
+  {
+    "id": 18,
+    "stem": "doc_018_analize",
+    "document_type": "buletin_analize",
+    "image_file": "doc_018_analize.png",
+    "ground_truth_file": "ground_truth/doc_018_analize.json",
+    "ground_truth": {
+      "document_type": "buletin_analize",
+      "patient_name": "Andreea Marin",
+      "patient_cnp": "2820124210599",
+      "date": "04.02.2025",
+      "doctor_name": "Dr. Mureșan Corina",
+      "doctor_specialty": "Medic specialist laborator",
+      "doctor_unit": "Laborator Synevo",
+      "address": "Str. Primăverii nr. 38, Buzău",
+      "diagnosis": "",
+      "medications": [],
+      "lab_values": [
+        {
+          "name": "TSH",
+          "value": "5.5",
+          "unit": "uIU/mL",
+          "reference_interval": "0.27 - 4.2"
+        },
+        {
+          "name": "FT4",
+          "value": "1.9",
+          "unit": "ng/dL",
+          "reference_interval": "0.93 - 1.7"
+        },
+        {
+          "name": "Calciu total",
+          "value": "8.5",
+          "unit": "mg/dL",
+          "reference_interval": "8.6 - 10.2"
+        },
+        {
+          "name": "Magneziu",
+          "value": "2.8",
+          "unit": "mg/dL",
+          "reference_interval": "1.6 - 2.6"
+        }
+      ],
+      "_source_file": "doc_018_analize.json"
+    }
+  },
+  {
+    "id": 19,
+    "stem": "doc_019_analize",
+    "document_type": "buletin_analize",
+    "image_file": "doc_019_analize.png",
+    "ground_truth_file": "ground_truth/doc_019_analize.json",
+    "ground_truth": {
+      "document_type": "buletin_analize",
+      "patient_name": "Mihaela Voicu",
+      "patient_cnp": "2611123212450",
+      "date": "25.05.2025",
+      "doctor_name": "Dr. Istrate Elena",
+      "doctor_specialty": "Medic Laborator",
+      "doctor_unit": "Laboratorul Biotest",
+      "address": "Str. Salcâmilor nr. 21, Tecuci",
+      "diagnosis": "",
+      "medications": [],
+      "lab_values": [
+        {
+          "name": "Colesterol total",
+          "value": "169.0",
+          "unit": "mg/dL",
+          "reference_interval": "0 - 200"
+        },
+        {
+          "name": "LDL colesterol",
+          "value": "14.0",
+          "unit": "mg/dL",
+          "reference_interval": "0 - 130"
+        },
+        {
+          "name": "HDL colesterol",
+          "value": "73.0",
+          "unit": "mg/dL",
+          "reference_interval": "40 - 100"
+        },
+        {
+          "name": "Trigliceride",
+          "value": "182.0",
+          "unit": "mg/dL",
+          "reference_interval": "0 - 150"
+        }
+      ],
+      "_source_file": "doc_019_analize.json"
+    }
+  },
+  {
+    "id": 20,
+    "stem": "doc_020_analize",
+    "document_type": "buletin_analize",
+    "image_file": "doc_020_analize.png",
+    "ground_truth_file": "ground_truth/doc_020_analize.json",
+    "ground_truth": {
+      "document_type": "buletin_analize",
+      "patient_name": "Gabriela Georgescu",
+      "patient_cnp": "2580827357214",
+      "date": "13.06.2025",
+      "doctor_name": "Dr. Istrate Elena",
+      "doctor_specialty": "Medic Laborator",
+      "doctor_unit": "Laboratorul Biotest",
+      "address": "Str. Muncii nr. 24, Tecuci",
+      "diagnosis": "",
+      "medications": [],
+      "lab_values": [
+        {
+          "name": "TSH",
+          "value": "0",
+          "unit": "uIU/mL",
+          "reference_interval": "0.27 - 4.2"
+        },
+        {
+          "name": "FT4",
+          "value": "1.8",
+          "unit": "ng/dL",
+          "reference_interval": "0.93 - 1.7"
+        },
+        {
+          "name": "Calciu total",
+          "value": "9.1",
+          "unit": "mg/dL",
+          "reference_interval": "8.6 - 10.2"
+        },
+        {
+          "name": "Magneziu",
+          "value": "2.3",
+          "unit": "mg/dL",
+          "reference_interval": "1.6 - 2.6"
+        }
+      ],
+      "_source_file": "doc_020_analize.json"
+    }
+  },
+  {
+    "id": 21,
+    "stem": "doc_021_analize",
+    "document_type": "buletin_analize",
+    "image_file": "doc_021_analize.png",
+    "ground_truth_file": "ground_truth/doc_021_analize.json",
+    "ground_truth": {
+      "document_type": "buletin_analize",
+      "patient_name": "Monica Stoica",
+      "patient_cnp": "6020103414344",
+      "date": "10.03.2026",
+      "doctor_name": "Dr. Istrate Elena",
+      "doctor_specialty": "Medic Laborator",
+      "doctor_unit": "Laboratorul Biotest",
+      "address": "Str. Salcâmilor nr. 32, Tecuci",
+      "diagnosis": "",
+      "medications": [],
+      "lab_values": [
+        {
+          "name": "Glicemie",
+          "value": "79.0",
+          "unit": "mg/dL",
+          "reference_interval": "70 - 99"
+        },
+        {
+          "name": "HbA1c",
+          "value": "4.9",
+          "unit": "%",
+          "reference_interval": "4.0 - 5.6"
+        },
+        {
+          "name": "Creatinină",
+          "value": "1.2",
+          "unit": "mg/dL",
+          "reference_interval": "0.6 - 1.2"
+        },
+        {
+          "name": "Uree",
+          "value": "43.0",
+          "unit": "mg/dL",
+          "reference_interval": "10 - 50"
+        }
+      ],
+      "_source_file": "doc_021_analize.json"
+    }
+  },
+  {
+    "id": 22,
+    "stem": "doc_022_analize",
+    "document_type": "buletin_analize",
+    "image_file": "doc_022_analize.png",
+    "ground_truth_file": "ground_truth/doc_022_analize.json",
+    "ground_truth": {
+      "document_type": "buletin_analize",
+      "patient_name": "George Munteanu",
+      "patient_cnp": "1750302203746",
+      "date": "15.04.2026",
+      "doctor_name": "Dr. Mureșan Corina",
+      "doctor_specialty": "Medic specialist laborator",
+      "doctor_unit": "Laborator Synevo",
+      "address": "Str. Mărășești nr. 36, Brăila",
+      "diagnosis": "",
+      "medications": [],
+      "lab_values": [
+        {
+          "name": "Glicemie",
+          "value": "81.0",
+          "unit": "mg/dL",
+          "reference_interval": "70 - 99"
+        },
+        {
+          "name": "HbA1c",
+          "value": "5.3",
+          "unit": "%",
+          "reference_interval": "4.0 - 5.6"
+        },
+        {
+          "name": "Creatinină",
+          "value": "1.0",
+          "unit": "mg/dL",
+          "reference_interval": "0.6 - 1.2"
+        },
+        {
+          "name": "Uree",
+          "value": "22.0",
+          "unit": "mg/dL",
+          "reference_interval": "10 - 50"
+        }
+      ],
+      "_source_file": "doc_022_analize.json"
+    }
+  },
+  {
+    "id": 23,
+    "stem": "doc_023_analize",
+    "document_type": "buletin_analize",
+    "image_file": "doc_023_analize.png",
+    "ground_truth_file": "ground_truth/doc_023_analize.json",
+    "ground_truth": {
+      "document_type": "buletin_analize",
+      "patient_name": "Alina Rusu",
+      "patient_cnp": "2950626278225",
+      "date": "18.12.2025",
+      "doctor_name": "Dr. Mureșan Corina",
+      "doctor_specialty": "Medic specialist laborator",
+      "doctor_unit": "Laborator Synevo",
+      "address": "Str. Independenței nr. 2, Brăila",
+      "diagnosis": "",
+      "medications": [],
+      "lab_values": [
+        {
+          "name": "Hemoglobină",
+          "value": "17.9",
+          "unit": "g/dL",
+          "reference_interval": "11.5 - 17.5"
+        },
+        {
+          "name": "Leucocite",
+          "value": "12.0",
+          "unit": "10^3/uL",
+          "reference_interval": "4.0 - 10.0"
+        },
+        {
+          "name": "Trombocite",
+          "value": "349.0",
+          "unit": "10^3/uL",
+          "reference_interval": "150 - 400"
+        },
+        {
+          "name": "VSH",
+          "value": "25.0",
+          "unit": "mm/h",
+          "reference_interval": "0 - 20"
+        }
+      ],
+      "_source_file": "doc_023_analize.json"
+    }
+  },
+  {
+    "id": 24,
+    "stem": "doc_024_analize",
+    "document_type": "buletin_analize",
+    "image_file": "doc_024_analize.png",
+    "ground_truth_file": "ground_truth/doc_024_analize.json",
+    "ground_truth": {
+      "document_type": "buletin_analize",
+      "patient_name": "Elena Stoica",
+      "patient_cnp": "2910911021197",
+      "date": "04.04.2026",
+      "doctor_name": "Dr. Istrate Elena",
+      "doctor_specialty": "Medic Laborator",
+      "doctor_unit": "Laboratorul Biotest",
+      "address": "Str. Lalelelor nr. 33, Bârlad",
+      "diagnosis": "",
+      "medications": [],
+      "lab_values": [
+        {
+          "name": "Hemoglobină",
+          "value": "10.4",
+          "unit": "g/dL",
+          "reference_interval": "11.5 - 17.5"
+        },
+        {
+          "name": "Leucocite",
+          "value": "11.4",
+          "unit": "10^3/uL",
+          "reference_interval": "4.0 - 10.0"
+        },
+        {
+          "name": "Trombocite",
+          "value": "456.0",
+          "unit": "10^3/uL",
+          "reference_interval": "150 - 400"
+        },
+        {
+          "name": "VSH",
+          "value": "2.0",
+          "unit": "mm/h",
+          "reference_interval": "0 - 20"
+        }
+      ],
+      "_source_file": "doc_024_analize.json"
+    }
+  },
+  {
+    "id": 25,
+    "stem": "doc_025_analize",
+    "document_type": "buletin_analize",
+    "image_file": "doc_025_analize.png",
+    "ground_truth_file": "ground_truth/doc_025_analize.json",
+    "ground_truth": {
+      "document_type": "buletin_analize",
+      "patient_name": "Gabriel Marin",
+      "patient_cnp": "1900620216800",
+      "date": "20.03.2026",
+      "doctor_name": "Dr. Mureșan Corina",
+      "doctor_specialty": "Medic specialist laborator",
+      "doctor_unit": "Laborator Synevo",
+      "address": "Str. Lalelelor nr. 28, Galați",
+      "diagnosis": "",
+      "medications": [],
+      "lab_values": [
+        {
+          "name": "AST",
+          "value": "50.0",
+          "unit": "U/L",
+          "reference_interval": "0 - 40"
+        },
+        {
+          "name": "ALT",
+          "value": "51.0",
+          "unit": "U/L",
+          "reference_interval": "0 - 41"
+        },
+        {
+          "name": "GGT",
+          "value": "13.2",
+          "unit": "U/L",
+          "reference_interval": "0 - 55"
+        },
+        {
+          "name": "Bilirubină totală",
+          "value": "0.6",
+          "unit": "mg/dL",
+          "reference_interval": "0.2 - 1.2"
+        }
+      ],
+      "_source_file": "doc_025_analize.json"
+    }
+  },
+  {
+    "id": 26,
+    "stem": "doc_026_trimitere",
+    "document_type": "bilet_trimitere",
+    "image_file": "doc_026_trimitere.png",
+    "ground_truth_file": "ground_truth/doc_026_trimitere.json",
+    "ground_truth": {
+      "document_type": "bilet_trimitere",
+      "patient_name": "Radu Barbu",
+      "patient_cnp": "1861111304532",
+      "date": "24.08.2025",
+      "doctor_name": "Dr. Paul Enache",
+      "doctor_specialty": "Medic Primar Medicină de Familie",
+      "doctor_unit": "CMI Dr. Paul Enache - Medicină de Familie",
+      "address": "Str. Muncii nr. 28, Focșani",
+      "destination": "Gastroenterologie",
+      "diagnosis": "Cardiopatie ischemică cronică",
+      "diagnosis_code": "I25.9",
+      "medications": [],
+      "lab_values": [],
+      "_source_file": "doc_026_trimitere.json"
+    }
+  },
+  {
+    "id": 27,
+    "stem": "doc_027_trimitere",
+    "document_type": "bilet_trimitere",
+    "image_file": "doc_027_trimitere.png",
+    "ground_truth_file": "ground_truth/doc_027_trimitere.json",
+    "ground_truth": {
+      "document_type": "bilet_trimitere",
+      "patient_name": "Cristian Ilie",
+      "patient_cnp": "1670426131518",
+      "date": "22.01.2025",
+      "doctor_name": "Dr. Vasile Marin",
+      "doctor_specialty": "Medic Primar Medicină de Familie",
+      "doctor_unit": "CMI Dr. Vasile Marin - Medicină de Familie",
+      "address": "Str. Florilor nr. 16, Buzău",
+      "destination": "Ortopedie",
+      "diagnosis": "Hipertensiune arterială esențială",
+      "diagnosis_code": "I10",
+      "medications": [],
+      "lab_values": [],
+      "_source_file": "doc_027_trimitere.json"
+    }
+  },
+  {
+    "id": 28,
+    "stem": "doc_028_trimitere",
+    "document_type": "bilet_trimitere",
+    "image_file": "doc_028_trimitere.png",
+    "ground_truth_file": "ground_truth/doc_028_trimitere.json",
+    "ground_truth": {
+      "document_type": "bilet_trimitere",
+      "patient_name": "Simona Lazar",
+      "patient_cnp": "2571123019158",
+      "date": "29.01.2026",
+      "doctor_name": "Dr. Anca Dumitriu",
+      "doctor_specialty": "Medic Specialist Medicină de Familie",
+      "doctor_unit": "Cabinet Medical Individual Dr. Anca Dumitriu",
+      "address": "Str. Castanilor nr. 26, Brăila",
+      "destination": "Medicină internă",
+      "diagnosis": "Fibrilație atrială paroxistică",
+      "diagnosis_code": "I48.0",
+      "medications": [],
+      "lab_values": [],
+      "_source_file": "doc_028_trimitere.json"
+    }
+  },
+  {
+    "id": 29,
+    "stem": "doc_029_trimitere",
+    "document_type": "bilet_trimitere",
+    "image_file": "doc_029_trimitere.png",
+    "ground_truth_file": "ground_truth/doc_029_trimitere.json",
+    "ground_truth": {
+      "document_type": "bilet_trimitere",
+      "patient_name": "Daniela Stan",
+      "patient_cnp": "2900918393251",
+      "date": "31.01.2026",
+      "doctor_name": "Dr. Paul Enache",
+      "doctor_specialty": "Medic Primar Medicină de Familie",
+      "doctor_unit": "CMI Dr. Paul Enache - Medicină de Familie",
+      "address": "Str. Castanilor nr. 9, Bârlad",
+      "destination": "Pneumologie",
+      "diagnosis": "Boală de reflux gastro-esofagian",
+      "diagnosis_code": "K21.9",
+      "medications": [],
+      "lab_values": [],
+      "_source_file": "doc_029_trimitere.json"
+    }
+  },
+  {
+    "id": 30,
+    "stem": "doc_030_trimitere",
+    "document_type": "bilet_trimitere",
+    "image_file": "doc_030_trimitere.png",
+    "ground_truth_file": "ground_truth/doc_030_trimitere.json",
+    "ground_truth": {
+      "document_type": "bilet_trimitere",
+      "patient_name": "Daniel Tudor",
+      "patient_cnp": "1791108184517",
+      "date": "18.02.2025",
+      "doctor_name": "Dr. Vasile Marin",
+      "doctor_specialty": "Medic Primar Medicină de Familie",
+      "doctor_unit": "CMI Dr. Vasile Marin - Medicină de Familie",
+      "address": "Str. Unirii nr. 18, Focșani",
+      "destination": "Neurologie",
+      "diagnosis": "Diabet zaharat tip 2",
+      "diagnosis_code": "E11.9",
+      "medications": [],
+      "lab_values": [],
+      "_source_file": "doc_030_trimitere.json"
+    }
+  },
+  {
+    "id": 31,
+    "stem": "doc_031_trimitere",
+    "document_type": "bilet_trimitere",
+    "image_file": "doc_031_trimitere.png",
+    "ground_truth_file": "ground_truth/doc_031_trimitere.json",
+    "ground_truth": {
+      "document_type": "bilet_trimitere",
+      "patient_name": "Cristina Dumitrescu",
+      "patient_cnp": "2740711354782",
+      "date": "10.08.2025",
+      "doctor_name": "Dr. Vasile Marin",
+      "doctor_specialty": "Medic Primar Medicină de Familie",
+      "doctor_unit": "CMI Dr. Vasile Marin - Medicină de Familie",
+      "address": "Str. Crinilor nr. 14, Galați",
+      "destination": "Pneumologie",
+      "diagnosis": "Hipertensiune arterială esențială",
+      "diagnosis_code": "I10",
+      "medications": [],
+      "lab_values": [],
+      "_source_file": "doc_031_trimitere.json"
+    }
+  },
+  {
+    "id": 32,
+    "stem": "doc_032_trimitere",
+    "document_type": "bilet_trimitere",
+    "image_file": "doc_032_trimitere.png",
+    "ground_truth_file": "ground_truth/doc_032_trimitere.json",
+    "ground_truth": {
+      "document_type": "bilet_trimitere",
+      "patient_name": "Maria Munteanu",
+      "patient_cnp": "2821224358209",
+      "date": "14.11.2025",
+      "doctor_name": "Dr. Anca Dumitriu",
+      "doctor_specialty": "Medic Specialist Medicină de Familie",
+      "doctor_unit": "Cabinet Medical Individual Dr. Anca Dumitriu",
+      "address": "Str. Victoriei nr. 25, Bârlad",
+      "destination": "Neurologie",
+      "diagnosis": "Cardiopatie ischemică cronică",
+      "diagnosis_code": "I25.9",
+      "medications": [],
+      "lab_values": [],
+      "_source_file": "doc_032_trimitere.json"
+    }
+  },
+  {
+    "id": 33,
+    "stem": "doc_033_trimitere",
+    "document_type": "bilet_trimitere",
+    "image_file": "doc_033_trimitere.png",
+    "ground_truth_file": "ground_truth/doc_033_trimitere.json",
+    "ground_truth": {
+      "document_type": "bilet_trimitere",
+      "patient_name": "Daniel Lazar",
+      "patient_cnp": "1561018029299",
+      "date": "30.07.2025",
+      "doctor_name": "Dr. Paul Enache",
+      "doctor_specialty": "Medic Primar Medicină de Familie",
+      "doctor_unit": "CMI Dr. Paul Enache - Medicină de Familie",
+      "address": "Str. Crinilor nr. 11, Bârlad",
+      "destination": "Cardiologie",
+      "diagnosis": "Lombosciatică",
+      "diagnosis_code": "M54.4",
+      "medications": [],
+      "lab_values": [],
+      "_source_file": "doc_033_trimitere.json"
+    }
+  },
+  {
+    "id": 34,
+    "stem": "doc_034_trimitere",
+    "document_type": "bilet_trimitere",
+    "image_file": "doc_034_trimitere.png",
+    "ground_truth_file": "ground_truth/doc_034_trimitere.json",
+    "ground_truth": {
+      "document_type": "bilet_trimitere",
+      "patient_name": "Andreea Lazar",
+      "patient_cnp": "2680625252855",
+      "date": "30.01.2026",
+      "doctor_name": "Dr. Anca Dumitriu",
+      "doctor_specialty": "Medic Specialist Medicină de Familie",
+      "doctor_unit": "Cabinet Medical Individual Dr. Anca Dumitriu",
+      "address": "Str. Lalelelor nr. 14, Bârlad",
+      "destination": "Pneumologie",
+      "diagnosis": "Infecție urinară joasă",
+      "diagnosis_code": "N39.0",
+      "medications": [],
+      "lab_values": [],
+      "_source_file": "doc_034_trimitere.json"
+    }
+  },
+  {
+    "id": 35,
+    "stem": "doc_035_trimitere",
+    "document_type": "bilet_trimitere",
+    "image_file": "doc_035_trimitere.png",
+    "ground_truth_file": "ground_truth/doc_035_trimitere.json",
+    "ground_truth": {
+      "document_type": "bilet_trimitere",
+      "patient_name": "Elena Ionescu",
+      "patient_cnp": "6010120102459",
+      "date": "15.03.2025",
+      "doctor_name": "Dr. Paul Enache",
+      "doctor_specialty": "Medic Primar Medicină de Familie",
+      "doctor_unit": "CMI Dr. Paul Enache - Medicină de Familie",
+      "address": "Str. Primăverii nr. 16, Brăila",
+      "destination": "Ortopedie",
+      "diagnosis": "Boală de reflux gastro-esofagian",
+      "diagnosis_code": "K21.9",
+      "medications": [],
+      "lab_values": [],
+      "_source_file": "doc_035_trimitere.json"
+    }
+  },
+  {
+    "id": 36,
+    "stem": "doc_036_externare",
+    "document_type": "scrisoare_externare",
+    "image_file": "doc_036_externare.png",
+    "ground_truth_file": "ground_truth/doc_036_externare.json",
+    "ground_truth": {
+      "document_type": "scrisoare_externare",
+      "patient_name": "Mihaela Stan",
+      "patient_cnp": "2850130205901",
+      "date": "22.12.2025",
+      "doctor_name": "Dr. Matei Sorin",
+      "doctor_specialty": "Medic Specialist Cardiologie",
+      "doctor_unit": "Clinica CardioPlus",
+      "address": "Str. Libertății nr. 20, Galați",
+      "diagnosis": "Infecție urinară joasă",
+      "diagnosis_code": "N39.0",
+      "medications": [
+        {
+          "name": "Uricol",
+          "dose": "1 plic",
+          "frequency": "1 plic/zi"
+        },
+        {
+          "name": "Nitrofurantoin",
+          "dose": "100 mg",
+          "frequency": "1 cps de 2 ori/zi 7 zile"
+        }
+      ],
+      "lab_values": [],
+      "_source_file": "doc_036_externare.json"
+    }
+  },
+  {
+    "id": 37,
+    "stem": "doc_037_externare",
+    "document_type": "scrisoare_externare",
+    "image_file": "doc_037_externare.png",
+    "ground_truth_file": "ground_truth/doc_037_externare.json",
+    "ground_truth": {
+      "document_type": "scrisoare_externare",
+      "patient_name": "Alina Barbu",
+      "patient_cnp": "2981026033563",
+      "date": "09.10.2025",
+      "doctor_name": "Dr. Matei Sorin",
+      "doctor_specialty": "Medic Specialist Cardiologie",
+      "doctor_unit": "Clinica CardioPlus",
+      "address": "Str. Unirii nr. 39, Galați",
+      "diagnosis": "Infecție urinară joasă",
+      "diagnosis_code": "N39.0",
+      "medications": [
+        {
+          "name": "No-Spa",
+          "dose": "40 mg",
+          "frequency": "1 cp la nevoie"
+        },
+        {
+          "name": "Nitrofurantoin",
+          "dose": "100 mg",
+          "frequency": "1 cps de 2 ori/zi 7 zile"
+        }
+      ],
+      "lab_values": [],
+      "_source_file": "doc_037_externare.json"
+    }
+  },
+  {
+    "id": 38,
+    "stem": "doc_038_externare",
+    "document_type": "scrisoare_externare",
+    "image_file": "doc_038_externare.png",
+    "ground_truth_file": "ground_truth/doc_038_externare.json",
+    "ground_truth": {
+      "document_type": "scrisoare_externare",
+      "patient_name": "George Enache",
+      "patient_cnp": "1880823104463",
+      "date": "10.04.2025",
+      "doctor_name": "Dr. Matei Sorin",
+      "doctor_specialty": "Medic Specialist Cardiologie",
+      "doctor_unit": "Clinica CardioPlus",
+      "address": "Str. Florilor nr. 28, Tecuci",
+      "diagnosis": "Sindrom vertiginos periferic",
+      "diagnosis_code": "H81.3",
+      "medications": [
+        {
+          "name": "Magneziu",
+          "dose": "375 mg",
+          "frequency": "1 cp/zi"
+        },
+        {
+          "name": "Piracetam",
+          "dose": "800 mg",
+          "frequency": "1 cp de 2 ori/zi"
+        }
+      ],
+      "lab_values": [],
+      "_source_file": "doc_038_externare.json"
+    }
+  },
+  {
+    "id": 39,
+    "stem": "doc_039_externare",
+    "document_type": "scrisoare_externare",
+    "image_file": "doc_039_externare.png",
+    "ground_truth_file": "ground_truth/doc_039_externare.json",
+    "ground_truth": {
+      "document_type": "scrisoare_externare",
+      "patient_name": "Cristian Stoica",
+      "patient_cnp": "1650808494767",
+      "date": "28.10.2025",
+      "doctor_name": "Dr. Matei Sorin",
+      "doctor_specialty": "Medic Specialist Cardiologie",
+      "doctor_unit": "Clinica CardioPlus",
+      "address": "Str. Lalelelor nr. 16, Galați",
+      "diagnosis": "Lombosciatică",
+      "diagnosis_code": "M54.4",
+      "medications": [
+        {
+          "name": "Mydocalm",
+          "dose": "150 mg",
+          "frequency": "1 cp de 2 ori/zi"
+        },
+        {
+          "name": "Arcoxia",
+          "dose": "90 mg",
+          "frequency": "1 cp/zi 5 zile"
+        }
+      ],
+      "lab_values": [],
+      "_source_file": "doc_039_externare.json"
+    }
+  },
+  {
+    "id": 40,
+    "stem": "doc_040_externare",
+    "document_type": "scrisoare_externare",
+    "image_file": "doc_040_externare.png",
+    "ground_truth_file": "ground_truth/doc_040_externare.json",
+    "ground_truth": {
+      "document_type": "scrisoare_externare",
+      "patient_name": "Ștefan Stoica",
+      "patient_cnp": "1920518015307",
+      "date": "17.04.2025",
+      "doctor_name": "Dr. Ionescu Ana",
+      "doctor_specialty": "Medic Primar Cardiolog",
+      "doctor_unit": "Spitalul Clinic de Urgență Sf. Andrei - Secția Cardiologie",
+      "address": "Str. Lalelelor nr. 18, Focșani",
+      "diagnosis": "Fibrilație atrială paroxistică",
+      "diagnosis_code": "I48.0",
+      "medications": [
+        {
+          "name": "Perindopril",
+          "dose": "5 mg",
+          "frequency": "1 cp dimineața"
+        },
+        {
+          "name": "Metoprolol",
+          "dose": "50 mg",
+          "frequency": "1 cp de 2 ori/zi"
+        }
+      ],
+      "lab_values": [],
+      "_source_file": "doc_040_externare.json"
+    }
+  }
+]
