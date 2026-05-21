@@ -527,3 +527,5 @@ Secrets.xcconfig
 build/
 
 build/Debug/
+
+scripts/data/results/*

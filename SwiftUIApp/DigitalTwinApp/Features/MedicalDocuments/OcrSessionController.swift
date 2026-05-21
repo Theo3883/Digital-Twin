@@ -422,6 +422,15 @@ final class OcrSessionController: ObservableObject {
             let classMethod = classification?.method ?? "keyword"
 
             currentStep = .buildingStructured
+            // Attempt to build token graph from Vision and include it in the structured input
+            var graph: OcrDocumentGraph?
+            do {
+                graph = try await visionService.buildGraphForPages(images)
+            } catch {
+                print("[OCR Pipeline] Warning: failed to build OCR graph: \(error)")
+                graph = nil
+            }
+
             let structuredInput = BuildStructuredDocumentInput(
                 documentId: documentId.uuidString,
                 ocrText: combinedText,
@@ -430,7 +439,8 @@ final class OcrSessionController: ObservableObject {
                 classMethod: classMethod,
                 useMlExtraction: true,
                 ocrDurationMs: ocrMs,
-                classificationDurationMs: classMs
+                classificationDurationMs: classMs,
+                graph: graph
             )
             let structured = await repository.buildStructuredDocumentFromJson(structuredInput)
             structuredResult = structured
@@ -587,7 +597,8 @@ final class OcrSessionController: ObservableObject {
                 classMethod: classMethod,
                 useMlExtraction: true,
                 ocrDurationMs: ocrMs,
-                classificationDurationMs: classMs
+                classificationDurationMs: classMs,
+                graph: nil
             )
             structuredResult = await repository.buildStructuredDocumentFromJson(structuredInput)
             reviewFlags = structuredResult?.reviewFlags ?? []

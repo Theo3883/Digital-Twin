@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Linq;
+using DigitalTwin.Mobile.OCR.Models.Graph;
 using DigitalTwin.Mobile.Application.DTOs;
 using DigitalTwin.Mobile.Application.Services;
 using DigitalTwin.Mobile.Domain.Models;
@@ -1357,9 +1359,102 @@ public class MobileEngine : IDisposable
             var builder = _scope.ServiceProvider.GetRequiredService<OCR.Services.StructuredDocumentBuilder>();
             var ocrDuration = TimeSpan.FromMilliseconds(Math.Max(0, input.OcrDurationMs));
             var classDuration = TimeSpan.FromMilliseconds(Math.Max(0, input.ClassificationDurationMs));
+            // Attempt to deserialize optional OCR token graph from the input JSON.
+            OcrDocumentGraph? graphObj = null;
+            try
+            {
+                using var docJson = JsonDocument.Parse(inputJson);
+                var root = docJson.RootElement;
+                if (root.TryGetProperty("graph", out var graphElem) || root.TryGetProperty("Graph", out graphElem))
+                {
+                    // Parse tokens (support camelCase keys: allTokens / AllTokens / tokens)
+                    List<OcrToken> allTokens = new();
+                    if (graphElem.TryGetProperty("allTokens", out var tokensElem) || graphElem.TryGetProperty("AllTokens", out tokensElem) || graphElem.TryGetProperty("tokens", out tokensElem) || graphElem.TryGetProperty("Tokens", out tokensElem))
+                    {
+                        foreach (var t in tokensElem.EnumerateArray())
+                        {
+                            int tokenIndex = t.TryGetProperty("tokenIndex", out var ti) ? ti.GetInt32()
+                                             : t.TryGetProperty("TokenIndex", out var TI) ? TI.GetInt32()
+                                             : (t.TryGetProperty("index", out var idx) ? idx.GetInt32() : 0);
+                            string text = t.TryGetProperty("text", out var txt) ? txt.GetString() ?? string.Empty
+                                         : t.TryGetProperty("Text", out var TXT) ? TXT.GetString() ?? string.Empty : string.Empty;
+                            float confidence = t.TryGetProperty("confidence", out var conf) ? conf.GetSingle()
+                                               : (t.TryGetProperty("Confidence", out var CONF) ? CONF.GetSingle() : 1.0f);
+
+                            // Bounding box
+                            OcrBoundingBox bb = new(0f, 0f, 0f, 0f);
+                            if (t.TryGetProperty("boundingBox", out var bbElem) || t.TryGetProperty("BoundingBox", out bbElem))
+                            {
+                                float x = bbElem.TryGetProperty("x", out var xE) ? xE.GetSingle()
+                                          : (bbElem.TryGetProperty("X", out var XE) ? XE.GetSingle() : 0f);
+                                float y = bbElem.TryGetProperty("y", out var yE) ? yE.GetSingle()
+                                          : (bbElem.TryGetProperty("Y", out var YE) ? YE.GetSingle() : 0f);
+                                float w = bbElem.TryGetProperty("width", out var wE) ? wE.GetSingle()
+                                          : (bbElem.TryGetProperty("Width", out var WE) ? WE.GetSingle() : 0f);
+                                float h = bbElem.TryGetProperty("height", out var hE) ? hE.GetSingle()
+                                          : (bbElem.TryGetProperty("Height", out var HE) ? HE.GetSingle() : 0f);
+                                bb = new OcrBoundingBox(x, y, w, h);
+                            }
+
+                            int pageIndex = t.TryGetProperty("pageIndex", out var pE) ? pE.GetInt32()
+                                            : (t.TryGetProperty("PageIndex", out var PE) ? PE.GetInt32() : 0);
+                            int blockIndex = t.TryGetProperty("blockIndex", out var bE) ? bE.GetInt32()
+                                             : (t.TryGetProperty("BlockIndex", out var BE) ? BE.GetInt32() : 0);
+                            int lineIndex = t.TryGetProperty("lineIndex", out var lE) ? lE.GetInt32()
+                                            : (t.TryGetProperty("LineIndex", out var LE) ? LE.GetInt32() : 0);
+                            bool isApprox = t.TryGetProperty("isBoundingBoxApproximate", out var aE) ? aE.GetBoolean()
+                                            : (t.TryGetProperty("IsBoundingBoxApproximate", out var AE) ? AE.GetBoolean() : false);
+
+                            allTokens.Add(new OcrToken(tokenIndex, text, confidence, bb, pageIndex, blockIndex, lineIndex, isApprox));
+                        }
+                    }
+
+                    // Build pages from tokens or from provided pages array
+                    List<OcrGraphPage> pages = new();
+                    if (graphElem.TryGetProperty("pages", out var pagesElem) || graphElem.TryGetProperty("Pages", out pagesElem))
+                    {
+                        foreach (var p in pagesElem.EnumerateArray())
+                        {
+                            int pageIndex = p.TryGetProperty("pageIndex", out var pi) ? pi.GetInt32()
+                                            : (p.TryGetProperty("PageIndex", out var PI) ? PI.GetInt32() : 0);
+                            float pageWidth = p.TryGetProperty("pageWidth", out var pw) ? pw.GetSingle()
+                                              : (p.TryGetProperty("PageWidth", out var PW) ? PW.GetSingle() : 1.0f);
+                            float pageHeight = p.TryGetProperty("pageHeight", out var ph) ? ph.GetSingle()
+                                               : (p.TryGetProperty("PageHeight", out var PH) ? PH.GetSingle() : 1.0f);
+
+                            // Collect tokens for this page
+                            var tokensForPage = allTokens.Where(t => t.PageIndex == pageIndex).ToList();
+
+                            // For simplicity, leave blocks/lines empty — tokens are sufficient for geometric extraction
+                            pages.Add(new OcrGraphPage(pageIndex, Array.Empty<OcrGraphBlock>(), Array.Empty<OcrGraphLine>(), tokensForPage, pageWidth, pageHeight));
+                        }
+                    }
+                    else
+                    {
+                        // Build pages from distinct page indices in tokens
+                        var groups = allTokens.GroupBy(t => t.PageIndex).OrderBy(g => g.Key);
+                        foreach (var g in groups)
+                        {
+                            var tokensForPage = g.OrderBy(t => t.TokenIndex).ToList();
+                            pages.Add(new OcrGraphPage(g.Key, Array.Empty<OcrGraphBlock>(), Array.Empty<OcrGraphLine>(), tokensForPage, 1.0f, 1.0f));
+                        }
+                    }
+
+                    var detectedLanguage = graphElem.TryGetProperty("detectedLanguage", out var dl) ? dl.GetString() ?? string.Empty
+                                          : (graphElem.TryGetProperty("DetectedLanguage", out var DL) ? DL.GetString() ?? string.Empty : string.Empty);
+
+                    graphObj = new OcrDocumentGraph(pages, allTokens, detectedLanguage);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "[MobileEngine] Failed to parse optional OCR graph from input JSON; proceeding without graph.");
+                graphObj = null;
+            }
+
             var doc = builder.Build(
                 docId, input.OcrText, input.DocType, input.ClassConfidence, input.ClassMethod,
-                graph: null, ocrDuration, classDuration, useMlExtraction: input.UseMlExtraction);
+                graph: graphObj, ocrDuration, classDuration, useMlExtraction: input.UseMlExtraction);
 
             var audit = _scope.ServiceProvider.GetRequiredService<OCR.Services.ML.MlPipelineAuditService>();
             audit.Record(new OCR.Models.ML.MlAuditRecord(

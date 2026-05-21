@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text.RegularExpressions;
 using DigitalTwin.Mobile.OCR.Models.Graph;
 using DigitalTwin.Mobile.OCR.Models.Structured;
 
@@ -16,6 +18,100 @@ public sealed class GeometricTableExtractor
     private static readonly string[] ReferenceHeaders = ["REFERINTA", "REFERINȚĂ", "REF", "VALORI"];
 
     private const float RowToleranceY = 0.012f;
+
+    private static string CleanTokenText(string s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return s ?? string.Empty;
+        // Remove obvious OCR artefacts
+        s = s.Replace('|', ' ').Replace('\u2013', '-').Replace('\u2014', '-');
+        // Remove stray non-printable/control chars
+        s = Regex.Replace(s, "[\u0000-\u001F]+", " ");
+        // Collapse multiple spaces
+        s = Regex.Replace(s, "\\s+", " ").Trim();
+        return s;
+    }
+
+    // Try to split combined strings like "13.4 g/dL 11.5 - 17.5" into value, unit, reference
+    private static (string Value, string? Unit, string? Reference) NormalizeValueUnitReference(string? rawValue, string? rawUnit, string? rawReference)
+    {
+        rawValue = CleanTokenText(rawValue ?? string.Empty);
+        rawUnit = CleanTokenText(rawUnit ?? string.Empty);
+        rawReference = CleanTokenText(rawReference ?? string.Empty);
+
+        string? value = null;
+        string? unit = string.IsNullOrWhiteSpace(rawUnit) ? null : rawUnit;
+        string? reference = string.IsNullOrWhiteSpace(rawReference) ? null : rawReference;
+
+        // If rawValue contains a leading numeric token, capture it
+        var m = Regex.Match(rawValue, "([+-]?[0-9]+(?:[\\.,][0-9]+)?)");
+        if (m.Success)
+        {
+            value = m.Groups[1].Value.Replace(',', '.');
+            // remainder after the matched number may contain unit/reference
+            var rem = rawValue.Substring(m.Index + m.Length).Trim();
+            if (!string.IsNullOrWhiteSpace(rem))
+            {
+                // if we don't already have unit, try to take letters portion as unit
+                if (unit is null)
+                {
+                    // split rem into unit and possible reference range by finding a numeric range
+                    var rangeMatch = Regex.Match(rem, "([0-9]{1,3}(?:[\\.,][0-9]+)?\\s*[-–]\\s*[0-9]{1,3}(?:[\\.,][0-9]+)?)");
+                    if (rangeMatch.Success)
+                    {
+                        reference = rangeMatch.Groups[1].Value.Replace(',', '.');
+                        unit = rem.Substring(0, rangeMatch.Index).Trim();
+                    }
+                    else
+                    {
+                        unit = rem.Trim();
+                    }
+                }
+                else
+                {
+                    // unit already present; if remainder contains range and reference empty, set it
+                    if (reference is null)
+                    {
+                        var rangeMatch = Regex.Match(rem, "([0-9]{1,3}(?:[\\.,][0-9]+)?\\s*[-–]\\s*[0-9]{1,3}(?:[\\.,][0-9]+)?)");
+                        if (rangeMatch.Success)
+                            reference = rangeMatch.Groups[1].Value.Replace(',', '.');
+                    }
+                }
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(rawValue))
+        {
+            // Nothing numeric in value cell; maybe unit cell contains the value+range
+            var rangeMatch = Regex.Match(rawUnit ?? string.Empty, "([0-9]+(?:[\\.,][0-9]+)?(?:\\s*[-–]\\s*[0-9]+(?:[\\.,][0-9]+)?)?)");
+            if (rangeMatch.Success)
+            {
+                value = rangeMatch.Groups[1].Value.Replace(',', '.');
+                // remove from unit
+                unit = Regex.Replace(rawUnit ?? string.Empty, Regex.Escape(rangeMatch.Groups[1].Value), "").Trim();
+            }
+            else
+            {
+                value = rawValue.Trim();
+            }
+        }
+
+        // If unit contains a numeric range, split it
+        if (!string.IsNullOrWhiteSpace(unit) && reference is null)
+        {
+            var rangeMatch2 = Regex.Match(unit, "([0-9]{1,3}(?:[\\.,][0-9]+)?\\s*[-–]\\s*[0-9]{1,3}(?:[\\.,][0-9]+)?)");
+            if (rangeMatch2.Success)
+            {
+                reference = rangeMatch2.Groups[1].Value.Replace(',', '.');
+                unit = Regex.Replace(unit, Regex.Escape(rangeMatch2.Groups[1].Value), "").Trim();
+            }
+        }
+
+        // Final cleanups
+        if (!string.IsNullOrWhiteSpace(value)) value = value.Trim();
+        if (!string.IsNullOrWhiteSpace(unit)) unit = unit.Trim();
+        if (!string.IsNullOrWhiteSpace(reference)) reference = reference.Trim();
+
+        return (Value: value ?? string.Empty, Unit: unit, Reference: reference);
+    }
 
     public IReadOnlyList<ExtractedLabResult> Extract(OcrDocumentGraph graph)
     {
@@ -116,27 +212,32 @@ public sealed class GeometricTableExtractor
         foreach (var token in row)
         {
             int xScaled = (int)(token.BoundingBox.CenterX * 10000);
-
+            var txt = CleanTokenText(token.Text);
             if (columns.AnalysisRange is { } ar && xScaled >= ar.Start.Value && xScaled <= ar.End.Value)
-                analysisName = (analysisName is null) ? token.Text : $"{analysisName} {token.Text}";
+                analysisName = (analysisName is null) ? txt : $"{analysisName} {txt}";
             else if (columns.ResultRange is { } rr && xScaled >= rr.Start.Value && xScaled <= rr.End.Value)
-                resultValue = (resultValue is null) ? token.Text : $"{resultValue} {token.Text}";
+                resultValue = (resultValue is null) ? txt : $"{resultValue} {txt}";
             else if (columns.UnitRange is { } ur && xScaled >= ur.Start.Value && xScaled <= ur.End.Value)
-                unit = (unit is null) ? token.Text : $"{unit} {token.Text}";
+                unit = (unit is null) ? txt : $"{unit} {txt}";
             else if (columns.ReferenceRange is { } refR && xScaled >= refR.Start.Value && xScaled <= refR.End.Value)
-                referenceRange = (referenceRange is null) ? token.Text : $"{referenceRange} {token.Text}";
+                referenceRange = (referenceRange is null) ? txt : $"{referenceRange} {txt}";
         }
 
         if (string.IsNullOrWhiteSpace(analysisName) || string.IsNullOrWhiteSpace(resultValue))
             return null;
 
-        bool outOfRange = IsOutOfRange(resultValue, referenceRange);
+        var normalized = NormalizeValueUnitReference(resultValue, unit, referenceRange);
+        var valueFinal = normalized.Value;
+        var unitFinal = normalized.Unit;
+        var referenceFinal = normalized.Reference;
+
+        bool outOfRange = IsOutOfRange(valueFinal, referenceFinal);
 
         return new ExtractedLabResult(
             AnalysisName: new ExtractedField<string>(analysisName.Trim(), 0.85f, ExtractionMethod.BoundingBoxAlignment),
-            Value: new ExtractedField<string>(resultValue.Trim(), 0.85f, ExtractionMethod.BoundingBoxAlignment),
-            Unit: unit is null ? null : new ExtractedField<string>(unit.Trim(), 0.80f, ExtractionMethod.BoundingBoxAlignment),
-            ReferenceRange: referenceRange is null ? null : new ExtractedField<string>(referenceRange.Trim(), 0.80f, ExtractionMethod.BoundingBoxAlignment),
+            Value: new ExtractedField<string>(valueFinal.Trim(), 0.85f, ExtractionMethod.BoundingBoxAlignment),
+            Unit: unitFinal is null ? null : new ExtractedField<string>(unitFinal.Trim(), 0.80f, ExtractionMethod.BoundingBoxAlignment),
+            ReferenceRange: referenceFinal is null ? null : new ExtractedField<string>(referenceFinal.Trim(), 0.80f, ExtractionMethod.BoundingBoxAlignment),
             SampleDate: null,
             IsOutOfRange: outOfRange);
     }
