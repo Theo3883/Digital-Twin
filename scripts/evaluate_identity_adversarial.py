@@ -2,21 +2,28 @@
 """Evaluate the identity validator against an adversarial case set.
 
 Reads a JSON dataset with cases shaped like:
-  {
-    "patient_profile": {"name": "...", "cnp": "..."},
-    "cases": [
-      {"id": "A01", "doc_name": "...", "doc_cnp": "...", "expected": "ACCEPT"}
-    ]
-  }
+ {
+   "patient_profile": {"name": "...", "cnp": "..."},
+   "cases": [
+     {"id": "A01", "doc_name": "...", "doc_cnp": "...", "expected": "ACCEPT"}
+   ],
+   "name_examples": [
+     {"doc_name": "Theodor Sandu"},
+     {"doc_name": "Țeodor Șandu"},
+     {"doc_name": "SANDU Theodor"},
+     {"doc_name": "Theo Sandu"}
+   ]
+ }
 
 Each case is turned into a small OCR text snippet and passed directly through
 NativeAOT via mobile_engine_validate_identity.
 
 Outputs:
-  - results/table3_adversarial.csv
-  - results/table3_adversarial.md
-    - results/table3_adversarial_compact.md
-  - results/table3_adversarial_summary.json
+ - results/table3_adversarial.csv
+ - results/table3_adversarial.md
+ - results/table3_adversarial_compact.md
+ - results/table3_adversarial_summary.json
+ - results/table_names_compact.md
 
 Console output includes an ASCII Table 3.
 """
@@ -25,9 +32,10 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import os
+import re
 import sqlite3
 import sys
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -37,6 +45,12 @@ try:
 except Exception:
     NativeHostBridge = None
 
+DEFAULT_NAME_EXAMPLES: tuple[dict[str, str], ...] = (
+    {"doc_name": "Theodor Sandu"},
+    {"doc_name": "Țeodor Șandu"},
+    {"doc_name": "SANDU Theodor"},
+    {"doc_name": "Theo Sandu"},
+)
 
 @dataclass
 class CaseResult:
@@ -52,6 +66,14 @@ class CaseResult:
     cnp_matched: bool | None = None
     is_valid: bool | None = None
 
+@dataclass
+class NameExampleResult:
+    doc_name: str
+    normalized: str
+    actual: str
+    reason: str
+    edit_distance: int
+    sorted_match: bool
 
 def _build_ocr_text(doc_name: str, doc_cnp: str, category: str) -> str:
     parts: list[str] = []
@@ -61,10 +83,8 @@ def _build_ocr_text(doc_name: str, doc_cnp: str, category: str) -> str:
         parts.append(f"CNP: {doc_cnp}")
     return "\n".join(parts)
 
-
 def _normalize_expected(value: str) -> str:
     return "ACCEPT" if str(value).strip().upper() == "ACCEPT" else "REJECT"
-
 
 def _seed_identity_profile_sqlite(db_path: Path, patient_profile: dict[str, Any]) -> None:
     """Seed a current user and patient row so the validator can resolve a profile."""
@@ -81,9 +101,9 @@ def _seed_identity_profile_sqlite(db_path: Path, patient_profile: dict[str, Any]
         conn.execute(
             """
             INSERT OR REPLACE INTO Users
-                (Id, Email, Role, FirstName, LastName, PhotoUrl, Phone, Address, City, Country, DateOfBirth, CreatedAt, UpdatedAt, IsSynced)
+            (Id, Email, Role, FirstName, LastName, PhotoUrl, Phone, Address, City, Country, DateOfBirth, CreatedAt, UpdatedAt, IsSynced)
             VALUES
-                (?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, ?, ?, 1)
+            (?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, NULL, NULL, ?, ?, 1)
             """,
             (
                 user_id,
@@ -98,10 +118,10 @@ def _seed_identity_profile_sqlite(db_path: Path, patient_profile: dict[str, Any]
         conn.execute(
             """
             INSERT OR REPLACE INTO Patients
-                (Id, UserId, BloodType, Allergies, MedicalHistoryNotes, Weight, Height,
-                 BloodPressureSystolic, BloodPressureDiastolic, Cholesterol, Cnp, CreatedAt, UpdatedAt, IsSynced)
+            (Id, UserId, BloodType, Allergies, MedicalHistoryNotes, Weight, Height,
+             BloodPressureSystolic, BloodPressureDiastolic, Cholesterol, Cnp, CreatedAt, UpdatedAt, IsSynced)
             VALUES
-                (?, ?, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, ?, ?, ?, 1)
+            (?, ?, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, ?, ?, ?, 1)
             """,
             (
                 patient_id,
@@ -114,7 +134,6 @@ def _seed_identity_profile_sqlite(db_path: Path, patient_profile: dict[str, Any]
         conn.commit()
     finally:
         conn.close()
-
 
 def _actual_from_result(result: dict[str, Any]) -> tuple[str, bool | None, bool | None, bool | None, str]:
     if not isinstance(result, dict):
@@ -143,6 +162,53 @@ def _actual_from_result(result: dict[str, Any]) -> tuple[str, bool | None, bool 
     actual = "ACCEPT" if is_valid else "REJECT"
     return actual, name_matched, cnp_matched, is_valid, reason_text
 
+def _normalize_name(value: str) -> str:
+    text = unicodedata.normalize("NFKD", str(value or ""))
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    text = text.lower()
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    return " ".join(text.split())
+
+def _sorted_normalized_name(value: str) -> str:
+    return " ".join(sorted(_normalize_name(value).split()))
+
+def _levenshtein(a: str, b: str) -> int:
+    if a == b:
+        return 0
+    if not a:
+        return len(b)
+    if not b:
+        return len(a)
+
+    previous = list(range(len(b) + 1))
+    for i, ch_a in enumerate(a, start=1):
+        current = [i]
+        for j, ch_b in enumerate(b, start=1):
+            cost = 0 if ch_a == ch_b else 1
+            current.append(
+                min(
+                    previous[j] + 1,
+                    current[j - 1] + 1,
+                    previous[j - 1] + cost,
+                )
+            )
+        previous = current
+    return previous[-1]
+
+def _latex_escape(value: str) -> str:
+    replacements = {
+        "\\": r"\textbackslash{}",
+        "&": r"\&",
+        "%": r"\%",
+        "$": r"\$",
+        "#": r"\#",
+        "_": r"\_",
+        "{": r"\{",
+        "}": r"\}",
+        "~": r"\textasciitilde{}",
+        "^": r"\textasciicircum{}",
+    }
+    return "".join(replacements.get(ch, ch) for ch in str(value))
 
 def _print_table(rows: list[CaseResult]) -> None:
     print("\n══════════════════ Table 3 — Adversarial identity validator set ══════════════════")
@@ -154,6 +220,97 @@ def _print_table(rows: list[CaseResult]) -> None:
             f"{('YES' if row.passed else 'NO'):<8}{row.reason}"
         )
 
+def _load_name_examples(dataset: dict[str, Any]) -> list[dict[str, str]]:
+    raw_examples = dataset.get("name_examples")
+    if isinstance(raw_examples, list) and raw_examples:
+        examples: list[dict[str, str]] = []
+        for item in raw_examples:
+            if isinstance(item, dict):
+                doc_name = str(item.get("doc_name", "") or "").strip()
+                if not doc_name:
+                    continue
+                examples.append(
+                    {
+                        "doc_name": doc_name,
+                        "doc_cnp": str(item.get("doc_cnp", "") or "").strip(),
+                        "note": str(item.get("note", "") or "").strip(),
+                    }
+                )
+            else:
+                doc_name = str(item or "").strip()
+                if doc_name:
+                    examples.append({"doc_name": doc_name, "doc_cnp": "", "note": ""})
+        if examples:
+            return examples
+
+    return [dict(example) for example in DEFAULT_NAME_EXAMPLES]
+
+def _evaluate_name_examples(
+    bridge: Any,
+    patient_profile: dict[str, Any],
+    dataset: dict[str, Any],
+) -> list[NameExampleResult]:
+    profile_name = str(patient_profile.get("name", "") or "").strip() or "Theodor Sandu"
+    profile_cnp = str(patient_profile.get("cnp", "") or "").strip()
+    profile_normalized = _normalize_name(profile_name)
+    profile_sorted = _sorted_normalized_name(profile_name)
+
+    results: list[NameExampleResult] = []
+    for example in _load_name_examples(dataset):
+        doc_name = str(example.get("doc_name", "") or "").strip()
+        doc_cnp = str(example.get("doc_cnp", "") or "").strip() or profile_cnp
+        ocr_text = _build_ocr_text(doc_name, doc_cnp, "name_example")
+        payload = bridge.validate_identity(ocr_text)
+        actual, _, _, _, reason = _actual_from_result(payload)
+
+        normalized = _normalize_name(doc_name)
+        edit_distance = _levenshtein(normalized, profile_normalized)
+        sorted_match = normalized != profile_normalized and _sorted_normalized_name(doc_name) == profile_sorted
+
+        if not reason:
+            reason = str(example.get("note", "") or "").strip()
+
+        results.append(
+            NameExampleResult(
+                doc_name=doc_name,
+                normalized=normalized,
+                actual=actual,
+                reason=reason,
+                edit_distance=edit_distance,
+                sorted_match=sorted_match,
+            )
+        )
+
+    return results
+
+def _format_name_example_outcome(row: NameExampleResult) -> str:
+    outcome = f"\\textsc{{{row.actual.lower()}}}"
+    if row.sorted_match:
+        return outcome + "; sorted"
+    if row.actual == "REJECT":
+        return outcome + f" ($d={row.edit_distance}$)"
+    if row.reason:
+        return outcome + "; " + _latex_escape(row.reason)
+    return outcome
+
+def _write_name_examples_table(path: Path, rows: list[NameExampleResult]) -> None:
+    with path.open("w", encoding="utf-8") as fh:
+        fh.write("\\begin{table}[t]\n")
+        fh.write("\\caption{Name normalisation and matching examples.}\n")
+        fh.write("\\label{tab:names}\n")
+        fh.write("\\footnotesize\n")
+        fh.write("\\setlength{\\tabcolsep}{3pt}\n")
+        fh.write("\\begin{tabular}{@{}L{0.31\\columnwidth}L{0.34\\columnwidth}L{0.25\\columnwidth}@{}}\n")
+        fh.write("\\toprule\n")
+        fh.write("\\textbf{Document name} & \\textbf{Normalised} & \\textbf{Outcome} \\\\\n")
+        fh.write("\\midrule\n")
+        for row in rows:
+            fh.write(
+                f"{_latex_escape(row.doc_name)} & \\texttt{{{_latex_escape(row.normalized)}}} & {_format_name_example_outcome(row)} \\\\\n"
+            )
+        fh.write("\\bottomrule\n")
+        fh.write("\\end{tabular}\n")
+        fh.write("\\end{table}\n")
 
 def main() -> int:
     parser = argparse.ArgumentParser()
@@ -189,7 +346,6 @@ def main() -> int:
     bridge.initialize(str((args.out_dir / "identity_native_db").resolve()), "", "", "", "", "", "")
     bridge.initialize_database()
 
-    # Seed the SQLite DB directly so the validator sees an active profile.
     db_path = args.out_dir / "identity_native_db"
     _seed_identity_profile_sqlite(db_path, patient_profile)
 
@@ -296,20 +452,17 @@ def main() -> int:
         fh.write("\\setlength{\\tabcolsep}{3pt}\n")
         fh.write("\\begin{tabular}{@{}L{0.26\\columnwidth}L{0.22\\columnwidth}L{0.40\\columnwidth}@{}}\n")
         fh.write("\\toprule\n")
-        fh.write("\\textbf{Case ID} & \\textbf{Expected} & \\textbf{Outcome} \\\\n")
+        fh.write("\\textbf{Case ID} & \\textbf{Expected} & \\textbf{Outcome} \\\\\n")
         fh.write("\\midrule\n")
         for row in results:
             expected = row.expected.lower()
             actual = row.actual.lower()
-            pass_text = "accept" if row.passed else "reject"
             outcome = f"\\textsc{{{actual}}}"
             if not row.passed:
                 outcome += " (mismatch)"
             elif expected != actual:
                 outcome += " (normalized)"
-            fh.write(
-                f"{row.case_id} & \\textsc{{{expected}}} & {outcome} \\\\n"
-            )
+            fh.write(f"{row.case_id} & \\textsc{{{expected}}} & {outcome} \\\\\n")
         fh.write("\\bottomrule\n")
         fh.write("\\end{tabular}\n")
         fh.write("\\end{table}\n\n")
@@ -331,9 +484,13 @@ def main() -> int:
         encoding="utf-8",
     )
 
+    name_results = _evaluate_name_examples(bridge, patient_profile, dataset)
+    names_path = args.out_dir / "table_names_compact.md"
+    _write_name_examples_table(names_path, name_results)
+
+    print(f"Name examples table written to {names_path.resolve()}")
     print(f"\nArtifacts written to {args.out_dir.resolve()}")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())
