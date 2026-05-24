@@ -8,7 +8,13 @@ class NativeHostBridge:
         self.lib = ctypes.cdll.LoadLibrary(dylib_path)
         # functions that return allocated UTF8 pointers
         self._set_sig("mobile_engine_initialize", 7)
+        self._set_sig("mobile_engine_initialize_database", 0)
         self._set_sig("mobile_engine_build_structured_document_json", 1)
+        self._set_sig("mobile_engine_validate_identity", 1)
+        self._set_sig("mobile_engine_get_current_user", 0)
+        self._set_sig("mobile_engine_update_current_user", 1)
+        self._set_sig("mobile_engine_get_patient_profile", 0)
+        self._set_sig("mobile_engine_update_patient_profile", 1)
         # free function
         try:
             self.lib.mobile_engine_free_string.argtypes = [ctypes.c_void_p]
@@ -52,9 +58,53 @@ class NativeHostBridge:
         except Exception:
             return {"raw": res}
 
+    def initialize_database(self) -> dict:
+        res = self._call_and_free("mobile_engine_initialize_database")
+        try:
+            return json.loads(res)
+        except Exception:
+            return {"raw": res}
+
     def build_structured_document_json(self, input_json: dict) -> dict:
         j = json.dumps(input_json, ensure_ascii=False)
         res = self._call_and_free("mobile_engine_build_structured_document_json", j)
+        try:
+            return json.loads(res)
+        except Exception:
+            return {"raw": res}
+
+    def validate_identity(self, ocr_text: str) -> dict:
+        res = self._call_and_free("mobile_engine_validate_identity", ocr_text or "")
+        try:
+            return json.loads(res)
+        except Exception:
+            return {"raw": res}
+
+    def get_current_user(self) -> dict:
+        res = self._call_and_free("mobile_engine_get_current_user")
+        try:
+            return json.loads(res)
+        except Exception:
+            return {"raw": res}
+
+    def update_current_user(self, update_json: dict) -> dict:
+        j = json.dumps(update_json, ensure_ascii=False)
+        res = self._call_and_free("mobile_engine_update_current_user", j)
+        try:
+            return json.loads(res)
+        except Exception:
+            return {"raw": res}
+
+    def get_patient_profile(self) -> dict:
+        res = self._call_and_free("mobile_engine_get_patient_profile")
+        try:
+            return json.loads(res)
+        except Exception:
+            return {"raw": res}
+
+    def update_patient_profile(self, update_json: dict) -> dict:
+        j = json.dumps(update_json, ensure_ascii=False)
+        res = self._call_and_free("mobile_engine_update_patient_profile", j)
         try:
             return json.loads(res)
         except Exception:

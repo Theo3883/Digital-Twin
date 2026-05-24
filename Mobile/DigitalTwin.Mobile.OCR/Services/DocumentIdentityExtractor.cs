@@ -16,10 +16,10 @@ public sealed partial class DocumentIdentityExtractor : IDocumentIdentityExtract
     [GeneratedRegex(@"\b[1-8]\d{12}\b")]
     private static partial Regex CnpRegex();
 
-    [GeneratedRegex(@"(?:CNP)\s*[:\-–]?\s*([1-8][\d\s.]{11,15}\d)", RegexOptions.IgnoreCase)]
+    [GeneratedRegex(@"(?:CNP)\s*[:\-–]?\s*([1-8][\d\s.]{12,64}\d)", RegexOptions.IgnoreCase)]
     private static partial Regex LabeledCnpRegex();
 
-    [GeneratedRegex(@"\b[1-8][\d\s]{12,16}\b")]
+    [GeneratedRegex(@"\b[1-8][\d\s]{12,64}\b")]
     private static partial Regex SpaceTolerantCnpRegex();
 
     [GeneratedRegex(
@@ -42,7 +42,7 @@ public sealed partial class DocumentIdentityExtractor : IDocumentIdentityExtract
     [GeneratedRegex(@"\b(arcadia|policlinic(?:a)?|spital(?:ul)?|laborator(?:ul)?|radiologie|centru(?:l)?|clinica|medicale)\b", RegexOptions.IgnoreCase)]
     private static partial Regex InstitutionLineRegex();
 
-    [GeneratedRegex(@"^[A-Za-zĂÂÎȘȚăâîșțÁÉÍÓÚáéíóú\-\s]+$")]
+    [GeneratedRegex(@"^[A-Za-zĂÂÎȘŞȚșşțăâîșțÁÉÍÓÚáéíóú\-\s]+$")]
     private static partial Regex NameCandidateRegex();
 
     private static readonly string[] FieldAnchors =
@@ -141,7 +141,7 @@ public sealed partial class DocumentIdentityExtractor : IDocumentIdentityExtract
         string? best = null; float bestConf = 0f;
         for (var i = 0; i < lines.Length; i++)
         {
-            var line = StripNonNameTail(lines[i].Trim());
+            var line = NormalizeNameText(StripNonNameTail(lines[i].Trim()));
             if (string.IsNullOrWhiteSpace(line)) continue;
             if (IsFieldAnchor(line) || InstitutionLineRegex().IsMatch(line)) continue;
             if (CnpRegex().IsMatch(line) || DateRegex().IsMatch(line)) continue;
@@ -149,7 +149,6 @@ public sealed partial class DocumentIdentityExtractor : IDocumentIdentityExtract
             if (!NameCandidateRegex().IsMatch(line)) continue;
             var words = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (words.Length < 2 || words.Length > 5) continue;
-            if (!words.Any(w => char.IsUpper(w[0]))) continue;
             var conf = ScoreCandidate(lines, i);
             if (conf > bestConf) { best = string.Join(" ", words); bestConf = conf; }
         }
@@ -194,7 +193,33 @@ public sealed partial class DocumentIdentityExtractor : IDocumentIdentityExtract
         cleaned = Regex.Replace(cleaned, @"_+", "").Trim();
         cleaned = DateRegex().Replace(cleaned, "").Trim();
         cleaned = PurelyNumericRegex().Replace(cleaned, "").Trim();
-        return cleaned.TrimEnd(':', '-', '–', ' ');
+        return NormalizeNameText(cleaned.TrimEnd(':', '-', '–', ' '));
+    }
+
+    private static string NormalizeNameText(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return string.Empty;
+
+        var sb = new System.Text.StringBuilder(input.Length);
+        var lastWasSpace = true;
+
+        foreach (var c in input.Trim())
+        {
+            if (char.IsLetter(c))
+            {
+                sb.Append(c);
+                lastWasSpace = false;
+                continue;
+            }
+
+            if (!lastWasSpace)
+            {
+                sb.Append(' ');
+                lastWasSpace = true;
+            }
+        }
+
+        return sb.ToString().Trim();
     }
 
     private static bool IsPlausibleName(string name)
@@ -202,6 +227,6 @@ public sealed partial class DocumentIdentityExtractor : IDocumentIdentityExtract
         if (string.IsNullOrWhiteSpace(name) || !NameCandidateRegex().IsMatch(name)) return false;
         var words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (words.Length < 2 || words.Length > 5) return false;
-        return words.Any(w => w.Length > 0 && char.IsUpper(w[0])) && !IsFieldAnchor(name);
+        return !IsFieldAnchor(name);
     }
 }

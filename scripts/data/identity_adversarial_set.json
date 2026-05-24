@@ -1,0 +1,498 @@
+{
+  "patient_profile": {
+    "name": "Theodor Șandu",
+    "cnp": "1900101220011"
+  },
+  "validator_under_test": "DigitalTwin.Mobile.Domain.Services.DocumentIdentityValidator",
+  "matching_rules_summary": {
+    "cnp": "Strict ordinal equality on trimmed strings.",
+    "name": "Diacritic-stripped, lowercase, non-letter→space; tokens compared via Levenshtein (≤2/token) using sorted-positional or subset matching.",
+    "extractor_constraints": [
+      "CNP regex \\b[1-8]\\d{12}\\b (digit normalization handles O→0, l→1, etc.)",
+      "Labeled name preferred (Nume:, Pacient:, etc.) – must contain 2..5 word-tokens to be plausible."
+    ]
+  },
+  "total_cases": 60,
+  "cases": [
+    {
+      "id": "A01",
+      "category": "exact",
+      "doc_name": "Theodor Șandu",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Match exact nume + CNP."
+    },
+    {
+      "id": "A02",
+      "category": "diacritice_lipsa",
+      "doc_name": "Theodor Sandu",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Lipsește diacritica la nume (Ș→S), distanță 0 după normalizare."
+    },
+    {
+      "id": "A03",
+      "category": "diacritice_lipsa",
+      "doc_name": "Teodor Sandu",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Diminuat: lipsesc diacriticele, distanță 1 (h)."
+    },
+    {
+      "id": "A04",
+      "category": "ordine_inversata",
+      "doc_name": "Șandu Theodor",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Nume + prenume inversate (sorted match)."
+    },
+    {
+      "id": "A05",
+      "category": "inversat_fara_diacritice",
+      "doc_name": "Sandu Teodor",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Inversat + diacritice lipsă."
+    },
+    {
+      "id": "A06",
+      "category": "uppercase",
+      "doc_name": "THEODOR ȘANDU",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Totul majuscule."
+    },
+    {
+      "id": "A07",
+      "category": "lowercase",
+      "doc_name": "theodor șandu",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Totul minuscule."
+    },
+    {
+      "id": "A08",
+      "category": "title_case_fara_diacritice",
+      "doc_name": "Theodor Sandu",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Title case fără diacritice."
+    },
+    {
+      "id": "A09",
+      "category": "spatii_multiple",
+      "doc_name": "Theodor   Șandu",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Spații multiple între tokenuri."
+    },
+    {
+      "id": "A10",
+      "category": "cedila_vs_virgula",
+      "doc_name": "Theodor Şandu",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Ş cu cedilă în loc de Ș cu virgulă."
+    },
+    {
+      "id": "A11",
+      "category": "typo_distanta_2",
+      "doc_name": "Theodro Șandu",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Transpunere de 2 caractere în prenume."
+    },
+    {
+      "id": "A12",
+      "category": "typo_distanta_1",
+      "doc_name": "Theodor Șanda",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "1 caracter modificat în nume."
+    },
+    {
+      "id": "A13",
+      "category": "hyphen_in_loc_de_spatiu",
+      "doc_name": "Theodor-Șandu",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Cratimă tratată ca separator."
+    },
+    {
+      "id": "A14",
+      "category": "initiala_intercalata",
+      "doc_name": "Theodor M Șandu",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Inițială intermediară (subset match)."
+    },
+    {
+      "id": "A15",
+      "category": "apostrof",
+      "doc_name": "Theodor`s Șandu",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Apostrof eliminat la normalizare."
+    },
+    {
+      "id": "A16",
+      "category": "nume_compus_extra",
+      "doc_name": "Theodor Șandu Popescu",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Nume suplimentar – subset forward."
+    },
+    {
+      "id": "A17",
+      "category": "uppercase_inversat",
+      "doc_name": "ȘANDU THEODOR",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Inversat + uppercase."
+    },
+    {
+      "id": "A18",
+      "category": "virgula_separator",
+      "doc_name": "Șandu, Theodor",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Virgulă între tokenuri."
+    },
+    {
+      "id": "A19",
+      "category": "deletie_1_caracter",
+      "doc_name": "Theodor Șand",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Lipsește ultimul caracter (distanță 1)."
+    },
+    {
+      "id": "A20",
+      "category": "insertie_1_caracter",
+      "doc_name": "Theodor Șandui",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Caracter extra adăugat (distanță 1)."
+    },
+    {
+      "id": "A21",
+      "category": "lowercase_inversat",
+      "doc_name": "sandu teodor",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Inversat, lowercase, fără diacritice."
+    },
+    {
+      "id": "A22",
+      "category": "diacritice_accentuate",
+      "doc_name": "Theódor Șandu",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Accent latin (é→e după FormD strip)."
+    },
+    {
+      "id": "A23",
+      "category": "typo_prenume_2",
+      "doc_name": "Teodor Sandu",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Echivalent A03 dar separat pentru repetabilitate."
+    },
+    {
+      "id": "A24",
+      "category": "trim_spatii",
+      "doc_name": "   Theodor Șandu  ",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Spații marginale."
+    },
+    {
+      "id": "A25",
+      "category": "cnp_cu_confuzii_OCR",
+      "doc_name": "Theodor Șandu",
+      "doc_cnp": "190O1O1220011",
+      "expected": "ACCEPT",
+      "rationale": "OCR a confundat 0 cu O → digit normalization recuperează CNP."
+    },
+    {
+      "id": "A26",
+      "category": "diacritica_t_simplu",
+      "doc_name": "Theodor Țandu",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Variație Ș→Ț controlată: distanță 1 după strip diacritic (S vs T) → s vs t = 1."
+    },
+    {
+      "id": "A27",
+      "category": "subset_ordine_aleatorie",
+      "doc_name": "Popescu Theodor Șandu",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Toate tokenurile așteptate găsite (subset)."
+    },
+    {
+      "id": "A28",
+      "category": "mixed_case_diacritice",
+      "doc_name": "tHeOdOr ȘaNdU",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Camel-case haotic."
+    },
+    {
+      "id": "A29",
+      "category": "tab_separator",
+      "doc_name": "Theodor\tȘandu",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Tab între tokenuri."
+    },
+    {
+      "id": "A30",
+      "category": "prenume_typo_1_nume_typo_1",
+      "doc_name": "Theodro Șanda",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Typo în ambele tokenuri (≤2 per token)."
+    },
+    {
+      "id": "R01",
+      "category": "cnp_gresit_diferit",
+      "doc_name": "Theodor Șandu",
+      "doc_cnp": "2900101220011",
+      "expected": "REJECT",
+      "rationale": "CNP diferit (alt prefix)."
+    },
+    {
+      "id": "R02",
+      "category": "cnp_o_cifra_modificata",
+      "doc_name": "Theodor Șandu",
+      "doc_cnp": "1900101220012",
+      "expected": "REJECT",
+      "rationale": "O cifră modificată în CNP."
+    },
+    {
+      "id": "R03",
+      "category": "cnp_lipsa_document",
+      "doc_name": "Theodor Șandu",
+      "doc_cnp": "",
+      "expected": "REJECT",
+      "rationale": "Document fără CNP."
+    },
+    {
+      "id": "R04",
+      "category": "nume_lipsa_document",
+      "doc_name": "",
+      "doc_cnp": "1900101220011",
+      "expected": "REJECT",
+      "rationale": "Document fără nume."
+    },
+    {
+      "id": "R05",
+      "category": "nume_si_cnp_lipsa",
+      "doc_name": "",
+      "doc_cnp": "",
+      "expected": "REJECT",
+      "rationale": "Document gol."
+    },
+    {
+      "id": "R06",
+      "category": "cnp_invalid_prefix_0",
+      "doc_name": "Theodor Șandu",
+      "doc_cnp": "0900101220011",
+      "expected": "REJECT",
+      "rationale": "CNP cu prefix 0 nu e extras (regex [1-8])."
+    },
+    {
+      "id": "R07",
+      "category": "cnp_invalid_prefix_9",
+      "doc_name": "Theodor Șandu",
+      "doc_cnp": "9900101220011",
+      "expected": "REJECT",
+      "rationale": "CNP cu prefix 9 nu e extras."
+    },
+    {
+      "id": "R08",
+      "category": "cnp_12_cifre",
+      "doc_name": "Theodor Șandu",
+      "doc_cnp": "190010122001",
+      "expected": "REJECT",
+      "rationale": "CNP de 12 cifre invalid."
+    },
+    {
+      "id": "R09",
+      "category": "cnp_14_cifre",
+      "doc_name": "Theodor Șandu",
+      "doc_cnp": "19001012200111",
+      "expected": "REJECT",
+      "rationale": "CNP de 14 cifre invalid."
+    },
+    {
+      "id": "R10",
+      "category": "diminutiv_distanta_3",
+      "doc_name": "Theo Șandu",
+      "doc_cnp": "1900101220011",
+      "expected": "REJECT",
+      "rationale": "Prescurtare Theo (distanță 3 vs Theodor)."
+    },
+    {
+      "id": "R11",
+      "category": "diminutiv_distanta_5",
+      "doc_name": "Doru Șandu",
+      "doc_cnp": "1900101220011",
+      "expected": "REJECT",
+      "rationale": "Diminutiv Doru, distanță >2."
+    },
+    {
+      "id": "R12",
+      "category": "doar_prenume",
+      "doc_name": "Theodor",
+      "doc_cnp": "1900101220011",
+      "expected": "REJECT",
+      "rationale": "Un singur token – non-plauzibil."
+    },
+    {
+      "id": "R13",
+      "category": "doar_nume",
+      "doc_name": "Șandu",
+      "doc_cnp": "1900101220011",
+      "expected": "REJECT",
+      "rationale": "Un singur token."
+    },
+    {
+      "id": "R14",
+      "category": "nume_complet_diferit",
+      "doc_name": "Ion Popescu",
+      "doc_cnp": "1900101220011",
+      "expected": "REJECT",
+      "rationale": "Nume complet diferit."
+    },
+    {
+      "id": "R15",
+      "category": "prenume_corect_nume_diferit",
+      "doc_name": "Theodor Popescu",
+      "doc_cnp": "1900101220011",
+      "expected": "REJECT",
+      "rationale": "Nume diferit (distanță 7)."
+    },
+    {
+      "id": "R16",
+      "category": "prenume_diferit_nume_corect",
+      "doc_name": "Vasile Șandu",
+      "doc_cnp": "1900101220011",
+      "expected": "REJECT",
+      "rationale": "Prenume diferit."
+    },
+    {
+      "id": "R17",
+      "category": "tudor_in_loc_de_theodor",
+      "doc_name": "Tudor Șandu",
+      "doc_cnp": "1900101220011",
+      "expected": "REJECT",
+      "rationale": "Tudor vs Theodor distanță 3."
+    },
+    {
+      "id": "R18",
+      "category": "cnp_si_nume_gresite",
+      "doc_name": "Ion Popescu",
+      "doc_cnp": "2900101220011",
+      "expected": "REJECT",
+      "rationale": "Ambele greșite."
+    },
+    {
+      "id": "R19",
+      "category": "doar_initiale",
+      "doc_name": "T. Ș.",
+      "doc_cnp": "1900101220011",
+      "expected": "REJECT",
+      "rationale": "Doar inițiale – non-plauzibil."
+    },
+    {
+      "id": "R20",
+      "category": "nume_numeric",
+      "doc_name": "12345 67890",
+      "doc_cnp": "1900101220011",
+      "expected": "REJECT",
+      "rationale": "Tokenuri numerice."
+    },
+    {
+      "id": "R21",
+      "category": "institutie",
+      "doc_name": "Spitalul Județean",
+      "doc_cnp": "1900101220011",
+      "expected": "REJECT",
+      "rationale": "Linie de instituție, nu pacient."
+    },
+    {
+      "id": "R22",
+      "category": "patru_tokenuri_diferite",
+      "doc_name": "John Smith Doe Roe",
+      "doc_cnp": "1900101220011",
+      "expected": "REJECT",
+      "rationale": "Niciun token nu corespunde."
+    },
+    {
+      "id": "R23",
+      "category": "cnp_doar_litere",
+      "doc_name": "Theodor Șandu",
+      "doc_cnp": "ABCDEFGHIJKLM",
+      "expected": "REJECT",
+      "rationale": "CNP cu litere – nu se extrage."
+    },
+    {
+      "id": "R24",
+      "category": "cnp_transpus",
+      "doc_name": "Theodor Șandu",
+      "doc_cnp": "9100101220011",
+      "expected": "REJECT",
+      "rationale": "Prima cifră schimbată cu 9 (invalid + diferit)."
+    },
+    {
+      "id": "R25",
+      "category": "diminutiv_extrem",
+      "doc_name": "Teo San",
+      "doc_cnp": "1900101220011",
+      "expected": "REJECT",
+      "rationale": "Distanțe 4+2 → reject."
+    },
+    {
+      "id": "R26",
+      "category": "nume_corect_cnp_aproape",
+      "doc_name": "Theodor Șandu",
+      "doc_cnp": "1900101220010",
+      "expected": "REJECT",
+      "rationale": "Ultima cifră schimbată."
+    },
+    {
+      "id": "R27",
+      "category": "verificare_pozitiva_spatii_in_cnp_invalid",
+      "doc_name": "Theodor Șandu",
+      "doc_cnp": "1 9 0 0 1 0 1 2 2 0 0 1 1",
+      "expected": "ACCEPT",
+      "rationale": "Spațiul-tolerant regex îl recuperează (verificare)."
+    },
+    {
+      "id": "R28",
+      "category": "cnp_partial_repetitiv",
+      "doc_name": "Theodor Șandu",
+      "doc_cnp": "1111111111111",
+      "expected": "REJECT",
+      "rationale": "CNP valid ca format dar diferit de profil."
+    },
+    {
+      "id": "R29",
+      "category": "nume_inversat_cnp_gresit",
+      "doc_name": "Șandu Theodor",
+      "doc_cnp": "2900101220011",
+      "expected": "REJECT",
+      "rationale": "Nume OK dar CNP diferit."
+    },
+    {
+      "id": "R30",
+      "category": "verificare_pozitiva_prenume_typo_3",
+      "doc_name": "Theodore Șandu",
+      "doc_cnp": "1900101220011",
+      "expected": "ACCEPT",
+      "rationale": "Distanță 1 (extra 'e') – ar trebui ACCEPT (verificare pozitivă)."
+    }
+  ]
+}

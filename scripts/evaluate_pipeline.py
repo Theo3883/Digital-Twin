@@ -960,6 +960,57 @@ def main() -> int:
         ])
         w.writeheader()
         w.writerows(by_rows)
+    # Write a human-readable explanation of Table 2 and CSV artifacts
+    try:
+        readme = args.out_dir / "table2_readme.md"
+        readme.write_text(
+            """
+# Table 2 — Metrics and CSV artifacts
+
+This folder contains evaluation artifacts produced by `evaluate_pipeline.py`.
+
+Files:
+
+- `predictions.json`: Full list of predictions and intermediate payloads per document.
+- `per_doc_coreml.csv`: Per-document rows used to compute the global metrics for the pipeline that uses the CoreML classifier. Columns:
+  - `stem`: document id (filename stem)
+  - `doc_type`: ground-truth document type
+  - `field`: the evaluated field (e.g. `patient_name`, `medications`, `lab_values`)
+  - `gt`: ground-truth value for the field
+  - `pred`: predicted value for the field
+  - `tp`: 1 if this document contributed a true positive for this field, else 0
+  - `fp`: 1 if false positive, else 0
+  - `fn`: 1 if false negative, else 0
+
+- `per_doc_heuristic.csv`: Same as above but for the heuristic-only extractor (using GT doc_type).
+
+- `table2_metrics_coreml.csv`: Global aggregated metrics for Table 2 (pipeline using CoreML doc_type). Columns:
+  - `field`: evaluated field
+  - `P`: Precision = TP / (TP + FP)
+  - `R`: Recall = TP / (TP + FN)
+  - `F1`: F1 score = 2PR/(P+R)
+  - `TP`: total true positives
+  - `FP`: total false positives
+  - `FN`: total false negatives
+
+- `table2_metrics_heuristic.csv`: Global aggregated metrics for the heuristic-only pipeline (GT doc_type). Same columns as above.
+
+- `table2_by_doctype.csv`: Table 2 metrics broken down by `doc_type` and `field`.
+
+Notes:
+
+- Precision (`P`) measures how many predicted items are correct.
+- Recall (`R`) measures how many ground-truth items were recovered.
+- F1 is the harmonic mean of precision and recall.
+- For scalar fields (e.g., `patient_name`, `doctor_name`, `diagnosis`) fuzzy token-level string matching with Levenshtein tolerance is used.
+- For list fields (`medications`, `lab_values`) micro-averaging is used: matches are counted by item-level keys (name + dose/value).
+
+If you need a different CSV layout or additional columns (e.g., per-field support counts), tell me which columns to include and I will add them.
+""",
+            encoding="utf-8",
+        )
+    except Exception:
+        pass
 
     print(f"\n→ artefacts in {args.out_dir.resolve()}")
     return 0
