@@ -209,7 +209,7 @@ class MobileEngineSessionStore: ObservableObject {
         syncLoopTask?.cancel()
         syncLoopTask = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 7_000_000_000)
+                try? await Task.sleep(nanoseconds: 5 * 60 * 1_000_000_000)
                 guard let self = self, !Task.isCancelled else { break }
                 print("[SyncLoop] Periodic sync tick")
                 // Use isCloudAuthenticated (from .NET) instead of Swift's cloudAccessToken

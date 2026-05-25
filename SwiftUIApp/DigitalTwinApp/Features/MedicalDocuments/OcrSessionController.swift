@@ -316,7 +316,9 @@ final class OcrSessionController: ObservableObject {
             print("[OCR Pipeline] Starting processImages: \(images.count) images, mimeType=\(mimeType), docId=\(documentId)")
 
             currentStep = .recognizing
-            let pageTexts = try await visionService.recognizePages(images)
+            let pageTexts = try await PerformanceProfiler.shared.measureAsync(stage: .appleVisionOCR) {
+                try await visionService.recognizePages(images)
+            }
             print("[OCR Pipeline] Vision recognized \(pageTexts.count) pages, total chars=\(pageTexts.joined().count)")
 
             guard !pageTexts.allSatisfy({ $0.isEmpty }) else {
@@ -342,15 +344,21 @@ final class OcrSessionController: ObservableObject {
 
             currentStep = .classifying
             let classT0 = CFAbsoluteTimeGetCurrent()
-            let classification = await repository.classifyWithOrchestrator(
-                ocrText: combinedText, mlType: mlType, mlConfidence: mlConfidence
-            )
+            let classification = await PerformanceProfiler.shared.measureAsync(stage: .documentClassifier) {
+                await repository.classifyWithOrchestrator(
+                    ocrText: combinedText, mlType: mlType, mlConfidence: mlConfidence
+                )
+            }
             classificationResult = classification
             let classMs = Int64((CFAbsoluteTimeGetCurrent() - classT0) * 1000)
             print("[OCR Pipeline] Classification took \(classMs)ms → type=\(classification?.type ?? "nil"), conf=\(classification?.confidence ?? 0), method=\(classification?.method ?? "nil")")
 
             currentStep = .extractingIdentity
-            guard let rawPipelineJson = await repository.processFullOcrRawJson(combinedText),
+            let rawPipelineResult = await PerformanceProfiler.shared.measureAsync(stage: .identityValidator) {
+                await repository.processFullOcrRawJson(combinedText)
+            }
+            
+            guard let rawPipelineJson = rawPipelineResult,
                   let jsonData = rawPipelineJson.data(using: .utf8) else {
                 error = "OCR pipeline failed to return a result."
                 currentStep = .failed
@@ -383,15 +391,15 @@ final class OcrSessionController: ObservableObject {
 
             let vaultMime: String
             let vaultData: Data?
-            if images.count > 1 {
-                vaultMime = "application/pdf"
-                vaultData = DocumentScanNormalizer.pdfDataFromScannedPages(images)
-            } else if let one = images.first {
-                vaultMime = mimeType
-                vaultData = DocumentScanNormalizer.jpegData(one)
-            } else {
-                vaultMime = mimeType
-                vaultData = nil
+            
+            (vaultMime, vaultData) = PerformanceProfiler.shared.measure(stage: .sanitizer) {
+                if images.count > 1 {
+                    return ("application/pdf", DocumentScanNormalizer.pdfDataFromScannedPages(images))
+                } else if let one = images.first {
+                    return (mimeType, DocumentScanNormalizer.jpegData(one))
+                } else {
+                    return (mimeType, nil)
+                }
             }
 
             guard let payload = vaultData, !payload.isEmpty else {
@@ -408,7 +416,9 @@ final class OcrSessionController: ObservableObject {
                 pageCount: images.count,
                 documentId: documentId.uuidString
             )
-            let vaultStoreOutcome = await repository.vaultStoreDocument(storeInput)
+            let vaultStoreOutcome = await PerformanceProfiler.shared.measureAsync(stage: .vaultWrite) {
+                await repository.vaultStoreDocument(storeInput)
+            }
             guard let vaultResult = vaultStoreOutcome, vaultResult.success else {
                 error = vaultStoreOutcome?.error ?? "Failed to store document in the vault."
                 currentStep = .failed
@@ -442,7 +452,9 @@ final class OcrSessionController: ObservableObject {
                 classificationDurationMs: classMs,
                 graph: graph
             )
-            let structured = await repository.buildStructuredDocumentFromJson(structuredInput)
+            let structured = await PerformanceProfiler.shared.measureAsync(stage: .heuristicExtractor) {
+                await repository.buildStructuredDocumentFromJson(structuredInput)
+            }
             structuredResult = structured
             reviewFlags = structured?.reviewFlags ?? []
             print("[OCR Pipeline] Structured result: \(structured?.reviewFlags.count ?? 0) review flags")
@@ -460,6 +472,8 @@ final class OcrSessionController: ObservableObject {
                 documentTypeOverride: docType,
                 cachedProcessingResultJson: rawPipelineJson
             )
+            
+            // Just after saving and refreshing the repository, generate the report if enough runs happened
             guard let saved = await repository.saveDocument(save) else {
                 error = error ?? "Failed to save document record."
                 currentStep = .failed
@@ -471,6 +485,9 @@ final class OcrSessionController: ObservableObject {
             lastSavedDocument = saved
             currentStep = .complete
             print("[OCR Pipeline] SUCCESS: document saved, id=\(saved.id), type=\(saved.documentType)")
+            
+            // Auto generate report if needed (for example, if this was part of a batch test)
+            _ = PerformanceProfiler.shared.generateReportAndWriteToFile()
         } catch {
             self.error = error.localizedDescription
             currentStep = .failed
@@ -632,5 +649,128 @@ final class OcrSessionController: ObservableObject {
             currentStep = .failed
             print("[OCR Pipeline] EXCEPTION in file import: \(error)")
         }
+    }
+}
+
+// MARK: - Pipeline Stages
+public enum PipelineStage: String, CaseIterable {
+    case appleVisionOCR = "Apple Vision OCR"
+    case documentClassifier = "Document Type Classifier"
+    case identityValidator = "Identity Validator"
+    case heuristicExtractor = "Heuristic Extractor"
+    case sanitizer = "Sanitizer"
+    case vaultWrite = "Write to Vault"
+}
+
+// MARK: - Performance Profiler
+@MainActor
+public final class PerformanceProfiler {
+    public static let shared = PerformanceProfiler()
+    
+    // Config to turn off if not needed
+    public var isEnabled: Bool = true
+    
+    private var measurements: [PipelineStage: [TimeInterval]] = [:]
+    private var currentStartTimes: [PipelineStage: Date] = [:]
+    
+    private init() {
+        for stage in PipelineStage.allCases {
+            measurements[stage] = []
+        }
+    }
+    
+    // MARK: - Core Profiling
+    
+    public func start(stage: PipelineStage) {
+        guard isEnabled else { return }
+        currentStartTimes[stage] = Date()
+    }
+    
+    public func stop(stage: PipelineStage) {
+        guard isEnabled else { return }
+        guard let startTime = currentStartTimes[stage] else { return }
+        let duration = Date().timeIntervalSince(startTime)
+        measurements[stage]?.append(duration)
+        currentStartTimes[stage] = nil
+    }
+    
+    // MARK: - Convenience Helpers
+    
+    public func measure<T>(stage: PipelineStage, operation: () throws -> T) rethrows -> T {
+        start(stage: stage)
+        defer { stop(stage: stage) }
+        return try operation()
+    }
+    
+    public func measureAsync<T>(stage: PipelineStage, operation: () async throws -> T) async rethrows -> T {
+        start(stage: stage)
+        defer { stop(stage: stage) }
+        return try await operation()
+    }
+    
+    // MARK: - Report Generation
+    
+    public func generateReportAndWriteToFile(filename: String = "PerformanceReport_Table4.txt") -> URL? {
+        guard isEnabled else { return nil }
+        
+        var report = "Performance Report (Table 4)\n"
+        report += "========================================\n\n"
+        
+        let device = UIDevice.current
+        report += "Device Info:\n"
+        report += "Model: \(getDeviceModel())\n"
+        report += "OS Version: iOS \(device.systemVersion)\n\n"
+        
+        report += "Timing Results (Mean ± StdDev):\n"
+        report += "----------------------------------------\n"
+        
+        for stage in PipelineStage.allCases {
+            guard let durations = measurements[stage], !durations.isEmpty else {
+                report += "\(stage.rawValue): No data\n"
+                continue
+            }
+            
+            let durationsInMs = durations.map { $0 * 1000 }
+            let mean = durationsInMs.reduce(0, +) / Double(durationsInMs.count)
+            
+            let variance = durationsInMs.reduce(0) { $0 + pow($1 - mean, 2) } / Double(durationsInMs.count)
+            let stdDev = sqrt(variance)
+            
+            let formattedMean = String(format: "%.2f", mean)
+            let formattedStdDev = String(format: "%.2f", stdDev)
+            
+            report += "\(stage.rawValue): \(formattedMean) ms ± \(formattedStdDev) ms (Count: \(durations.count))\n"
+        }
+        
+        let fileManager = FileManager.default
+        guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else { return nil }
+        
+        let fileURL = documentsDirectory.appendingPathComponent(filename)
+        do {
+            try report.write(to: fileURL, atomically: true, encoding: .utf8)
+            print("Successfully wrote performance report to: \(fileURL.path)")
+            return fileURL
+        } catch {
+            print("Error writing to file: \(error)")
+            return nil
+        }
+    }
+    
+    private func getDeviceModel() -> String {
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let machineMirror = Mirror(reflecting: systemInfo.machine)
+        let identifier = machineMirror.children.reduce("") { identifier, element in
+            guard let value = element.value as? Int8, value != 0 else { return identifier }
+            return identifier + String(UnicodeScalar(UInt8(value)))
+        }
+        return identifier
+    }
+    
+    public func reset() {
+        for stage in PipelineStage.allCases {
+            measurements[stage] = []
+        }
+        currentStartTimes.removeAll()
     }
 }
