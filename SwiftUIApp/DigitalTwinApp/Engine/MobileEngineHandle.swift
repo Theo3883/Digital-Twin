@@ -110,14 +110,20 @@ actor MobileEngineHandle {
 
     func evaluateEcgFrame(_ frame: EcgFrameInput) async throws -> EcgEvaluationResult {
         // DotNetBridge.evaluateEcgFrame returns the raw JSON from .NET which has this shape:
-        //   { "frame": { "triageResult": "Pass"|"Critical", "spO2": 98.2, "heartRate": 72, ... },
+        //   { "frame": { "triageResult": "Pass"|"Warn"|"Critical", "spO2": 98.2, "heartRate": 72, ... },
         //     "alert": { "ruleName": "...", "message": "...", "timestamp": "..." } | null }
         //
         // This does NOT match EcgEvaluationResult which expects { "triageResult": Int, "alerts": [...] }.
         // We decode into EcgEngineResponse and map to EcgEvaluationResult explicitly.
         let engineResponse = try bridge.evaluateEcgFrame(frame)
+        let triageInt: Int
+        switch engineResponse.frame?.triageResult {
+        case "Critical": triageInt = 2
+        case "Warn":     triageInt = 1
+        default:         triageInt = 0
+        }
         return EcgEvaluationResult(
-            triageResult: engineResponse.frame?.triageResult == "Critical" ? 2 : 0,
+            triageResult: triageInt,
             alerts: engineResponse.alert.map { [$0.message] } ?? [],
             heartRate: Double(engineResponse.frame?.heartRate ?? 0),
             spO2: engineResponse.frame?.spO2 ?? 0,

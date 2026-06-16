@@ -1,0 +1,112 @@
+@startuml IOS Health App - Identity & Assignments Schema
+!theme plain
+skinparam linetype ortho
+skinparam backgroundColor #FEFEFE
+
+title Database Subschema - Identity & Assignments (Cloud & Mobile Local)
+
+entity "User" as user {
+  * Id : GUID <<PK>>
+  --
+  Email : VARCHAR(255) <<UQ>>
+  Role : INT
+  FirstName : VARCHAR(100)
+  LastName : VARCHAR(100)
+  PhotoUrl : VARCHAR(500)
+  Phone : VARCHAR(50)
+  Address : VARCHAR(500)
+  City : VARCHAR(100)
+  Country : VARCHAR(100)
+  DateOfBirth : DATETIME
+  IsSynced : BOOLEAN <<Mobile Only>>
+  IsDirty : BOOLEAN <<Cloud Only>>
+  SyncedAt : DATETIME <<Cloud Only>>
+  CreatedAt : DATETIME
+  UpdatedAt : DATETIME
+  DeletedAt : DATETIME <<Cloud Only>>
+}
+
+entity "UserOAuth" as user_oauth {
+  * Id : GUID <<PK>> <<Cloud Only>>
+  --
+  UserId : GUID <<FK>>
+  Provider : INT
+  ProviderUserId : VARCHAR(255)
+  Email : VARCHAR(255)
+  AccessToken : VARCHAR(1000)
+  RefreshToken : VARCHAR(1000)
+  ExpiresAt : DATETIME
+  IsDirty : BOOLEAN
+  SyncedAt : DATETIME
+  CreatedAt : DATETIME
+  UpdatedAt : DATETIME
+  DeletedAt : DATETIME
+}
+
+entity "Patient" as patient {
+  * Id : GUID <<PK>>
+  --
+  UserId : GUID <<FK, UQ>>
+  Cnp : VARCHAR(13)
+  IsSynced : BOOLEAN <<Mobile Only>>
+  IsDirty : BOOLEAN <<Cloud Only>>
+  SyncedAt : DATETIME <<Cloud Only>>
+  CreatedAt : DATETIME
+  UpdatedAt : DATETIME
+  DeletedAt : DATETIME <<Cloud Only>>
+}
+
+entity "DoctorPatientAssignment (Cloud)" as doctor_patient_cloud {
+  * Id : GUID <<PK>> <<Cloud Only>>
+  --
+  DoctorId : GUID <<FK>>
+  PatientId : GUID <<FK>>
+  PatientEmail : VARCHAR(255)
+  AssignedByDoctorId : GUID <<FK>>
+  Notes : TEXT
+  IsDirty : BOOLEAN
+  SyncedAt : DATETIME
+  AssignedAt : DATETIME
+  CreatedAt : DATETIME
+  DeletedAt : DATETIME
+}
+
+entity "DoctorPatientAssignment (Mobile Local)" as doctor_patient_mobile {
+  * UserId : GUID <<PK, FK>> <<Mobile Only>>
+  * DoctorId : GUID <<PK>> <<Mobile Only>>
+  --
+  FullName : VARCHAR(255)
+  Email : VARCHAR(255)
+  PhotoUrl : VARCHAR(500)
+  AssignedAt : DATETIME
+  Notes : TEXT
+}
+
+entity "Notification" as notification {
+  * Id : GUID <<PK>> <<Cloud Only>>
+  --
+  RecipientUserId : GUID <<FK>>
+  RecipientRole : INT
+  Title : VARCHAR(255)
+  Body : TEXT
+  Type : INT
+  Severity : INT
+  PatientId : GUID
+  ActorUserId : GUID
+  ActorName : VARCHAR(255)
+  ReadAt : DATETIME
+  CreatedAt : DATETIME
+  DeletedAt : DATETIME
+}
+
+' =============================================================================
+' RELATIONSHIPS
+' =============================================================================
+user ||--o| patient : "is"
+user ||--o{ user_oauth : "has"
+user ||--o{ doctor_patient_cloud : "assigns"
+user ||--o{ doctor_patient_mobile : "assigned to (local cache)"
+user ||--o{ notification : "receives"
+patient ||--o{ doctor_patient_cloud : "assigned to"
+
+@enduml

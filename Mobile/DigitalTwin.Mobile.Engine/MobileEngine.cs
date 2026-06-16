@@ -582,7 +582,8 @@ public class MobileEngine : IDisposable
             var service = _scope.ServiceProvider.GetRequiredService<EcgApplicationService>();
             var (frameDto, alertDto) = service.EvaluateFrame(ecgFrame);
 
-            if (alertDto != null)
+            // Only post cloud alert for Critical findings — not for Warn.
+            if (alertDto != null && frameDto.TriageResult == "Critical")
             {
                 // Fire-and-forget: avoid blocking the real-time ECG path.
                 // Throttle to avoid sending 1 alert per second while the condition persists.

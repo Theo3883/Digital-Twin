@@ -13,6 +13,11 @@ public class SyncService
     private readonly IUserRepository _userRepository;
     private readonly IPatientRepository _patientRepository;
     private readonly IVitalSignRepository _vitalSignRepository;
+    private readonly IMedicationRepository _medicationRepository;
+    private readonly ISleepSessionRepository _sleepSessionRepository;
+    private readonly IOcrDocumentRepository _ocrDocumentRepository;
+    private readonly IMedicalHistoryEntryRepository _medicalHistoryRepository;
+    private readonly IEnvironmentReadingRepository _environmentRepository;
     private readonly IDoctorPatientAssignmentRepository _doctorAssignmentRepository;
     private readonly ICloudSyncService _cloudSyncService;
     private readonly ISyncStateService _syncStateService;
@@ -29,6 +34,11 @@ public class SyncService
         IUserRepository userRepository,
         IPatientRepository patientRepository,
         IVitalSignRepository vitalSignRepository,
+        IMedicationRepository medicationRepository,
+        ISleepSessionRepository sleepSessionRepository,
+        IOcrDocumentRepository ocrDocumentRepository,
+        IMedicalHistoryEntryRepository medicalHistoryRepository,
+        IEnvironmentReadingRepository environmentRepository,
         IDoctorPatientAssignmentRepository doctorAssignmentRepository,
         ICloudSyncService cloudSyncService,
         ISyncStateService syncStateService,
@@ -37,6 +47,11 @@ public class SyncService
         _userRepository = userRepository;
         _patientRepository = patientRepository;
         _vitalSignRepository = vitalSignRepository;
+        _medicationRepository = medicationRepository;
+        _sleepSessionRepository = sleepSessionRepository;
+        _ocrDocumentRepository = ocrDocumentRepository;
+        _medicalHistoryRepository = medicalHistoryRepository;
+        _environmentRepository = environmentRepository;
         _doctorAssignmentRepository = doctorAssignmentRepository;
         _cloudSyncService = cloudSyncService;
         _syncStateService = syncStateService;
@@ -86,11 +101,18 @@ public class SyncService
             return;
 
         // Early exit: check if anything needs pushing
-        var unsyncedUsers = await _userRepository.GetUnsyncedAsync();
-        var unsyncedPatients = await _patientRepository.GetUnsyncedAsync();
-        var unsyncedVitals = await _vitalSignRepository.GetUnsyncedAsync();
+        var unsyncedUsers       = await _userRepository.GetUnsyncedAsync();
+        var unsyncedPatients    = await _patientRepository.GetUnsyncedAsync();
+        var unsyncedVitals      = await _vitalSignRepository.GetUnsyncedAsync();
+        var unsyncedMedications = await _medicationRepository.GetUnsyncedAsync();
+        var unsyncedSleep       = await _sleepSessionRepository.GetUnsyncedAsync();
+        var dirtyOcrDocs        = await _ocrDocumentRepository.GetDirtyAsync();
+        var dirtyHistory        = await _medicalHistoryRepository.GetDirtyAsync();
+        var dirtyEnvironment    = await _environmentRepository.GetDirtyAsync();
 
-        if (!unsyncedUsers.Any() && !unsyncedPatients.Any() && !unsyncedVitals.Any())
+        if (!unsyncedUsers.Any() && !unsyncedPatients.Any() && !unsyncedVitals.Any()
+            && !unsyncedMedications.Any() && !unsyncedSleep.Any()
+            && !dirtyOcrDocs.Any() && !dirtyHistory.Any() && !dirtyEnvironment.Any())
         {
             _logger.LogDebug("[SyncService] Nothing to push");
             return;
@@ -100,7 +122,12 @@ public class SyncService
         await Task.WhenAll(
             PushUsersAsync(unsyncedUsers),
             PushPatientsAsync(unsyncedPatients),
-            PushVitalSignsAsync(unsyncedVitals)
+            PushVitalSignsAsync(unsyncedVitals),
+            PushMedicationsAsync(unsyncedMedications),
+            PushSleepSessionsAsync(unsyncedSleep),
+            PushOcrDocumentsAsync(dirtyOcrDocs),
+            PushMedicalHistoryAsync(dirtyHistory),
+            PushEnvironmentReadingsAsync(dirtyEnvironment)
         );
     }
 
@@ -169,6 +196,131 @@ public class SyncService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "[SyncService] Failed to push vital signs");
+        }
+    }
+
+    private async Task PushMedicationsAsync(IEnumerable<Models.Medication> unsyncedMedications)
+    {
+        var pending = unsyncedMedications.ToList();
+        if (!pending.Any())
+            return;
+
+        try
+        {
+            if (await _cloudSyncService.SyncMedicationsAsync(pending))
+            {
+                // MarkAsSyncedAsync takes patientId and marks all unsynced meds for that patient.
+                // Group by patientId in case meds from multiple patients are pending.
+                foreach (var patientId in pending.Select(m => m.PatientId).Distinct())
+                    await _medicationRepository.MarkAsSyncedAsync(patientId);
+            }
+            else
+            {
+                _logger.LogWarning("[SyncService] Failed to push {Count} medications", pending.Count);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[SyncService] Failed to push medications");
+        }
+    }
+
+    private async Task PushSleepSessionsAsync(IEnumerable<Models.SleepSession> unsyncedSessions)
+    {
+        var pending = unsyncedSessions.ToList();
+        if (!pending.Any())
+            return;
+
+        try
+        {
+            if (await _cloudSyncService.SyncSleepSessionsAsync(pending))
+            {
+                // Mark all pushed sessions as synced using the latest timestamp as the boundary
+                var latestTimestamp = pending.Max(s => s.StartTime);
+                var currentPatient = await _patientRepository.GetCurrentPatientAsync();
+                if (currentPatient != null)
+                    await _sleepSessionRepository.MarkAsSyncedAsync(currentPatient.Id, latestTimestamp.AddSeconds(1));
+            }
+            else
+            {
+                _logger.LogWarning("[SyncService] Failed to push {Count} sleep sessions", pending.Count);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[SyncService] Failed to push sleep sessions");
+        }
+    }
+
+    private async Task PushOcrDocumentsAsync(IEnumerable<Models.OcrDocument> dirtyDocs)
+    {
+        var pending = dirtyDocs.ToList();
+        if (!pending.Any())
+            return;
+
+        try
+        {
+            if (await _cloudSyncService.SyncOcrDocumentsAsync(pending))
+            {
+                foreach (var doc in pending)
+                    await _ocrDocumentRepository.MarkSyncedAsync(doc.Id);
+            }
+            else
+            {
+                _logger.LogWarning("[SyncService] Failed to push {Count} OCR documents", pending.Count);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[SyncService] Failed to push OCR documents");
+        }
+    }
+
+    private async Task PushMedicalHistoryAsync(IEnumerable<Models.MedicalHistoryEntry> dirtyEntries)
+    {
+        var pending = dirtyEntries.ToList();
+        if (!pending.Any())
+            return;
+
+        try
+        {
+            if (await _cloudSyncService.SyncMedicalHistoryAsync(pending))
+            {
+                await _medicalHistoryRepository.MarkSyncedAsync(pending.Select(e => e.Id));
+            }
+            else
+            {
+                _logger.LogWarning("[SyncService] Failed to push {Count} medical history entries", pending.Count);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[SyncService] Failed to push medical history entries");
+        }
+    }
+
+    private async Task PushEnvironmentReadingsAsync(IEnumerable<Models.EnvironmentReading> dirtyReadings)
+    {
+        var pending = dirtyReadings.ToList();
+        if (!pending.Any())
+            return;
+
+        try
+        {
+            if (await _cloudSyncService.SyncEnvironmentReadingsAsync(pending))
+            {
+                // Mark everything up to and including the latest pushed reading as synced.
+                var latestTimestamp = pending.Max(r => r.Timestamp);
+                await _environmentRepository.MarkSyncedAsync(latestTimestamp);
+            }
+            else
+            {
+                _logger.LogWarning("[SyncService] Failed to push {Count} environment readings", pending.Count);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[SyncService] Failed to push environment readings");
         }
     }
 

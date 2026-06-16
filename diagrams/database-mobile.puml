@@ -1,0 +1,25 @@
+@startuml IOS Health App - Mobile Utilities Schema
+!theme plain
+skinparam linetype ortho
+skinparam backgroundColor #FEFEFE
+
+title Database Subschema - Mobile SQLite Offline Utilities
+
+entity "ChatMessage" as chat_message {
+  * Id : GUID <<PK>> <<Mobile Only>>
+  --
+  Content : TEXT
+  IsUser : BOOLEAN
+  Timestamp : DATETIME
+}
+
+entity "AppCache" as app_cache {
+  * Key : VARCHAR(255) <<PK>> <<Mobile Only>>
+  --
+  ValueJson : TEXT
+  StoredAtUtc : DATETIME
+  Fingerprint : VARCHAR(255)
+  UpdatedAtUtc : DATETIME
+}
+
+@enduml

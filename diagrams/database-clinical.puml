@@ -1,0 +1,123 @@
+@startuml IOS Health App - Clinical & Medications Schema
+!theme plain
+skinparam linetype ortho
+skinparam backgroundColor #FEFEFE
+
+title Database Subschema - Clinical Metrics & Medications (Cloud & Mobile Local)
+
+entity "User" as user {
+  * Id : GUID <<PK>>
+  --
+  Email : VARCHAR(255)
+  Role : INT
+  FirstName : VARCHAR(100)
+  LastName : VARCHAR(100)
+}
+
+entity "Patient" as patient {
+  * Id : GUID <<PK>>
+  --
+  UserId : GUID <<FK, UQ>>
+  BloodType : VARCHAR(10)
+  Allergies : TEXT
+  MedicalHistoryNotes : TEXT
+  Weight : DECIMAL(10,2) [kg]
+  Height : DECIMAL(10,2) [cm]
+  BloodPressureSystolic : INT [mmHg]
+  BloodPressureDiastolic : INT [mmHg]
+  Cholesterol : DECIMAL(10,2) [mmol/L]
+  IsSynced : BOOLEAN <<Mobile Only>>
+  IsDirty : BOOLEAN <<Cloud Only>>
+  SyncedAt : DATETIME <<Cloud Only>>
+  CreatedAt : DATETIME
+  UpdatedAt : DATETIME
+  DeletedAt : DATETIME <<Cloud Only>>
+}
+
+entity "VitalSign" as vitalsign {
+  * Id : GUID <<PK>>
+  --
+  PatientId : GUID <<FK>>
+  Type : INT
+  Value : DECIMAL(18,4)
+  Unit : VARCHAR(20)
+  Source : VARCHAR(50)
+  IsSynced : BOOLEAN <<Mobile Only>>
+  IsDirty : BOOLEAN <<Cloud Only>>
+  SyncedAt : DATETIME <<Cloud Only>>
+  Timestamp : DATETIME
+  CreatedAt : DATETIME
+  DeletedAt : DATETIME <<Cloud Only>>
+}
+
+entity "Medication" as medication {
+  * Id : GUID <<PK>>
+  --
+  PatientId : GUID <<FK>>
+  Name : VARCHAR(255)
+  Dosage : VARCHAR(100)
+  Frequency : VARCHAR(100)
+  Route : INT
+  RxCui : VARCHAR(20)
+  Instructions : TEXT
+  Reason : VARCHAR(255)
+  PrescribedByUserId : GUID <<FK>>
+  StartDate : DATETIME
+  EndDate : DATETIME
+  Status : INT
+  DiscontinuedReason : TEXT
+  AddedByRole : INT
+  IsSynced : BOOLEAN <<Mobile Only>>
+  IsDirty : BOOLEAN <<Cloud Only>>
+  SyncedAt : DATETIME <<Cloud Only>>
+  CreatedAt : DATETIME
+  UpdatedAt : DATETIME
+  DeletedAt : DATETIME <<Cloud Only>>
+}
+
+entity "SleepSession" as sleep {
+  * Id : GUID <<PK>>
+  --
+  PatientId : GUID <<FK>>
+  StartTime : DATETIME
+  EndTime : DATETIME
+  DurationMinutes : INT
+  QualityScore : DECIMAL(5,2)
+  IsSynced : BOOLEAN <<Mobile Only>>
+  IsDirty : BOOLEAN <<Cloud Only>>
+  SyncedAt : DATETIME <<Cloud Only>>
+  CreatedAt : DATETIME
+  DeletedAt : DATETIME <<Cloud Only>>
+}
+
+entity "EnvironmentReading" as env_reading {
+  * Id : GUID <<PK>>
+  --
+  Latitude : DECIMAL(10,7)
+  Longitude : DECIMAL(10,7)
+  LocationDisplayName : VARCHAR(200) <<Mobile Only>>
+  PM25 : DECIMAL(10,2)
+  PM10 : DECIMAL(10,2)
+  O3 : DECIMAL(10,2)
+  NO2 : DECIMAL(10,2)
+  Temperature : DECIMAL(5,2)
+  Humidity : DECIMAL(5,2)
+  AirQualityLevel : INT
+  AqiIndex : INT
+  IsDirty : BOOLEAN
+  SyncedAt : DATETIME
+  Timestamp : DATETIME
+  CreatedAt : DATETIME
+  DeletedAt : DATETIME <<Cloud Only>>
+}
+
+' =============================================================================
+' RELATIONSHIPS
+' =============================================================================
+user ||--o| patient : "is"
+user ||--o{ medication : "prescribes"
+patient ||--o{ vitalsign : "has"
+patient ||--o{ medication : "takes"
+patient ||--o{ sleep : "has"
+
+@enduml

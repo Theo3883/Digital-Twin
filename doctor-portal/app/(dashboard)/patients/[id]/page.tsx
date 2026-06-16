@@ -38,7 +38,7 @@ import { format } from "date-fns";
 
 /* ── Helpers ─────────────────────────────────────── */
 
-const vitalTypes = ["HeartRate", "SpO2", "Steps", "Calories", "ActiveEnergy", "ExerciseMinutes", "StandHours"];
+const vitalTypes = ["HeartRate", "SpO2", "Steps", "Calories", "ActiveEnergy"];
 
 const vitalMeta: Record<string, { color: string; label: string }> = {
   HeartRate:       { color: "#FF3B30", label: "Heart Rate" },
@@ -46,8 +46,6 @@ const vitalMeta: Record<string, { color: string; label: string }> = {
   Steps:           { color: "#34C759", label: "Steps" },
   Calories:        { color: "#FF9500", label: "Calories" },
   ActiveEnergy:    { color: "#5856D6", label: "Active Energy" },
-  ExerciseMinutes: { color: "#FF2D55", label: "Exercise" },
-  StandHours:      { color: "#00D4C8", label: "Stand Hours" },
 };
 
 function glassInput(extra = "") {
@@ -68,12 +66,6 @@ function severityBadgeClass(sev: number) {
   if (sev === 3) return "bg-red-500/20 text-red-300 border-red-500/40";
   if (sev === 2) return "bg-amber-500/20 text-amber-300 border-amber-500/40";
   return "bg-yellow-500/20 text-yellow-300 border-yellow-500/40";
-}
-
-function qualityClass(score: number) {
-  if (score >= 80) return "bg-green-500/20 text-green-300";
-  if (score >= 50) return "bg-amber-500/20 text-amber-300";
-  return "bg-red-500/20 text-red-300";
 }
 
 function medStatusClass(status: number) {
@@ -309,7 +301,7 @@ export default function PatientDetailPage() {
 
   const sleepChartData = [...sleep]
     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-    .map((s) => ({ date: format(new Date(s.startTime), "MMM d"), duration: s.durationMinutes, quality: s.qualityScore }));
+    .map((s) => ({ date: format(new Date(s.startTime), "MMM d"), duration: s.durationMinutes }));
 
   const glassTooltipStyle = {
     borderRadius: "14px",
@@ -664,7 +656,6 @@ export default function PatientDetailPage() {
                         <th className="px-6 py-3 font-medium">Start</th>
                         <th className="px-6 py-3 font-medium">End</th>
                         <th className="px-6 py-3 font-medium">Duration</th>
-                        <th className="px-6 py-3 font-medium">Quality</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -674,11 +665,6 @@ export default function PatientDetailPage() {
                           <td className="px-6 py-3 text-white/70">{format(new Date(s.startTime), "HH:mm")}</td>
                           <td className="px-6 py-3 text-white/70">{format(new Date(s.endTime), "HH:mm")}</td>
                           <td className="px-6 py-3 text-white/70">{Math.floor(s.durationMinutes / 60)}h {s.durationMinutes % 60}m</td>
-                          <td className="px-6 py-3">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${qualityClass(s.qualityScore)}`}>
-                              {s.qualityScore.toFixed(0)}%
-                            </span>
-                          </td>
                         </tr>
                       ))}
                     </tbody>

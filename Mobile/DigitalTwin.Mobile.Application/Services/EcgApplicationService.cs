@@ -40,7 +40,11 @@ public class EcgApplicationService
                 Message = alert.Message,
                 Timestamp = alert.Timestamp
             };
-            _logger.LogWarning("[EcgApp] Critical alert: {RuleName} — {Message}", alert.RuleName, alert.Message);
+
+            if (result == Domain.Enums.TriageResult.Critical)
+                _logger.LogError("[EcgApp] CRITICAL alert: {RuleName} — {Message}", alert.RuleName, alert.Message);
+            else
+                _logger.LogWarning("[EcgApp] Warning alert: {RuleName} — {Message}", alert.RuleName, alert.Message);
         }
 
         return (frameDto, alertDto);

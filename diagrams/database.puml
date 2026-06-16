@@ -1,12 +1,12 @@
-@startuml IOS Health App - Database Schema (4NF)
+@startuml IOS Health App - Database Schema (Cloud & Mobile Local)
 !theme plain
 skinparam linetype ortho
 skinparam backgroundColor #FEFEFE
 
-title IOS Health App - Database Schema (4NF, Scalable)\nDigital Twin - Digitalizare dosar medical, IoT, AI, Alerte automate
+title IOS Health App - Database Schema (Cloud PostgreSQL & Mobile SQLite)\nDigital Twin - Digitalizare dosar medical, IoT, AI, Alerte automate
 
 ' =============================================================================
-' ENUMS (stored as INT, EF maps enum to int)
+' ENUMS & METADATA
 ' =============================================================================
 ' UserRole: 0=Patient, 1=Doctor, 2=Admin
 ' VitalSignType: 0=HeartRate, 1=SpO2, 2=Steps, 3=Calories
@@ -17,6 +17,7 @@ title IOS Health App - Database Schema (4NF, Scalable)\nDigital Twin - Digitaliz
 ' OAuthProvider: 0=Google
 ' NotificationType: various types
 ' NotificationSeverity: 0=Low, 1=Medium, 2=High, 3=Critical
+' MedicalDocumentType: 0=Unknown, 1=Prescription, 2=Referral, 3=LabResult, 4=Discharge, 5=MedicalCertificate, 6=ImagingReport, 7=EcgReport, 8=OperativeReport, 9=ConsultationNote, 10=GenericClinicForm
 ' =============================================================================
 
 entity "User" as user {
@@ -32,15 +33,16 @@ entity "User" as user {
   City : VARCHAR(100)
   Country : VARCHAR(100)
   DateOfBirth : DATETIME
-  IsDirty : BOOLEAN
-  SyncedAt : DATETIME
+  IsSynced : BOOLEAN <<Mobile Only>>
+  IsDirty : BOOLEAN <<Cloud Only>>
+  SyncedAt : DATETIME <<Cloud Only>>
   CreatedAt : DATETIME
   UpdatedAt : DATETIME
-  DeletedAt : DATETIME
+  DeletedAt : DATETIME <<Cloud Only>>
 }
 
 entity "UserOAuth" as user_oauth {
-  * Id : GUID <<PK>>
+  * Id : GUID <<PK>> <<Cloud Only>>
   --
   UserId : GUID <<FK>>
   Provider : INT
@@ -69,15 +71,16 @@ entity "Patient" as patient {
   BloodPressureDiastolic : INT [mmHg]
   Cholesterol : DECIMAL(10,2) [mmol/L]
   Cnp : VARCHAR(13)
-  IsDirty : BOOLEAN
-  SyncedAt : DATETIME
+  IsSynced : BOOLEAN <<Mobile Only>>
+  IsDirty : BOOLEAN <<Cloud Only>>
+  SyncedAt : DATETIME <<Cloud Only>>
   CreatedAt : DATETIME
   UpdatedAt : DATETIME
-  DeletedAt : DATETIME
+  DeletedAt : DATETIME <<Cloud Only>>
 }
 
-entity "DoctorPatientAssignment" as doctor_patient {
-  * Id : GUID <<PK>>
+entity "DoctorPatientAssignment (Cloud)" as doctor_patient_cloud {
+  * Id : GUID <<PK>> <<Cloud Only>>
   --
   DoctorId : GUID <<FK>>
   PatientId : GUID <<FK>>
@@ -91,6 +94,17 @@ entity "DoctorPatientAssignment" as doctor_patient {
   DeletedAt : DATETIME
 }
 
+entity "DoctorPatientAssignment (Mobile Local)" as doctor_patient_mobile {
+  * UserId : GUID <<PK, FK>> <<Mobile Only>>
+  * DoctorId : GUID <<PK>> <<Mobile Only>>
+  --
+  FullName : VARCHAR(255)
+  Email : VARCHAR(255)
+  PhotoUrl : VARCHAR(500)
+  AssignedAt : DATETIME
+  Notes : TEXT
+}
+
 entity "VitalSign" as vitalsign {
   * Id : GUID <<PK>>
   --
@@ -99,11 +113,12 @@ entity "VitalSign" as vitalsign {
   Value : DECIMAL(18,4)
   Unit : VARCHAR(20)
   Source : VARCHAR(50)
-  IsDirty : BOOLEAN
-  SyncedAt : DATETIME
+  IsSynced : BOOLEAN <<Mobile Only>>
+  IsDirty : BOOLEAN <<Cloud Only>>
+  SyncedAt : DATETIME <<Cloud Only>>
   Timestamp : DATETIME
   CreatedAt : DATETIME
-  DeletedAt : DATETIME
+  DeletedAt : DATETIME <<Cloud Only>>
 }
 
 entity "Medication" as medication {
@@ -123,11 +138,12 @@ entity "Medication" as medication {
   Status : INT
   DiscontinuedReason : TEXT
   AddedByRole : INT
-  IsDirty : BOOLEAN
-  SyncedAt : DATETIME
+  IsSynced : BOOLEAN <<Mobile Only>>
+  IsDirty : BOOLEAN <<Cloud Only>>
+  SyncedAt : DATETIME <<Cloud Only>>
   CreatedAt : DATETIME
   UpdatedAt : DATETIME
-  DeletedAt : DATETIME
+  DeletedAt : DATETIME <<Cloud Only>>
 }
 
 entity "SleepSession" as sleep {
@@ -138,10 +154,11 @@ entity "SleepSession" as sleep {
   EndTime : DATETIME
   DurationMinutes : INT
   QualityScore : DECIMAL(5,2)
-  IsDirty : BOOLEAN
-  SyncedAt : DATETIME
+  IsSynced : BOOLEAN <<Mobile Only>>
+  IsDirty : BOOLEAN <<Cloud Only>>
+  SyncedAt : DATETIME <<Cloud Only>>
   CreatedAt : DATETIME
-  DeletedAt : DATETIME
+  DeletedAt : DATETIME <<Cloud Only>>
 }
 
 entity "EnvironmentReading" as env_reading {
@@ -149,6 +166,7 @@ entity "EnvironmentReading" as env_reading {
   --
   Latitude : DECIMAL(10,7)
   Longitude : DECIMAL(10,7)
+  LocationDisplayName : VARCHAR(200) <<Mobile Only>>
   PM25 : DECIMAL(10,2)
   PM10 : DECIMAL(10,2)
   O3 : DECIMAL(10,2)
@@ -161,7 +179,7 @@ entity "EnvironmentReading" as env_reading {
   SyncedAt : DATETIME
   Timestamp : DATETIME
   CreatedAt : DATETIME
-  DeletedAt : DATETIME
+  DeletedAt : DATETIME <<Cloud Only>>
 }
 
 entity "OcrDocument" as ocr_document {
@@ -180,7 +198,7 @@ entity "OcrDocument" as ocr_document {
   ScannedAt : DATETIME
   CreatedAt : DATETIME
   UpdatedAt : DATETIME
-  DeletedAt : DATETIME
+  DeletedAt : DATETIME <<Cloud Only>>
 }
 
 entity "MedicalHistoryEntry" as med_history {
@@ -201,11 +219,11 @@ entity "MedicalHistoryEntry" as med_history {
   EventDate : DATETIME
   CreatedAt : DATETIME
   UpdatedAt : DATETIME
-  DeletedAt : DATETIME
+  DeletedAt : DATETIME <<Cloud Only>>
 }
 
 entity "Notification" as notification {
-  * Id : GUID <<PK>>
+  * Id : GUID <<PK>> <<Cloud Only>>
   --
   RecipientUserId : GUID <<FK>>
   RecipientRole : INT
@@ -221,16 +239,33 @@ entity "Notification" as notification {
   DeletedAt : DATETIME
 }
 
+entity "ChatMessage" as chat_message {
+  * Id : GUID <<PK>> <<Mobile Only>>
+  --
+  Content : TEXT
+  IsUser : BOOLEAN
+  Timestamp : DATETIME
+}
+
+entity "AppCache" as app_cache {
+  * Key : VARCHAR(255) <<PK>> <<Mobile Only>>
+  --
+  ValueJson : TEXT
+  StoredAtUtc : DATETIME
+  Fingerprint : VARCHAR(255)
+  UpdatedAtUtc : DATETIME
+}
 
 ' =============================================================================
 ' RELATIONSHIPS
 ' =============================================================================
 user ||--o| patient : "is"
 user ||--o{ user_oauth : "has"
-user ||--o{ doctor_patient : "assigns"
+user ||--o{ doctor_patient_cloud : "assigns"
+user ||--o{ doctor_patient_mobile : "assigned to (local cache)"
 user ||--o{ medication : "prescribes"
 user ||--o{ notification : "receives"
-patient ||--o{ doctor_patient : "assigned to"
+patient ||--o{ doctor_patient_cloud : "assigned to"
 patient ||--o{ vitalsign : "has"
 patient ||--o{ medication : "takes"
 patient ||--o{ sleep : "has"
@@ -242,52 +277,57 @@ ocr_document ||--o{ med_history : "generates"
 ' COMMENTS / NOTES
 ' =============================================================================
 note top of user
-  **User** - Base identity for all actors.
+  **User** - Base identity for all actors (Cloud & Mobile).
   Role (int): 0=Patient, 1=Doctor, 2=Admin.
   Email unique - used for doctor-patient assignment.
   Complete profile: FirstName, LastName, PhotoUrl, Phone, Address, City, Country, DateOfBirth.
-  Sync tracking: IsDirty, SyncedAt.
-  Soft delete: DeletedAt.
+  Sync tracking: IsSynced (Mobile SQLite), IsDirty/SyncedAt (Cloud PostgreSQL).
+  Soft delete: DeletedAt (Cloud PostgreSQL only).
 end note
 
 note top of user_oauth
-  **UserOAuth** - Google OAuth integration (Provider=0).
+  **UserOAuth** - Google OAuth integration (Cloud Only).
   ProviderUserId = Google "sub" claim.
   AccessToken, RefreshToken for API calls.
   Email from Google (can differ from User.Email).
-  Sync tracked.
 end note
 
 note top of patient
-  **Patient** - Patient-specific medical and biometric data.
+  **Patient** - Patient-specific medical and biometric data (Cloud & Mobile).
   1:1 with User when Role=Patient.
   BloodType, Allergies, MedicalHistoryNotes.
   Biometric data: Weight (kg), Height (cm), BP Systolic/Diastolic (mmHg), Cholesterol (mmol/L).
   Cnp: Romanian Personal Numeric Code (13 digits).
-  UserId unique (one patient per user).
-  Sync tracked.
+  Sync tracking: IsSynced (Mobile SQLite), IsDirty/SyncedAt (Cloud PostgreSQL).
+  Soft delete: DeletedAt (Cloud PostgreSQL only).
 end note
 
-note top of doctor_patient
-  **DoctorPatientAssignment** - Doctor-Patient relationship.
+note top of doctor_patient_cloud
+  **DoctorPatientAssignment (Cloud)** - Doctor-Patient relationship in Cloud PostgreSQL database.
   Doctor enters patient Email (unique) → links to User/Patient.
   PatientEmail: email used when doctor assigned (audit trail).
   AssignedByDoctorId: who created the assignment.
   UNIQUE(DoctorId, PatientId) - no duplicate assignments.
-  Query doctors' patients: WHERE DoctorId = @currentDoctorId.
-  Sync tracked.
+  Soft delete: DeletedAt.
+end note
+
+note top of doctor_patient_mobile
+  **DoctorPatientAssignment (Mobile Local)** - Read-only local cache of doctor assignments.
+  Stored in Mobile SQLite. Primary key is (UserId, DoctorId).
+  FullName, Email, PhotoUrl of doctor cached for offline display.
 end note
 
 note top of vitalsign
-  **VitalSign** - Health metrics from wearables/IoT/HealthKit.
+  **VitalSign** - Health metrics from wearables/IoT/HealthKit (Cloud & Mobile).
   Type (int): 0=HeartRate, 1=SpO2, 2=Steps, 3=Calories.
   Source: HealthKit, Mock, IoT, etc.
   Timestamp = when measured (supports date range queries).
-  Sync tracked: IsDirty, SyncedAt.
+  Sync tracking: IsSynced (Mobile SQLite), IsDirty/SyncedAt (Cloud PostgreSQL).
+  Soft delete: DeletedAt (Cloud PostgreSQL only).
 end note
 
 note top of medication
-  **Medication** - Past, current, future medications.
+  **Medication** - Past, current, future medications (Cloud & Mobile).
   Status (int): 0=Active, 1=Discontinued, 2=Scheduled, 3=Completed.
   StartDate/EndDate: timeline for past/future.
   Route (int): 0=Oral, 1=IV, 2=Topical, 3=Subcutaneous, 4=Other.
@@ -295,51 +335,56 @@ note top of medication
   PrescribedByUserId → User (Doctor).
   DiscontinuedReason when Status=Discontinued.
   AddedByRole: 0=Patient, 1=Doctor (audit).
-  Sync tracked: IsDirty, SyncedAt.
+  Sync tracking: IsSynced (Mobile SQLite), IsDirty/SyncedAt (Cloud PostgreSQL).
+  Soft delete: DeletedAt (Cloud PostgreSQL only).
 end note
 
 note top of sleep
-  **SleepSession** - Sleep analysis from HealthKit.
+  **SleepSession** - Sleep analysis from HealthKit (Cloud & Mobile).
   StartTime, EndTime, DurationMinutes.
   QualityScore: 0-100 quality assessment.
-  Sync tracked: IsDirty, SyncedAt.
+  Sync tracking: IsSynced (Mobile SQLite), IsDirty/SyncedAt (Cloud PostgreSQL).
+  Soft delete: DeletedAt (Cloud PostgreSQL only).
 end note
 
 note bottom of env_reading
-  **EnvironmentReading** - Environmental pollution metrics.
-  Location-based (Lat/Lon), no direct user dependency.
-  Fetched in-app for current location (cached by location).
-  Pollutants: PM25, PM10, O3, NO2 (parts per million/billion).
+  **EnvironmentReading** - Environmental pollution metrics (Cloud & Mobile).
+  Location-based (Lat/Lon), cached locally by location.
+  LocationDisplayName (Mobile SQLite only): display name of the location where reading was taken.
+  Pollutants: PM25, PM10, O3, NO2.
   AirQualityLevel (int): 0=Good, 1=Moderate, 2=Unhealthy.
   AqiIndex: Air Quality Index (0-500+).
-  Sync tracked: IsDirty, SyncedAt.
+  Sync tracking: IsDirty, SyncedAt on both SQLite and PostgreSQL.
+  Soft delete: DeletedAt (Cloud PostgreSQL only).
 end note
 
 note top of ocr_document
-  **OcrDocument** - Scanned medical documents with vault encryption.
+  **OcrDocument** - Scanned medical documents with vault encryption (Cloud & Mobile).
   PatientId FK (accessible only by patient).
   OpaqueInternalName: non-predictable filename.
   MimeType: image/png, application/pdf, etc.
-  DocumentType: Prescription, Lab Result, Discharge, Unknown, etc.
+  DocumentType: Prescription, Lab Result, Discharge, etc.
   PageCount: number of pages in document.
   Sha256OfNormalized: hash for deduplication.
   SanitizedOcrPreview: OCR text preview (sanitized for display).
   EncryptedVaultPath: AES-GCM vault path (local only, never synced).
-  Sync tracked: IsDirty, SyncedAt (but vault path never leaves device).
+  Sync tracking: IsDirty, SyncedAt (vault path never leaves device).
+  Soft delete: DeletedAt (Cloud PostgreSQL only).
 end note
 
 note top of med_history
-  **MedicalHistoryEntry** - Structured medical history extracted from documents.
+  **MedicalHistoryEntry** - Structured medical history extracted from documents (Cloud & Mobile).
   PatientId, SourceDocumentId (from OcrDocument).
   Title, MedicationName, Dosage, Frequency, Duration.
   Notes, Summary: extracted narrative data.
   Confidence: 0-1 score for AI extraction quality.
   EventDate: date of the medical event.
-  Sync tracked: IsDirty, SyncedAt.
+  Sync tracking: IsDirty, SyncedAt.
+  Soft delete: DeletedAt (Cloud PostgreSQL only).
 end note
 
 note top of notification
-  **Notification** - System notifications for alerts and updates.
+  **Notification** - System notifications for alerts and updates (Cloud Only).
   RecipientUserId: who receives the notification.
   RecipientRole: user role at time of notification (audit).
   Type, Severity (0=Low, 1=Medium, 2=High, 3=Critical).
@@ -349,5 +394,19 @@ note top of notification
   NOT synced (server-only, real-time).
 end note
 
-@enduml
+note bottom of chat_message
+  **ChatMessage** - Chat history messages for local AI bot assistant (Mobile Only).
+  Content: message text content.
+  IsUser: true if user sent the message, false if AI bot responded.
+  Timestamp: message date and time.
+end note
 
+note bottom of app_cache
+  **AppCache** - Local cached payloads (Mobile SQLite Only).
+  Key: cache lookup key.
+  ValueJson: JSON string payload.
+  StoredAtUtc/UpdatedAtUtc: cache timestamp metadata.
+  Fingerprint: validation fingerprint.
+end note
+
+@enduml

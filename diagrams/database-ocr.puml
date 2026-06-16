@@ -1,0 +1,63 @@
+@startuml IOS Health App - Document OCR & Medical History Schema
+!theme plain
+skinparam linetype ortho
+skinparam backgroundColor #FEFEFE
+
+title Database Subschema - Document OCR & AI Extraction (Cloud & Mobile Local)
+
+entity "Patient" as patient {
+  * Id : GUID <<PK>>
+  --
+  UserId : GUID <<FK>>
+  BloodType : VARCHAR(10)
+  Cnp : VARCHAR(13)
+}
+
+entity "OcrDocument" as ocr_document {
+  * Id : GUID <<PK>>
+  --
+  PatientId : GUID <<FK>>
+  OpaqueInternalName : VARCHAR(500)
+  MimeType : VARCHAR(100)
+  DocumentType : VARCHAR(50)
+  PageCount : INT
+  Sha256OfNormalized : VARCHAR(64)
+  SanitizedOcrPreview : TEXT
+  EncryptedVaultPath : VARCHAR(500)
+  IsDirty : BOOLEAN
+  SyncedAt : DATETIME
+  ScannedAt : DATETIME
+  CreatedAt : DATETIME
+  UpdatedAt : DATETIME
+  DeletedAt : DATETIME <<Cloud Only>>
+}
+
+entity "MedicalHistoryEntry" as med_history {
+  * Id : GUID <<PK>>
+  --
+  PatientId : GUID <<FK>>
+  SourceDocumentId : GUID <<FK>>
+  Title : VARCHAR(255)
+  MedicationName : VARCHAR(255)
+  Dosage : VARCHAR(100)
+  Frequency : VARCHAR(100)
+  Duration : VARCHAR(100)
+  Notes : TEXT
+  Summary : TEXT
+  Confidence : DECIMAL(5,2)
+  IsDirty : BOOLEAN
+  SyncedAt : DATETIME
+  EventDate : DATETIME
+  CreatedAt : DATETIME
+  UpdatedAt : DATETIME
+  DeletedAt : DATETIME <<Cloud Only>>
+}
+
+' =============================================================================
+' RELATIONSHIPS
+' =============================================================================
+patient ||--o{ ocr_document : "has"
+patient ||--o{ med_history : "has"
+ocr_document ||--o{ med_history : "generates"
+
+@enduml
